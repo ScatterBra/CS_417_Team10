@@ -1,20 +1,17 @@
 # Defense Yard - Scene Setup (Phase 1)
 
-I can't assemble Unity scenes from here, so this is the 5-minute editor setup.
-All scripts are in Assets/DefenseYard/Scripts/.
+One-click setup. No manual steps.
 
 ## Steps
 
-1. Open the project, create a new scene: File > New Scene. Save it as
-   Assets/DefenseYard/Scenes/DefenseYard.unity
-2. Create an empty GameObject named "CameraRig". Drag the scene's Main Camera
-   under it as a child. Attach DEF_CameraRig to CameraRig.
-3. Create an empty GameObject named "GameState". Attach DEF_GameState.
-4. Create an empty GameObject named "Grid". Attach DEF_GridManager.
-5. Create an empty GameObject named "Selector". Attach DEF_TileSelector.
-6. Create an empty GameObject named "HUD". Attach DEF_HUD.
-7. Make sure the scene has a Directional Light (default new scenes do).
-8. Hit Play.
+1. Open the project in Unity and let it import.
+2. Pull the daryl/defense-yard-phase1 branch.
+3. In the Unity menu bar, click Deadzone > Build Defense Yard Scene.
+4. It creates the camera rig, game state, grid, selector, HUD, and a light,
+   then saves Assets/DefenseYard/Scenes/DefenseYard.unity.
+5. Hit Play.
+
+Delete Assets/DefenseYard/Editor/ after if you want, the scene stays built.
 
 ## What you get
 
