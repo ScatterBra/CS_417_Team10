@@ -40,7 +40,7 @@ namespace Deadzone.Power
         private void Update()
         {
             var rig = PWR_PlayerRig.Instance;
-            bool building = PWR_BuildSystem.Instance != null && PWR_BuildSystem.Instance.selected != null;
+            bool building = PWR_BuildSystem.Instance != null && PWR_BuildSystem.Instance.IsActive;
 
             if (rig != null && rig.XRActive)
             {

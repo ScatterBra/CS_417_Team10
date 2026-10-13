@@ -15,8 +15,8 @@ namespace Deadzone.Power
         public float cellSize = 1f;
         public Vector2Int gridSize = new Vector2Int(15, 15);
 
-        [Tooltip("Chebyshev radius used for neighbor interactions. 1 = the 8 surrounding cells.")]
-        public int neighborRange = 1;
+        [Tooltip("Chebyshev radius used for neighbor interactions. 2 = the 5x5 area around a building.")]
+        public int neighborRange = 2;
 
         [Tooltip("Optional visual shown while the player is building.")]
         public GameObject overlay;
@@ -113,7 +113,7 @@ namespace Deadzone.Power
             if (list.Count == 0) cells.Remove(cell);
         }
 
-        /// <summary>Neighboring components of type T within neighborRange (8 cells for range 1).</summary>
+        /// <summary>Neighboring components of type T within neighborRange (the 5x5 area for range 2).</summary>
         public void GetNeighbors<T>(Vector2Int cell, List<T> results) where T : Component
         {
             results.Clear();

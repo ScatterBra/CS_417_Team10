@@ -271,8 +271,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 552d35e8755873c4fa544dd15479d728, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_WristPanel
-  controllerOffset: {x: 0, y: 0.12, z: 0.06}
-  worldWidth: 0.26
+  wristGap: 0.03
+  followSharpness: 18
+  worldWidth: 0.28
 --- !u!114 &72118959
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -367,6 +368,9 @@ MonoBehaviour:
   ghostMaterial: {fileID: 2100000, guid: 0994f02d500f4e6479f16d8910e3d2f2, type: 2}
   validColor: {r: 0.2, g: 1, b: 0.3, a: 0.35}
   invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.35}
+  rangeColor: {r: 1, g: 0.75, b: 0.15, a: 0.4}
+  demolishColor: {r: 1, g: 0.25, b: 0.15, a: 0.45}
+  demolishBlockedColor: {r: 0.6, g: 0.6, b: 0.6, a: 0.3}
 --- !u!114 &72118965
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2093,7 +2097,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_GridManager
   cellSize: 1
   gridSize: {x: 15, y: 15}
-  neighborRange: 1
+  neighborRange: 2
   overlay: {fileID: 2030230028}
 --- !u!1001 &1064864147
 PrefabInstance:
@@ -2964,6 +2968,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1178791450436251564, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_RequestedTrackingOriginMode
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Name
       value: XR Origin (XR Rig)
@@ -4302,8 +4310,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2046839969}
-  - component: {fileID: 2046839972}
-  - component: {fileID: 2046839971}
   - component: {fileID: 2046839970}
   m_Layer: 0
   m_Name: BatteryBankHint
@@ -4320,9 +4326,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2046839968}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -3, y: 0.065, z: -3}
-  m_LocalScale: {x: 0.95, y: 0.95, z: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -3, y: 0.05, z: -3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1890919971}
@@ -4340,68 +4346,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_TutorialTrigger
   tutorialId: battery_bank
-  message: Place the Battery Bank here, next to the Charger and Floodlight. It still
-    holds a little charge.
+  message: Build the Battery Bank near the Charger and Floodlight. Its power reaches
+    2 cells in every direction (the orange area while placing). It still holds a
+    little charge.
   mode: 0
   radius: 6
   offset: {x: 0, y: 1.6, z: 0}
---- !u!23 &2046839971
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2046839968}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: c912e6a0ccd816c499493e34491e63fb, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 1
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &2046839972
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2046839968}
-  m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &2143091328
 GameObject:
   m_ObjectHideFlags: 0

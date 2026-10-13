@@ -58,8 +58,8 @@ namespace Deadzone.Power.EditorTools
 
         class Mats
         {
-            public Material concrete, belt, rail, coal, metal, steel, warm, chargedBattery,
-                teal, binMat, chuteMat, copper, glass, darkMetal, arrow, rings, gridLines, ghost, hint;
+            public Material concrete, belt, rail, coal, metal, steel, warm, chargedBattery, buttonIdle, buttonRunning,
+                teal, binMat, chuteMat, copper, glass, darkMetal, arrow, rings, gridLines, ghost;
         }
 
         static Texture2D MakeTexture(string name, int size, Func<float, float, Color> pixel, TextureWrapMode wrap)
@@ -160,6 +160,8 @@ namespace Deadzone.Power.EditorTools
                 warm = Lit("PWR_BulbWarm", new Color(1f, 0.92f, 0.7f), 0f, 0.8f, new Color(2.5f, 2.1f, 1.2f)),
                 chargedBattery = Lit("PWR_ChargedBattery", Color.white, 0f, 0.4f, new Color(0.15f, 0.9f, 0.25f),
                     AssetDatabase.LoadAssetAtPath<Texture2D>($"{ModelDir}/Textures/Battery_Material_AlbedoTransparency.png")),
+                buttonIdle = Lit("PWR_ButtonIdle", new Color(0.85f, 0.15f, 0.1f), 0.2f, 0.6f, new Color(1.2f, 0.15f, 0.1f)),
+                buttonRunning = Lit("PWR_ButtonRunning", new Color(0.2f, 0.9f, 0.3f), 0.2f, 0.6f, new Color(0.3f, 1.6f, 0.4f)),
                 teal = Lit("PWR_Electrolyte", new Color(0.1f, 0.6f, 0.6f), 0.2f, 0.7f),
                 binMat = Lit("PWR_Bin", new Color(0.22f, 0.3f, 0.38f), 0.5f, 0.4f),
                 chuteMat = Lit("PWR_Chute", new Color(0.9f, 0.75f, 0.1f), 0.4f, 0.4f),
@@ -169,7 +171,6 @@ namespace Deadzone.Power.EditorTools
                 rings = Scroll("PWR_BlastRing", ringTex, new Color(2f, 1.2f, 0.4f, 1f), new Vector2(0f, -1.5f), new Vector2(1f, 1f)),
                 gridLines = Scroll("PWR_GridOverlay", gridTex, Color.white, Vector2.zero, new Vector2(GridSize.x, GridSize.y)),
                 ghost = Scroll("PWR_Ghost", white, new Color(0.2f, 1f, 0.3f, 0.35f), Vector2.zero, Vector2.one),
-                hint = Scroll("PWR_PlaceHint", gridTex, new Color(0.4f, 1f, 0.5f, 1.2f), new Vector2(0f, 0.6f), new Vector2(1f, 1f)),
             };
         }
 
@@ -447,10 +448,10 @@ namespace Deadzone.Power.EditorTools
             // --- Generators (player-built, free, one of each).
             p.coalGen = BuildGenerator(m, "PWR_CoalGenerator", "PWR_Generator", "Coal Generator", "CoalGenerator",
                 "CoalLevel", PWR_ResourceType.Coal, 25f, "coal_gen",
-                "Coal Generator: pull the trigger on it to load Coal. It only burns Coal.");
+                "Coal Generator: pull the trigger on it to load Coal. It only burns Coal and only charges a Battery Bank within 2 cells.");
             p.oilGen = BuildGenerator(m, "PWR_OilGenerator", "PWR_Generator_1", "Oil Generator", "OilGenerator",
                 "OilLevel", PWR_ResourceType.RefinedOil, 40f, "oil_gen",
-                "Oil Generator: pull the trigger on it to load Refined Oil. It only burns Refined Oil.");
+                "Oil Generator: pull the trigger on it to load Refined Oil. It only burns Refined Oil and only charges a Battery Bank within 2 cells.");
 
             // --- Concrete pad (foundation, free).
             {
@@ -501,7 +502,7 @@ namespace Deadzone.Power.EditorTools
                 MakeGrabbable(go, 6f);
                 Interactable(go, "Draw oil");
                 var stats = Add<PWR_StatBlock>(go);
-                stats.AddStat("RemainingOil", 9f, 0f, 9f);
+                stats.AddStat("RemainingOil", 18f, 0f, 18f);
                 var h = Add<PWR_Harvestable>(go);
                 h.mode = PWR_Harvestable.Mode.OnUse;
                 h.resource = PWR_ResourceType.CrudeOil;
@@ -521,7 +522,7 @@ namespace Deadzone.Power.EditorTools
                 stats.AddStat("Integrity", 2f, 0f, 2f);
                 var s = Add<PWR_Shatterable>(go);
                 s.piecePrefab = p.coalChunk;
-                s.pieceCount = 2;
+                s.pieceCount = 4;
                 Interactable(go, "Smash");
                 Label(go, "Wooden Crate", 1.2f, "Integrity");
                 Tutorial(go, "crate", "Wooden Crate: hit it with the Wrench (on the workbench) to break it into Coal.", 2.2f, 1.65f);
@@ -635,6 +636,9 @@ namespace Deadzone.Power.EditorTools
                 var go = Root("PWR_DeliveryChute");
                 Prim(PrimitiveType.Cube, go.transform, "Hopper", new Vector3(0f, 0.9f, 0f), new Vector3(0.7f, 0.5f, 0.5f), m.chuteMat);
                 Prim(PrimitiveType.Cube, go.transform, "Mouth", new Vector3(0f, 0.6f, 0f), new Vector3(0.5f, 0.1f, 0.4f), m.darkMetal, false);
+                // Big mushroom button on top of the hopper: red until the player starts the conveyor.
+                var button = Prim(PrimitiveType.Cylinder, go.transform, "StartButton", new Vector3(0f, 1.18f, 0f),
+                    new Vector3(0.18f, 0.03f, 0.18f), m.buttonIdle, false);
                 var output = new GameObject("OutputPoint").transform;
                 output.SetParent(go.transform, false);
                 output.localPosition = new Vector3(0f, 0.2f, 0f);
@@ -642,9 +646,14 @@ namespace Deadzone.Power.EditorTools
                 chute.outputPoint = output;
                 chute.copperWirePrefab = p.cargoCopper.GetComponent<PWR_Cargo>();
                 chute.glassPrefab = p.cargoGlass.GetComponent<PWR_Cargo>();
+                chute.startButton = button.GetComponent<Renderer>();
+                chute.buttonIdle = m.buttonIdle;
+                chute.buttonRunning = m.buttonRunning;
+                Interactable(go, "Start conveyor");
                 var label = Label(go, "Delivery Chute", 1.6f);
                 chute.label = label;
-                Tutorial(go, "chute", "Delivery Chute: supplies arrive here at random times. Build a conveyor from here to the Receiving Bin.", 3f, 2.1f);
+                Tutorial(go, "chute", "Delivery Chute: supplies arrive here at random times. Build a conveyor from here to the Receiving Bin, " +
+                    "then point at the chute and pull the trigger to press its red button and start the deliveries.", 3f, 2.1f);
                 p.chute = Save(go, "PWR_DeliveryChute");
             }
 
@@ -765,7 +774,6 @@ namespace Deadzone.Power.EditorTools
             {
                 grid = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/PWR_GridOverlay.mat"),
                 ghost = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/PWR_Ghost.mat"),
-                hint = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/PWR_PlaceHint.mat"),
             };
 
             var root = new GameObject(StationRootName);
@@ -789,7 +797,7 @@ namespace Deadzone.Power.EditorTools
             var grid = gridGo.AddComponent<PWR_GridManager>();
             grid.cellSize = 1f;
             grid.gridSize = GridSize;
-            grid.neighborRange = 1;
+            grid.neighborRange = 2;
             var overlay = GameObject.CreatePrimitive(PrimitiveType.Quad);
             overlay.name = "GridOverlay";
             UnityEngine.Object.DestroyImmediate(overlay.GetComponent<Collider>());
@@ -823,6 +831,10 @@ namespace Deadzone.Power.EditorTools
                 xrOrigin = (GameObject)PrefabUtility.InstantiatePrefab(rigAsset, scene);
             }
             xrOrigin.transform.position = new Vector3(0f, 0.05f, 1.5f);
+            // Quest Link reports a floor-level (Unbounded) space; with "Not Specified" the rig would keep its
+            // 1.36 m camera offset on top of the player's real height. Floor mode drops the offset.
+            var originComp = xrOrigin.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+            originComp.RequestedTrackingOriginMode = Unity.XR.CoreUtils.XROrigin.TrackingOriginMode.Floor;
             xrOrigin.transform.rotation = Quaternion.Euler(0f, -146f, 0f);
             var oldCamera = all.FirstOrDefault(g => g.name == "Main Camera" && g.transform.parent == null);
             if (oldCamera != null) oldCamera.SetActive(false);
@@ -874,18 +886,15 @@ namespace Deadzone.Power.EditorTools
             Deactivate(Find("PWR_Generator"));
             Deactivate(Find("PWR_Generator_1"));
 
-            // --- hint where the battery bank goes (next to charger and floodlight)
-            var hint = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            hint.name = "BatteryBankHint";
-            UnityEngine.Object.DestroyImmediate(hint.GetComponent<Collider>());
+            // --- battery bank tutorial between the charger and floodlight. No floor marker: the build
+            // preview shows the 5x5 area the bank reaches, so any cell that covers both works.
+            var hint = new GameObject("BatteryBankHint");
             hint.transform.SetParent(markers, false);
-            hint.transform.position = CellCenter(BankHintCell) + Vector3.up * 0.015f;
-            hint.transform.eulerAngles = new Vector3(90f, 0f, 0f);
-            hint.transform.localScale = new Vector3(0.95f, 0.95f, 1f);
-            hint.GetComponent<Renderer>().sharedMaterial = mats.hint;
+            hint.transform.position = CellCenter(BankHintCell);
             var ht = hint.AddComponent<PWR_TutorialTrigger>();
             ht.tutorialId = "battery_bank";
-            ht.message = "Place the Battery Bank here, next to the Charger and Floodlight. It still holds a little charge.";
+            ht.message = "Build the Battery Bank near the Charger and Floodlight. Its power reaches 2 cells in every direction " +
+                         "(the orange area while placing). It still holds a little charge.";
             ht.radius = 6f;
             ht.offset = new Vector3(0f, 1.6f, 0f);
 

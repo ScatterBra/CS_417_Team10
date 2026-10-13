@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,10 +20,11 @@ namespace Deadzone.Power
         private float pitch;
         private bool active;
 
-        private void Start()
+        private IEnumerator Start()
         {
+            yield return PWR_PlayerRig.WaitForXRStartup();
             var rig = PWR_PlayerRig.Instance;
-            if (rig == null || rig.XRActive || rig.origin == null || Camera.main == null) return;
+            if (rig == null || rig.XRActive || rig.origin == null || Camera.main == null) yield break;
             active = true;
             origin = rig.origin;
             cam = Camera.main.transform;

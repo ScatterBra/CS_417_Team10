@@ -57,7 +57,8 @@ namespace Deadzone.Power
                 originalIntensity[l] = l.intensity;
                 l.intensity = 0f;
             }
-            Invoke(nameof(ShowIntro), 1.5f);
+            // After PWR_PlayerRig.WaitForXRStartup (up to 2 s) so the menu anchor exists.
+            Invoke(nameof(ShowIntro), 2.5f);
         }
 
         private void ShowIntro()
@@ -66,7 +67,7 @@ namespace Deadzone.Power
                 : PWR_WristPanel.Instance != null && PWR_WristPanel.Instance.Anchor != null ? PWR_WristPanel.Instance.Anchor
                 : Camera.main != null ? Camera.main.transform : transform;
             Tutorial("wrist_menu",
-                "Open your wrist menu to place machines. Push the thumbstick left/right to rotate 90°.\n(Desktop: 1-5 select, R rotate, click to place)",
+                "Press Y on your left controller to open the build menu, press it again to close it.\n(Desktop: 1-5 select, X demolish, R rotate, click to place)",
                 anchor, new Vector3(0f, 0.25f, 0f));
         }
 
@@ -81,7 +82,7 @@ namespace Deadzone.Power
                 bankHint.SetActive(false);
 
             if (floodlight != null && floodlight.IsLit)
-                Tutorial("floodlight", "The Floodlight draws power from a nearby Battery Bank. Its bulb wears out over time.",
+                Tutorial("floodlight", "The Floodlight draws power from a Battery Bank within 2 cells. Its bulb wears out over time.",
                     floodlight.transform, new Vector3(0f, 1.9f, 0f));
 
             var bank = FindBank();

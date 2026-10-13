@@ -6,7 +6,7 @@ namespace Deadzone.Power
 {
     public enum PWR_PowerRole
     {
-        Source,   // generators: push to Storage and Sink
+        Source,   // generators: push to Storage only
         Storage,  // battery bank: receives from Source, pushes to Sink
         Sink,     // charger, floodlight: only receive
     }
@@ -92,13 +92,16 @@ namespace Deadzone.Power
             }
         }
 
-        private bool CanFeed(PWR_PowerNode other)
+        private bool CanFeed(PWR_PowerNode other) =>
+            other.online && other.acceptingPower && Feeds(role, other.role);
+
+        /// <summary>Power flows generator -> battery bank -> charger / floodlight, never skipping the bank.</summary>
+        public static bool Feeds(PWR_PowerRole from, PWR_PowerRole to)
         {
-            if (!other.online || !other.acceptingPower) return false;
-            switch (role)
+            switch (from)
             {
-                case PWR_PowerRole.Source: return other.role != PWR_PowerRole.Source;
-                case PWR_PowerRole.Storage: return other.role == PWR_PowerRole.Sink;
+                case PWR_PowerRole.Source: return to == PWR_PowerRole.Storage;
+                case PWR_PowerRole.Storage: return to == PWR_PowerRole.Sink;
                 default: return false;
             }
         }

@@ -115,18 +115,41 @@ namespace Deadzone.Power
             var le = go.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.minHeight = height;
+            // The tint multiplies the image color, so the image stays white and the tint carries the
+            // actual colors; otherwise hover would darken the button instead of lighting it up.
             var img = go.AddComponent<Image>();
-            img.color = ButtonColor;
+            img.color = Color.white;
             var button = go.AddComponent<Button>();
             var colors = button.colors;
-            colors.highlightedColor = new Color(0.35f, 0.42f, 0.5f, 1f);
+            colors.normalColor = ButtonColor;
+            colors.highlightedColor = new Color(0.38f, 0.55f, 0.72f, 1f);
             colors.pressedColor = AccentColor;
-            colors.disabledColor = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+            colors.selectedColor = ButtonColor;
+            colors.disabledColor = new Color(0.25f, 0.25f, 0.25f, 0.5f);
+            colors.fadeDuration = 0.05f;
             button.colors = colors;
+            // No keyboard/controller navigation: a clicked button must not stay "selected".
+            button.navigation = new Navigation { mode = Navigation.Mode.None };
             if (onClick != null) button.onClick.AddListener(onClick);
             var text = CreateText(go.transform, label, fontSize, TextAlignmentOptions.Center, 4f);
             text.textWrappingMode = TextWrappingModes.Normal;
             return button;
+        }
+
+        /// <summary>Fixed-size cell grid inside a vertical layout (e.g. two columns of buttons).</summary>
+        public static RectTransform CreateGrid(Transform layout, int columns, float height, Vector2 cellSize, Vector2 spacing)
+        {
+            var go = new GameObject("Grid", typeof(RectTransform));
+            go.transform.SetParent(layout, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = height;
+            le.minHeight = height;
+            var grid = go.AddComponent<GridLayoutGroup>();
+            grid.cellSize = cellSize;
+            grid.spacing = spacing;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = columns;
+            return (RectTransform)go.transform;
         }
 
         public static void Stretch(RectTransform rt)

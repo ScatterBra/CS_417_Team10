@@ -1,6 +1,8 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Management;
 
 namespace Deadzone.Power
 {
@@ -20,7 +22,22 @@ namespace Deadzone.Power
         public NearFarInteractor RightInteractor { get; private set; }
 
         public bool XRActive => XRSettings.isDeviceActive;
+
         public Transform Head => Camera.main != null ? Camera.main.transform : null;
+
+        /// <summary>
+        /// Startup code that picks VR or desktop mode yields on this first. The OpenXR display can report
+        /// inactive for the first frames after the scene loads, and with Quest Link running but no headset
+        /// on, the XR loader starts yet the display never does; so wait for the display, up to a timeout.
+        /// </summary>
+        public static IEnumerator WaitForXRStartup(float timeout = 2f)
+        {
+            var settings = XRGeneralSettings.Instance;
+            bool loaderActive = settings != null && settings.Manager != null && settings.Manager.activeLoader != null;
+            if (!loaderActive) yield break; // no XR runtime at all: desktop right away
+            float end = Time.realtimeSinceStartup + timeout;
+            while (!XRSettings.isDeviceActive && Time.realtimeSinceStartup < end) yield return null;
+        }
 
         private Behaviour[] turnProviders = new Behaviour[0];
         private bool turnEnabled = true;

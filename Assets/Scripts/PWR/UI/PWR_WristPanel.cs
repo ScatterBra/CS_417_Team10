@@ -1,61 +1,102 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Deadzone.Power
 {
     /// <summary>
-    /// The player's wrist panel: resource list, build menu and build status. In VR it floats above the
-    /// left controller facing the player; on desktop it is a screen overlay with hotkey hints.
+    /// The player's wrist menu: resource list, build menu and build status. In VR it is hidden until Y on
+    /// the left controller opens it; it then floats just above the left controller facing the player,
+    /// lightly smoothed so hand tremor doesn't shake the buttons under the right controller ray (or a
+    /// fingertip poke). While placing, the build status floats above the ghost instead. On desktop it
+    /// is a screen overlay with hotkey hints.
     /// </summary>
     public class PWR_WristPanel : MonoBehaviour
     {
         public static PWR_WristPanel Instance { get; private set; }
 
-        public Vector3 controllerOffset = new Vector3(0f, 0.12f, 0.06f);
-        public float worldWidth = 0.26f;
+        [Header("VR menu")]
+        [Tooltip("Gap between the left controller and the bottom edge of the menu.")]
+        public float wristGap = 0.03f;
+        [Tooltip("How quickly the menu catches up with the hand. Lower = steadier but laggier.")]
+        public float followSharpness = 18f;
+        public float worldWidth = 0.28f;
 
-        /// <summary>Transform tutorials about the menu attach to.</summary>
+        /// <summary>Transform tutorials about the menu attach to (the left controller in VR).</summary>
         public Transform Anchor { get; private set; }
+
+        public bool IsOpen => canvas != null && canvas.gameObject.activeSelf;
+
+        const float UnitsWide = 420f;
+        const int Padding = 10;
+        const float XrButtonHeight = 72f;
+        const float XrButtonSpacing = 8f;
 
         private TMP_Text resourceText;
         private TMP_Text statusText;
         private readonly List<Button> buildButtons = new List<Button>();
         private readonly StringBuilder sb = new StringBuilder();
-        private Transform follow;
         private Canvas canvas;
+        private Transform hand;
+        private bool xr;
         private float refresh;
+        private InputAction toggle;
+        private Canvas statusLabel;
+        private TMP_Text statusLabelText;
 
-        private void Awake() => Instance = this;
+        private void Awake()
+        {
+            Instance = this;
+            toggle = new InputAction("PWR Menu Toggle", InputActionType.Button, "<XRController>{LeftHand}/{SecondaryButton}");
+        }
+
+        private void OnEnable() => toggle.Enable();
+
+        private void OnDisable() => toggle.Disable();
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            if (PWR_BuildSystem.Instance != null)
+            {
+                PWR_BuildSystem.Instance.OnSelectionChanged -= HandleSelectionChanged;
+                PWR_BuildSystem.Instance.OnDemolishModeChanged -= HandleDemolishModeChanged;
+            }
         }
 
-        private void Start()
+        private IEnumerator Start()
         {
+            yield return PWR_PlayerRig.WaitForXRStartup();
             var rig = PWR_PlayerRig.Instance;
             var bs = PWR_BuildSystem.Instance;
-            int buttonCount = (bs != null ? bs.buildables.Count : 0) + 1;
-            bool xr = rig != null && rig.XRActive && rig.leftController != null;
+            int buttonCount = (bs != null ? bs.buildables.Count : 0) + 2; // + Demolish, Cancel
+            xr = rig != null && rig.XRActive && rig.leftController != null;
 
-            const float unitsWide = 420f;
-            float unitsHigh = 70 + 10 * 30 + buttonCount * 58 + 90;
             if (xr)
             {
-                canvas = PWR_UIFactory.CreateWorldCanvas("PWR_WristPanel", null, new Vector2(unitsWide, unitsHigh),
-                    worldWidth / unitsWide, true);
-                follow = rig.leftController;
+                int rows = (buttonCount + 1) / 2;
+                float gridHeight = rows * XrButtonHeight + (rows - 1) * XrButtonSpacing;
+                float unitsHigh = 2 * Padding + 40 + 5 * 30 + gridHeight + 50 + 3 * 6;
+                canvas = PWR_UIFactory.CreateWorldCanvas("PWR_BuildMenu", null, new Vector2(UnitsWide, unitsHigh),
+                    worldWidth / UnitsWide, true);
+                // PWR_BuildInput checks for this collider so a trigger pull on the menu doesn't also place.
                 var box = canvas.gameObject.AddComponent<BoxCollider>();
                 box.isTrigger = true;
-                box.size = new Vector3(unitsWide, unitsHigh, 4f);
+                box.size = new Vector3(UnitsWide, unitsHigh, 4f);
+                BuildContents(bs, gridHeight);
+                canvas.gameObject.SetActive(false);
+                hand = rig.leftController;
+                Anchor = hand;
+                CreateStatusLabel();
             }
             else
             {
+                float unitsHigh = 70 + 10 * 30 + buttonCount * 58 + 90;
                 canvas = PWR_UIFactory.CreateOverlayCanvas("PWR_DesktopHUD");
                 var holder = new GameObject("Panel", typeof(RectTransform));
                 holder.transform.SetParent(canvas.transform, false);
@@ -63,53 +104,159 @@ namespace Deadzone.Power
                 rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
                 rt.pivot = new Vector2(0f, 1f);
                 rt.anchoredPosition = new Vector2(16f, -16f);
-                rt.sizeDelta = new Vector2(unitsWide, unitsHigh + 60);
+                rt.sizeDelta = new Vector2(UnitsWide, unitsHigh + 60);
                 canvas = holder.AddComponent<Canvas>();
                 canvas.overrideSorting = true;
                 canvas.sortingOrder = 10;
                 holder.AddComponent<GraphicRaycaster>();
+                BuildContents(bs, 0f);
+                Anchor = canvas.transform;
             }
-            Anchor = canvas.transform;
 
+            if (bs != null)
+            {
+                bs.OnSelectionChanged += HandleSelectionChanged;
+                bs.OnDemolishModeChanged += HandleDemolishModeChanged;
+            }
+            Refresh();
+        }
+
+        /// <summary>Title, resources, build buttons and status line. VR uses two columns of large buttons.</summary>
+        private void BuildContents(PWR_BuildSystem bs, float gridHeight)
+        {
             PWR_UIFactory.CreatePanel(canvas.transform, PWR_UIFactory.PanelColor);
-            var layout = PWR_UIFactory.CreateVerticalLayout(canvas.transform, 6, 10);
-            var title = PWR_UIFactory.CreateLayoutText(layout, "<b>POWER STATION</b>", 28, 36);
+            var layout = PWR_UIFactory.CreateVerticalLayout(canvas.transform, 6, Padding);
+            var title = PWR_UIFactory.CreateLayoutText(layout, "<b>POWER STATION</b>", 28, xr ? 40 : 36);
             title.color = PWR_UIFactory.AccentColor;
-            resourceText = PWR_UIFactory.CreateLayoutText(layout, "", 22, 10 * 30);
+            resourceText = PWR_UIFactory.CreateLayoutText(layout, "", 22, xr ? 5 * 30 : 10 * 30);
 
             var input = FindAnyObjectByType<PWR_BuildInput>();
             if (bs != null)
             {
+                Transform buttonParent = layout;
+                float buttonHeight = 52;
+                if (xr)
+                {
+                    float cellWidth = (UnitsWide - 2 * Padding - XrButtonSpacing) / 2f;
+                    buttonParent = PWR_UIFactory.CreateGrid(layout, 2, gridHeight,
+                        new Vector2(cellWidth, XrButtonHeight), new Vector2(XrButtonSpacing, XrButtonSpacing));
+                    buttonHeight = XrButtonHeight;
+                }
                 for (int i = 0; i < bs.buildables.Count; i++)
                 {
                     int index = i;
                     var def = bs.buildables[i];
                     string hotkey = xr ? "" : $"[{i + 1}] ";
-                    buildButtons.Add(PWR_UIFactory.CreateButton(layout, $"{hotkey}{def.displayName}  <size=75%>({def.CostText()})</size>",
-                        52, 22, () => { if (input != null) input.SelectIndex(index); }));
+                    buildButtons.Add(PWR_UIFactory.CreateButton(buttonParent, $"{hotkey}{def.displayName}  <size=75%>({def.CostText()})</size>",
+                        buttonHeight, 22, () => { if (input != null) input.SelectIndex(index); }));
                 }
-                PWR_UIFactory.CreateButton(layout, xr ? "Cancel (B)" : "[Q] Cancel", 46, 22,
+                PWR_UIFactory.CreateButton(buttonParent, xr ? "Demolish" : "[X] Demolish", xr ? buttonHeight : 46, 22,
+                    () => { if (input != null) input.SelectDemolish(); });
+                PWR_UIFactory.CreateButton(buttonParent, xr ? "Cancel (B)" : "[Q] Cancel", xr ? buttonHeight : 46, 22,
                     () => bs.Select(null));
             }
-            statusText = PWR_UIFactory.CreateLayoutText(layout, "", 18, 80);
+            statusText = PWR_UIFactory.CreateLayoutText(layout, "", 18, xr ? 50 : 80);
             if (!xr)
                 statusText.text = "WASD move, hold RMB look, E use, F grab/drop";
+        }
+
+        /// <summary>Small floating label above the placement ghost (VR): can I build here, what it connects to.</summary>
+        private void CreateStatusLabel()
+        {
+            statusLabel = PWR_UIFactory.CreateWorldCanvas("PWR_BuildStatus", null, new Vector2(520f, 110f), 0.001f, false);
+            statusLabel.sortingOrder = 30;
+            PWR_UIFactory.CreatePanel(statusLabel.transform, new Color(0.05f, 0.08f, 0.12f, 0.85f));
+            statusLabelText = PWR_UIFactory.CreateText(statusLabel.transform, "", 24, TextAlignmentOptions.Center, 8f);
+            statusLabel.gameObject.SetActive(false);
+        }
+
+        public void Open()
+        {
+            if (!xr || canvas == null) return;
+            canvas.gameObject.SetActive(true);
+            FollowHand(1f); // appear in place, no catch-up from the old spot
             Refresh();
+        }
+
+        /// <summary>
+        /// Sits above the controller in world up (not the controller's own axes, so tilting the hand
+        /// doesn't swing the menu around) and faces the head. t = 1 snaps, smaller values smooth.
+        /// </summary>
+        private void FollowHand(float t)
+        {
+            var cam = Camera.main;
+            if (hand == null || cam == null) return;
+            var rt = (RectTransform)canvas.transform;
+            float halfHeight = rt.sizeDelta.y * rt.lossyScale.y * 0.5f;
+            Vector3 target = hand.position + Vector3.up * (wristGap + halfHeight);
+            Vector3 pos = Vector3.Lerp(canvas.transform.position, target, t);
+            canvas.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(pos - cam.transform.position));
+        }
+
+        public void Close()
+        {
+            if (xr && canvas != null) canvas.gameObject.SetActive(false);
+        }
+
+        private void HandleSelectionChanged(PWR_BuildableDef def)
+        {
+            if (def == null) return;
+            // Get the menu out of the way of aiming at the floor; the status label takes over.
+            Close();
+            var mgr = PWR_TutorialManager.Instance;
+            if (mgr != null && Anchor != null)
+                mgr.ShowOnce("build_controls", xr
+                        ? "Building: aim the right controller at the floor and pull the trigger to place. " +
+                          "Flick the right thumbstick to rotate. Press B to stop building."
+                        : "Building: click to place, R to rotate, Q or Esc to stop building.",
+                    Anchor, new Vector3(0f, xr ? 0.3f : 0f, 0f));
+        }
+
+        private void HandleDemolishModeChanged(bool on)
+        {
+            if (!on) return;
+            Close();
+            var mgr = PWR_TutorialManager.Instance;
+            if (mgr != null && Anchor != null)
+                mgr.ShowOnce("demolish_controls", xr
+                        ? "Demolish: aim the right controller at something you built and pull the trigger. " +
+                          "You get its cost back, and a machine's charge or fuel carries over to the next one you build. Press B to stop."
+                        : "Demolish: click something you built to remove it (cost refunded). Q or Esc to stop.",
+                    Anchor, new Vector3(0f, xr ? 0.3f : 0f, 0f));
         }
 
         private void LateUpdate()
         {
-            if (follow != null && canvas != null)
+            if (xr)
             {
-                canvas.transform.position = follow.TransformPoint(controllerOffset);
-                var cam = Camera.main;
-                if (cam != null)
-                    canvas.transform.rotation = Quaternion.LookRotation(canvas.transform.position - cam.transform.position);
+                if (toggle.WasPressedThisFrame())
+                {
+                    if (IsOpen) Close();
+                    else Open();
+                }
+                if (IsOpen) FollowHand(1f - Mathf.Exp(-followSharpness * Time.deltaTime));
+                UpdateStatusLabel(Camera.main);
             }
             refresh -= Time.deltaTime;
             if (refresh > 0f) return;
             refresh = 0.2f;
             Refresh();
+        }
+
+        private void UpdateStatusLabel(Camera cam)
+        {
+            var bs = PWR_BuildSystem.Instance;
+            Vector3 top = default;
+            bool show = bs != null && cam != null && bs.IsActive && bs.TryGetPreviewTop(out top);
+            if (statusLabel.gameObject.activeSelf != show) statusLabel.gameObject.SetActive(show);
+            if (!show) return;
+            // Keep the label the same apparent size however far away the ghost is.
+            float dist = Mathf.Max(0.5f, Vector3.Distance(cam.transform.position, top));
+            float scale = 0.0005f * dist;
+            statusLabel.transform.localScale = Vector3.one * scale;
+            Vector3 pos = top + Vector3.up * (0.15f + 55f * scale);
+            statusLabel.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(pos - cam.transform.position));
+            statusLabelText.text = bs.Demolishing ? bs.LastMessage : $"{bs.LastMessage}\nRotation: {bs.QuarterTurns * 90}°";
         }
 
         private void Refresh()
@@ -118,11 +265,15 @@ namespace Deadzone.Power
             if (resourceText != null && res != null)
             {
                 sb.Clear();
+                int i = 0;
                 foreach (PWR_ResourceType t in Enum.GetValues(typeof(PWR_ResourceType)))
                 {
                     int v = res.Get(t);
                     sb.Append(v > 0 ? "<color=#FFFFFF>" : "<color=#7A7A7A>")
-                      .Append(PWR_Names.Of(t)).Append(": ").Append(v).Append("</color>\n");
+                      .Append(PWR_Names.Of(t)).Append(": ").Append(v).Append("</color>");
+                    // VR packs the list into two columns to keep the menu short.
+                    sb.Append(xr && i % 2 == 0 ? "<pos=50%>" : "\n");
+                    i++;
                 }
                 resourceText.text = sb.ToString();
             }
@@ -135,12 +286,13 @@ namespace Deadzone.Power
                 bool limitReached = def.maxCount > 0 && bs.CountBuilt(def.BuildingId) >= def.maxCount;
                 buildButtons[i].interactable = !limitReached;
             }
-            if (statusText != null && bs.selected != null)
+            if (statusText == null) return;
+            if (bs.Demolishing)
+                statusText.text = bs.LastMessage;
+            else if (bs.selected != null)
                 statusText.text = $"{bs.LastMessage}\nRotation: {bs.QuarterTurns * 90}°";
-            else if (statusText != null)
-                statusText.text = PWR_PlayerRig.Instance != null && PWR_PlayerRig.Instance.XRActive
-                    ? bs.LastMessage
-                    : "WASD move, hold RMB look, E use, F grab/drop\n" + bs.LastMessage;
+            else
+                statusText.text = xr ? bs.LastMessage : "WASD move, hold RMB look, E use, F grab/drop\n" + bs.LastMessage;
         }
     }
 }

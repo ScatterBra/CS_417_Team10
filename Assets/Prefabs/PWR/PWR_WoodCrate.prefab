@@ -94,7 +94,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_Shatterable
   statName: Integrity
   piecePrefab: {fileID: 7863531460898988989, guid: 2f0aa6fd74efd76458ed4d32bd59fa09, type: 3}
-  pieceCount: 2
+  pieceCount: 4
   minImpactSpeed: 1
   hitCooldown: 0.35
 --- !u!114 &1411430808343757293

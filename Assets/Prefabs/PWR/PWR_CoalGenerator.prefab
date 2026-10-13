@@ -195,7 +195,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_TutorialTrigger
   tutorialId: coal_gen
-  message: 'Coal Generator: pull the trigger on it to load Coal. It only burns Coal.'
+  message: 'Coal Generator: pull the trigger on it to load Coal. It only burns Coal
+    and only charges a Battery Bank within 2 cells.'
   mode: 0
   radius: 2.5
   offset: {x: 0, y: 2.3463182, z: 0}

@@ -238,9 +238,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_StatBlock
   stats:
   - name: RemainingOil
-    value: 9
+    value: 18
     min: 0
-    max: 9
+    max: 18
     ratePerSecond: 0
     usePassiveFloor: 0
     passiveFloor: 0

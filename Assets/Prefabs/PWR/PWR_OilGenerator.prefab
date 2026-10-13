@@ -196,7 +196,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_TutorialTrigger
   tutorialId: oil_gen
   message: 'Oil Generator: pull the trigger on it to load Refined Oil. It only burns
-    Refined Oil.'
+    Refined Oil and only charges a Battery Bank within 2 cells.'
   mode: 0
   radius: 2.5
   offset: {x: 0, y: 1.7160274, z: 0}

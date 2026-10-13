@@ -5,15 +5,16 @@ using UnityEngine.InputSystem;
 namespace Deadzone.Power
 {
     /// <summary>
-    /// Build mode controls. VR: pick an item on the wrist menu, aim the right controller at the floor,
+    /// Build mode controls. VR: pick an item in the build menu (Y), aim the right controller at the floor,
     /// pull the trigger to place, flick the right thumbstick left/right to rotate 90°, B to cancel.
-    /// Desktop: 1-5 select, mouse to aim, left click place, R rotate, Q/Esc cancel.
+    /// Demolish (menu button): aim at something you built and pull the trigger.
+    /// Desktop: 1-5 select, X demolish, mouse to aim, left click place/demolish, R rotate, Q/Esc cancel.
     /// </summary>
     public class PWR_BuildInput : MonoBehaviour
     {
         public float maxAimDistance = 25f;
 
-        private InputAction place, rotateStick, rotateKey, cancel;
+        private InputAction place, rotateStick, rotateKey, cancel, demolishKey;
         private readonly InputAction[] hotkeys = new InputAction[9];
         private bool stickCentered = true;
         private float ignorePlaceUntil;
@@ -28,6 +29,7 @@ namespace Deadzone.Power
             rotateStick.AddBinding("<XRController>{RightHand}/{Primary2DAxis}");
 
             rotateKey = new InputAction("PWR Rotate Key", InputActionType.Button, "<Keyboard>/r");
+            demolishKey = new InputAction("PWR Demolish Key", InputActionType.Button, "<Keyboard>/x");
 
             cancel = new InputAction("PWR Cancel", InputActionType.Button);
             cancel.AddBinding("<XRController>{RightHand}/{SecondaryButton}");
@@ -40,13 +42,13 @@ namespace Deadzone.Power
 
         private void OnEnable()
         {
-            place.Enable(); rotateStick.Enable(); rotateKey.Enable(); cancel.Enable();
+            place.Enable(); rotateStick.Enable(); rotateKey.Enable(); cancel.Enable(); demolishKey.Enable();
             foreach (var h in hotkeys) h.Enable();
         }
 
         private void OnDisable()
         {
-            place.Disable(); rotateStick.Disable(); rotateKey.Disable(); cancel.Disable();
+            place.Disable(); rotateStick.Disable(); rotateKey.Disable(); cancel.Disable(); demolishKey.Disable();
             foreach (var h in hotkeys) h.Disable();
         }
 
@@ -65,9 +67,18 @@ namespace Deadzone.Power
                 var hud = PWR_WristPanel.Instance != null ? PWR_WristPanel.Instance.Anchor : null;
                 if (mgr != null && hud != null)
                     mgr.ShowOnce("concrete_pad",
-                        "Lay Concrete Pads first. Conveyor belts can only sit on pads (1 Scrap each). Connect the chute to the Receiving Bin.",
-                        hud, new Vector3(0f, 0.3f, 0f));
+                        "Lay Concrete Pads first. Conveyor belts can only sit on pads (1 Scrap each). Connect the chute to the Receiving Bin, then press the chute's button.",
+                        hud, new Vector3(0f, 0.6f, 0f)); // above the build-controls popup
             }
+        }
+
+        /// <summary>Called by the menu's Demolish button.</summary>
+        public void SelectDemolish()
+        {
+            var bs = PWR_BuildSystem.Instance;
+            if (bs == null) return;
+            bs.SelectDemolish();
+            ignorePlaceUntil = Time.time + 0.35f;
         }
 
         private void Update()
@@ -79,14 +90,25 @@ namespace Deadzone.Power
 
             for (int i = 0; i < hotkeys.Length && i < bs.buildables.Count; i++)
                 if (hotkeys[i].WasPressedThisFrame()) SelectIndex(i);
+            if (demolishKey.WasPressedThisFrame()) SelectDemolish();
 
             bool building = bs.selected != null;
+            // The right thumbstick rotates while placing; demolishing leaves turning alone.
             if (rig != null) rig.SetTurnEnabled(!building);
-            if (!building) return;
+            if (!bs.IsActive) return;
 
             if (cancel.WasPressedThisFrame())
             {
                 bs.Select(null);
+                return;
+            }
+
+            if (bs.Demolishing)
+            {
+                Ray aim = AimRay(rig);
+                bs.UpdateDemolishPreview(aim, maxAimDistance);
+                if (place.WasPressedThisFrame() && Time.time >= ignorePlaceUntil && !PointerOverUI(aim, maxAimDistance, rig))
+                    bs.TryDemolish(aim.GetPoint(2f));
                 return;
             }
 

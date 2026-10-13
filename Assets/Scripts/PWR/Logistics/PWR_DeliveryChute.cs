@@ -7,7 +7,8 @@ namespace Deadzone.Power
     /// <summary>
     /// The wall delivery chute (rubric: Intermittent Instances). At random 30–60 s intervals a
     /// fixed batch arrives (2 copper wire + 1 glass), 3 batches in total. Packages wait in the
-    /// chute until a conveyor belt is built on the chute's cell, then go out one by one.
+    /// chute until the player has laid the belts and pressed the chute's start button, then go out
+    /// one by one.
     /// </summary>
     public class PWR_DeliveryChute : MonoBehaviour
     {
@@ -33,19 +34,98 @@ namespace Deadzone.Power
         public PWR_Cargo glassPrefab;
         public PWR_StatLabel label;
 
+        [Header("Start button")]
+        [Tooltip("Packages stay in the chute until the player presses the button (once the belts are laid).")]
+        public bool requireStart = true;
+        public Renderer startButton;
+        public Material buttonIdle;
+        public Material buttonRunning;
+        [Tooltip("Seconds a second press has to come within to start a line that doesn't reach the bin.")]
+        public float forceStartWindow = 5f;
+
         public static event Action<PWR_DeliveryChute> BatchArrived;
+        public static event Action<PWR_DeliveryChute> Started;
 
         public int Queued => queue.Count;
         public int BatchesDelivered { get; private set; }
+        public bool Running { get; private set; }
 
         private readonly Queue<PWR_ResourceType> queue = new Queue<PWR_ResourceType>();
+        private readonly HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
         private float batchTimer;
         private float releaseTimer;
+        private float forceStartUntil = -1f;
+
+        private void Awake()
+        {
+            if (TryGetComponent(out PWR_Interactable interactable)) interactable.Used += _ => PressStart();
+        }
 
         private void Start()
         {
             batchTimer = UnityEngine.Random.Range(intervalRange.x, intervalRange.y);
+            Running = !requireStart;
+            UpdateButton();
             UpdateLabel();
+        }
+
+        /// <summary>The start button: checks the line, then lets the queued packages out.</summary>
+        public void PressStart()
+        {
+            Vector3 at = transform.position + Vector3.up * 1.4f;
+            if (Running)
+            {
+                PWR_Feedback.Show(at, "Conveyor already running", PWR_Feedback.Info);
+                return;
+            }
+            if (BeltAtOutput() == null)
+            {
+                PWR_Feedback.Show(at, "Build a conveyor belt at the chute first", PWR_Feedback.Bad);
+                return;
+            }
+            // A line that ends short of the bin would dump the packages on the floor; warn once, and a
+            // second press starts anyway (so a layout this check misjudges can never block the level).
+            if (!RouteReachesBin() && Time.time > forceStartUntil)
+            {
+                forceStartUntil = Time.time + forceStartWindow;
+                PWR_Feedback.Show(at, "The belts don't reach the Receiving Bin yet.\nPress again to start anyway.", PWR_Feedback.Bad);
+                return;
+            }
+            Running = true;
+            UpdateButton();
+            UpdateLabel();
+            PWR_Feedback.Show(at, "Conveyor started", PWR_Feedback.Good);
+            Started?.Invoke(this);
+        }
+
+        /// <summary>Follows the belts from the chute and checks that the last one drops into a bin.</summary>
+        public bool RouteReachesBin()
+        {
+            var grid = PWR_GridManager.Instance;
+            var belt = BeltAtOutput();
+            if (grid == null || belt == null) return false;
+            visited.Clear();
+            Vector2Int cell = belt.Building.Cell;
+            Vector3 dir = belt.Direction;
+            while (belt != null)
+            {
+                if (!visited.Add(cell)) return false; // the belts loop back on themselves
+                dir = belt.Direction;
+                cell += new Vector2Int(Mathf.RoundToInt(dir.x), Mathf.RoundToInt(dir.z));
+                belt = grid.Find<PWR_ConveyorBelt>(cell);
+            }
+            // A package leaves the last belt at its speed and lands a little past the belt's end.
+            Vector3 drop = grid.CellToWorld(cell) - dir * 0.3f + Vector3.up * 0.4f;
+            foreach (var bin in FindObjectsByType<PWR_ReceivingBin>(FindObjectsSortMode.None))
+                foreach (var col in bin.GetComponentsInChildren<Collider>())
+                    if (col.isTrigger && col.bounds.Contains(drop)) return true;
+            return false;
+        }
+
+        private void UpdateButton()
+        {
+            if (startButton != null)
+                startButton.sharedMaterial = Running ? buttonRunning : buttonIdle;
         }
 
         private void Update()
@@ -57,7 +137,7 @@ namespace Deadzone.Power
             }
 
             releaseTimer -= Time.deltaTime;
-            if (queue.Count > 0 && releaseTimer <= 0f && BeltAtOutput() != null)
+            if (Running && queue.Count > 0 && releaseTimer <= 0f && BeltAtOutput() != null)
             {
                 releaseTimer = releaseSpacing;
                 Release(queue.Dequeue());
@@ -103,14 +183,16 @@ namespace Deadzone.Power
         {
             if (label == null) return;
             string next = BatchesDelivered < totalBatches ? $"Batches: {BatchesDelivered}/{totalBatches}" : "All batches delivered";
-            label.extraLine = queue.Count > 0
-                ? $"Waiting: {queue.Count}" + (BeltAtOutput() == null ? " (build a belt here)" : "") + $"\n{next}"
-                : next;
+            string waiting = queue.Count > 0 ? $"Waiting: {queue.Count}\n" : "";
+            string hint = BeltAtOutput() == null ? "Build a belt here\n"
+                : !Running ? "Belts done? Press the button\n"
+                : "";
+            label.extraLine = waiting + hint + next;
         }
 
         private void LateUpdate()
         {
-            if (queue.Count > 0) UpdateLabel();
+            if (queue.Count > 0 || !Running) UpdateLabel();
         }
     }
 }
