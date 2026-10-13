@@ -3,6 +3,7 @@ using UnityEngine;
 public class SCV_AmmoTest : MonoBehaviour
 {
     [SerializeField] private SCV_ResourceManager resourceManager;
+    [SerializeField] private SCV_AmmoTestDisplay ammoDisplay;
 
     [Header("Ammo Storage")]
     [SerializeField] private int storedAmmo = 0;
@@ -16,17 +17,25 @@ public class SCV_AmmoTest : MonoBehaviour
         if (storedAmmo >= maxAmmo)
         {
             Debug.Log("Ammo storage is full.");
+
+            ammoDisplay.ShowFeedback("AMMO STORAGE FULL");
             return;
         }
 
         if (!resourceManager.SpendAmmo(1))
         {
             Debug.Log("No crafted ammo available.");
+
+            ammoDisplay.ShowFeedback("NO AMMO AVAILABLE");
             return;
         }
 
         storedAmmo++;
-        Debug.Log("Ammo loaded into storage: " + storedAmmo + "/" + maxAmmo);
+
+        Debug.Log(
+            "Ammo loaded into storage: " +
+            storedAmmo + "/" + maxAmmo
+        );
     }
 
     [ContextMenu("Load Ammo")]

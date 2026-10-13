@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class SCV_HarvestableWreck : MonoBehaviour
@@ -7,6 +8,9 @@ public class SCV_HarvestableWreck : MonoBehaviour
     [Header("Wreck Resources")]
     [SerializeField] private int scrapRemaining = 6;
     [SerializeField] private int scrapPerHarvest = 1;
+
+    [Header("Salvage Respawn")]
+    [SerializeField] private float respawnDelay = 7f;
 
     [Header("Visual Chunks")]
     [SerializeField] private GameObject chunk1;
@@ -19,8 +23,13 @@ public class SCV_HarvestableWreck : MonoBehaviour
     private Vector3 chunk2FullScale;
     private Vector3 chunk3FullScale;
 
+    private int startingScrap;
+    private bool isRespawning = false;
+
     private void Awake()
     {
+        startingScrap = scrapRemaining;
+
         if (chunk1 != null)
             chunk1FullScale = chunk1.transform.localScale;
 
@@ -37,7 +46,11 @@ public class SCV_HarvestableWreck : MonoBehaviour
     {
         if (scrapRemaining <= 0)
         {
-            Debug.Log("This wreck has no scrap remaining.");
+            if (isRespawning)
+                Debug.Log("Waiting for new salvage...");
+            else
+                Debug.Log("This wreck has no scrap remaining.");
+
             return;
         }
 
@@ -56,29 +69,65 @@ public class SCV_HarvestableWreck : MonoBehaviour
 
         if (scrapRemaining <= 0)
         {
-            Debug.Log(gameObject.name + " is fully harvested.");
+            Debug.Log(
+                gameObject.name +
+                " is fully harvested. New salvage incoming..."
+            );
 
             if (harvestCanvas != null)
                 harvestCanvas.SetActive(false);
+
+            if (!isRespawning)
+                StartCoroutine(RespawnWreck());
         }
+    }
+
+    private IEnumerator RespawnWreck()
+    {
+        isRespawning = true;
+
+        yield return new WaitForSeconds(respawnDelay);
+
+        scrapRemaining = startingScrap;
+
+        UpdateVisuals();
+
+        if (harvestCanvas != null)
+            harvestCanvas.SetActive(true);
+
+        isRespawning = false;
+
+        Debug.Log(
+            "New salvage has arrived! Scrap available: " +
+            scrapRemaining
+        );
     }
 
     private void UpdateVisuals()
     {
         // Chunk 1 represents scrap 1-2
-        SetChunkVisual(chunk1, chunk1FullScale,
+        SetChunkVisual(
+            chunk1,
+            chunk1FullScale,
             scrapRemaining >= 2,
-            scrapRemaining == 1);
+            scrapRemaining == 1
+        );
 
         // Chunk 2 represents scrap 3-4
-        SetChunkVisual(chunk2, chunk2FullScale,
+        SetChunkVisual(
+            chunk2,
+            chunk2FullScale,
             scrapRemaining >= 4,
-            scrapRemaining == 3);
+            scrapRemaining == 3
+        );
 
         // Chunk 3 represents scrap 5-6
-        SetChunkVisual(chunk3, chunk3FullScale,
+        SetChunkVisual(
+            chunk3,
+            chunk3FullScale,
             scrapRemaining >= 6,
-            scrapRemaining == 5);
+            scrapRemaining == 5
+        );
     }
 
     private void SetChunkVisual(

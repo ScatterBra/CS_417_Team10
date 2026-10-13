@@ -3,6 +3,7 @@ using UnityEngine;
 public class SCV_DamagedPanel : MonoBehaviour
 {
     [SerializeField] private SCV_ResourceManager resourceManager;
+    [SerializeField] private SCV_DamagedPanelDisplay panelDisplay;
 
     [Header("Condition")]
     [SerializeField] private int currentCondition = 40;
@@ -17,12 +18,16 @@ public class SCV_DamagedPanel : MonoBehaviour
         if (currentCondition >= maxCondition)
         {
             Debug.Log("Panel is already fully repaired.");
+
+            panelDisplay.ShowFeedback("DEFENSE ALREADY FULL");
             return;
         }
 
         if (!resourceManager.SpendRepairKit(1))
         {
             Debug.Log("No repair kits available.");
+
+            panelDisplay.ShowFeedback("NO REPAIRS AVAILABLE");
             return;
         }
 
