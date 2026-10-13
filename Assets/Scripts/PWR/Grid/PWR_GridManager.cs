@@ -13,12 +13,13 @@ namespace Deadzone.Power
         public static PWR_GridManager Instance { get; private set; }
 
         public float cellSize = 1f;
-        public Vector2Int gridSize = new Vector2Int(8, 8);
+        public Vector2Int gridSize = new Vector2Int(15, 15);
 
-        private static readonly Vector2Int[] NeighborOffsets =
-        {
-            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
-        };
+        [Tooltip("Chebyshev radius used for neighbor interactions. 1 = the 8 surrounding cells.")]
+        public int neighborRange = 1;
+
+        [Tooltip("Optional visual shown while the player is building.")]
+        public GameObject overlay;
 
         private readonly Dictionary<Vector2Int, List<PWR_GridBuilding>> cells =
             new Dictionary<Vector2Int, List<PWR_GridBuilding>>();
@@ -31,11 +32,17 @@ namespace Deadzone.Power
                 return;
             }
             Instance = this;
+            SetOverlayVisible(false);
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+        }
+
+        public void SetOverlayVisible(bool visible)
+        {
+            if (overlay != null && overlay.activeSelf != visible) overlay.SetActive(visible);
         }
 
         // ---------- coordinates ----------
@@ -58,6 +65,8 @@ namespace Deadzone.Power
         public bool InBounds(Vector2Int cell) =>
             cell.x >= 0 && cell.y >= 0 && cell.x < gridSize.x && cell.y < gridSize.y;
 
+        public Plane GroundPlane => new Plane(transform.up, transform.position);
+
         // ---------- occupancy ----------
 
         public IReadOnlyList<PWR_GridBuilding> GetStack(Vector2Int cell) =>
@@ -67,6 +76,14 @@ namespace Deadzone.Power
         {
             var stack = GetStack(cell);
             return stack.Count > 0 ? stack[stack.Count - 1] : null;
+        }
+
+        /// <summary>First component of type T found in the cell's stack, or null.</summary>
+        public T Find<T>(Vector2Int cell) where T : Component
+        {
+            foreach (var b in GetStack(cell))
+                if (b != null && b.TryGetComponent(out T comp)) return comp;
+            return null;
         }
 
         public bool IsEmpty(Vector2Int cell) => GetStack(cell).Count == 0;
@@ -96,24 +113,17 @@ namespace Deadzone.Power
             if (list.Count == 0) cells.Remove(cell);
         }
 
-        /// <summary>All buildings in the 4 orthogonally adjacent cells.</summary>
-        public void GetNeighbors(Vector2Int cell, List<PWR_GridBuilding> results)
-        {
-            results.Clear();
-            foreach (var off in NeighborOffsets)
-                if (cells.TryGetValue(cell + off, out var list))
-                    results.AddRange(list);
-        }
-
-        /// <summary>Neighboring components of type T (e.g. PWR_PowerNode).</summary>
+        /// <summary>Neighboring components of type T within neighborRange (8 cells for range 1).</summary>
         public void GetNeighbors<T>(Vector2Int cell, List<T> results) where T : Component
         {
             results.Clear();
-            foreach (var off in NeighborOffsets)
+            for (int dx = -neighborRange; dx <= neighborRange; dx++)
+            for (int dz = -neighborRange; dz <= neighborRange; dz++)
             {
-                if (!cells.TryGetValue(cell + off, out var list)) continue;
+                if (dx == 0 && dz == 0) continue;
+                if (!cells.TryGetValue(cell + new Vector2Int(dx, dz), out var list)) continue;
                 foreach (var b in list)
-                    if (b && b.TryGetComponent(out T comp)) results.Add(comp);
+                    if (b != null && b.TryGetComponent(out T comp)) results.Add(comp);
             }
         }
 

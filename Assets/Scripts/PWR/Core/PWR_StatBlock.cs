@@ -6,14 +6,14 @@ namespace Deadzone.Power
 {
     /// <summary>
     /// Holds all Stats of an instance. Every change goes through Set/Add so listeners
-    /// (gauges, death, tutorials) are notified. Passive stats are integrated in Update:
+    /// (labels, death, tutorials) are notified. Passive stats are integrated in Update:
     ///     value += ratePerSecond * Time.deltaTime
     /// </summary>
     public class PWR_StatBlock : MonoBehaviour
     {
-        [SerializeField] private List<PWR_Stat> stats = new List<PWR_Stat>();
+        public List<PWR_Stat> stats = new List<PWR_Stat>();
 
-        [Tooltip("Pauses all passive integration (e.g. a broken machine).")]
+        [Tooltip("Pauses all passive integration.")]
         public bool passiveEnabled = true;
 
         /// <summary>(statName, newValue, delta)</summary>
@@ -44,14 +44,29 @@ namespace Deadzone.Power
             for (int i = 0; i < stats.Count; i++)
             {
                 var s = stats[i];
-                if (s.ratePerSecond != 0f) Add(s.name, s.ratePerSecond * dt);
+                if (s.ratePerSecond == 0f) continue;
+                float delta = s.ratePerSecond * dt;
+                if (s.usePassiveFloor && delta < 0f)
+                    delta = Mathf.Max(delta, Mathf.Min(0f, s.passiveFloor - s.value));
+                if (delta != 0f) Add(s.name, delta);
             }
+        }
+
+        /// <summary>Adds a stat (used by the editor builder). Replaces an existing one with the same name.</summary>
+        public PWR_Stat AddStat(string statName, float value, float min, float max, float ratePerSecond = 0f)
+        {
+            stats.RemoveAll(s => s != null && s.name == statName);
+            var stat = new PWR_Stat(statName, value, min, max, ratePerSecond);
+            stats.Add(stat);
+            RebuildLookup();
+            return stat;
         }
 
         public bool Has(string statName) => lookup.ContainsKey(statName);
 
         public PWR_Stat GetStat(string statName)
         {
+            if (lookup.Count == 0 && stats.Count > 0) RebuildLookup();
             lookup.TryGetValue(statName, out var s);
             return s;
         }

@@ -9,13 +9,8 @@ namespace Deadzone.Power
     {
         public static PWR_PlayerResources Instance { get; private set; }
 
-        [SerializeField] private List<PWR_ResourceAmount> startingResources = new List<PWR_ResourceAmount>
-        {
-            new PWR_ResourceAmount(PWR_ResourceType.Diesel, 3),
-            new PWR_ResourceAmount(PWR_ResourceType.CopperWire, 4),
-            new PWR_ResourceAmount(PWR_ResourceType.EmptyCell, 2),
-            new PWR_ResourceAmount(PWR_ResourceType.Scrip, 20),
-        };
+        [Tooltip("The station starts with nothing; leave empty for the real level.")]
+        public List<PWR_ResourceAmount> startingResources = new List<PWR_ResourceAmount>();
 
         /// <summary>(type, newAmount, delta)</summary>
         public event Action<PWR_ResourceType, int, int> OnResourceChanged;

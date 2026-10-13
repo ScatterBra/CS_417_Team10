@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5797925dd77e22d4faf2b390ec6441da, type: 3}
+  m_Name: PWR_Build_ConcretePad
+  m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_BuildableDef
+  displayName: Concrete Pad
+  prefab: {fileID: 2053980020565667712, guid: 75e0973403d2e1045a5325d75139afb6, type: 3}
+  cost: []
+  requiredFoundationId: 
+  maxCount: 0
+  ghostSize: {x: 0.98, y: 0.06, z: 0.98}
+  ghostCenter: {x: 0, y: 0.03, z: 0}

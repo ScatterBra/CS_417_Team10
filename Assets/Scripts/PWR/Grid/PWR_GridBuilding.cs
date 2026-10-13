@@ -8,7 +8,7 @@ namespace Deadzone.Power
     /// </summary>
     public class PWR_GridBuilding : MonoBehaviour
     {
-        [Tooltip("Type id used for foundation checks, e.g. \"ConcretePad\", \"Generator\".")]
+        [Tooltip("Type id used for foundation checks, e.g. \"ConcretePad\", \"BatteryBank\".")]
         public string buildingId = "Building";
 
         [Tooltip("Other buildings may be placed on top of this one (rubric: Foundation Buildings).")]
@@ -17,19 +17,22 @@ namespace Deadzone.Power
         [Tooltip("Vertical offset added for whatever is stacked on top of this building.")]
         public float stackHeight = 0f;
 
-        [Tooltip("Snap and register on Start when the building is pre-placed in the scene.")]
+        [Tooltip("Register on Start when the building is pre-placed in the scene.")]
         public bool registerOnStart = true;
+
+        [Tooltip("Move a pre-placed building to its cell center on Start. Off for wall-mounted machines.")]
+        public bool snapOnStart = true;
 
         public Vector2Int Cell { get; private set; }
         public bool IsRegistered { get; private set; }
 
         private void Start()
         {
-            if (registerOnStart && !IsRegistered) SnapAndRegister();
+            if (registerOnStart && !IsRegistered) RegisterAtCurrentPosition();
         }
 
-        /// <summary>Snaps to the cell under the current position and registers there.</summary>
-        public void SnapAndRegister()
+        /// <summary>Registers at the cell under the current position, optionally snapping to its center.</summary>
+        public void RegisterAtCurrentPosition()
         {
             var grid = PWR_GridManager.Instance;
             if (grid == null)
@@ -38,8 +41,8 @@ namespace Deadzone.Power
                 return;
             }
             Vector2Int cell = grid.WorldToCell(transform.position);
-            float height = grid.GetStackHeight(cell);
-            transform.position = grid.CellToWorld(cell) + grid.transform.up * height;
+            if (snapOnStart)
+                transform.position = grid.CellToWorld(cell) + grid.transform.up * grid.GetStackHeight(cell);
             Register(cell);
         }
 
