@@ -8,6 +8,8 @@ public class DEF_GameState : MonoBehaviour
     public float maxHealth = 100f;
     public int ammo = 30;
     public int maxAmmo = 30;
+    public int scrap = 120;
+    public int maxScrap = 999;
     public int waveNumber = 0;
     public float gameClock = 0f;
     public Vector2Int selectedTile = new Vector2Int(-1, -1);
