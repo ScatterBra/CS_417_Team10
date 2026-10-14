@@ -861,11 +861,11 @@ namespace Deadzone.Power.EditorTools
             Vector3 toCenter = CellCenter(new Vector2Int(7, 7)) - floodlight.transform.position;
             toCenter.y = 0f;
             floodlight.transform.rotation = Quaternion.LookRotation(toCenter);
-            Deactivate(Find("照明灯"));
+            Deactivate(Find("PWR_Marker_Floodlight"));
             var workbench = Place(Load("PWR_Workbench"), props, Find("PWR_Refinery"), keepScale: false);
-            var bin = Place(Load("PWR_ReceivingBin"), props, Find("收货箱"), keepScale: false);
-            var tank = Place(Load("PWR_ElectrolyteTank"), props, Find("电解液罐"), keepScale: false);
-            var chute = Place(Load("PWR_DeliveryChute"), props, Find("出货口"), keepScale: false);
+            var bin = Place(Load("PWR_ReceivingBin"), props, Find("PWR_Marker_ReceivingBin"), keepScale: false);
+            var tank = Place(Load("PWR_ElectrolyteTank"), props, Find("PWR_Marker_ElectrolyteTank"), keepScale: false);
+            var chute = Place(Load("PWR_DeliveryChute"), props, Find("PWR_Marker_DeliveryChute"), keepScale: false);
             // The chute's output must sit over the grid cell where the first belt goes.
             var chuteOut = chute.GetComponent<PWR_DeliveryChute>().outputPoint;
             Vector2Int chuteCell = new Vector2Int(
@@ -909,7 +909,7 @@ namespace Deadzone.Power.EditorTools
             // --- wild spawning
             var spawner = new GameObject("WildSpawner").AddComponent<PWR_WildSpawner>();
             spawner.transform.SetParent(systems, false);
-            spawner.spawnPoints = all.Where(g => g.name.StartsWith("油桶刷新点") || g.name.StartsWith("木箱刷新点"))
+            spawner.spawnPoints = all.Where(g => g.name.StartsWith("PWR_WildSpawnPoint_"))
                 .Select(g => g.transform).ToList();
             foreach (var sp in spawner.spawnPoints) sp.gameObject.SetActive(true);
             spawner.barrelPrefab = Load("PWR_OilBarrel");

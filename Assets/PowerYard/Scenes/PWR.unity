@@ -397,7 +397,7 @@ GameObject:
   - component: {fileID: 82275014}
   - component: {fileID: 82275013}
   m_Layer: 0
-  m_Name: "\u7167\u660E\u706F"
+  m_Name: PWR_Marker_Floodlight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -509,7 +509,7 @@ GameObject:
   - component: {fileID: 247624703}
   - component: {fileID: 247624702}
   m_Layer: 0
-  m_Name: "\u7535\u89E3\u6DB2\u7F50"
+  m_Name: PWR_Marker_ElectrolyteTank
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -621,7 +621,7 @@ GameObject:
   - component: {fileID: 283026492}
   - component: {fileID: 283026491}
   m_Layer: 0
-  m_Name: "\u6728\u7BB1\u5237\u65B0\u70B9"
+  m_Name: PWR_WildSpawnPoint_4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -961,7 +961,7 @@ GameObject:
   - component: {fileID: 463543746}
   - component: {fileID: 463543745}
   m_Layer: 0
-  m_Name: "\u6728\u7BB1\u5237\u65B0\u70B9 (1)"
+  m_Name: PWR_WildSpawnPoint_5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1346,7 +1346,7 @@ GameObject:
   - component: {fileID: 675133735}
   - component: {fileID: 675133734}
   m_Layer: 0
-  m_Name: "\u51FA\u8D27\u53E3"
+  m_Name: PWR_Marker_DeliveryChute
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1778,7 +1778,7 @@ GameObject:
   - component: {fileID: 936117497}
   - component: {fileID: 936117496}
   m_Layer: 0
-  m_Name: "\u6CB9\u6876\u5237\u65B0\u70B9 (2)"
+  m_Name: PWR_WildSpawnPoint_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2748,7 +2748,7 @@ GameObject:
   - component: {fileID: 1501443440}
   - component: {fileID: 1501443439}
   m_Layer: 0
-  m_Name: "\u6536\u8D27\u7BB1"
+  m_Name: PWR_Marker_ReceivingBin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3481,7 +3481,7 @@ GameObject:
   - component: {fileID: 1809380810}
   - component: {fileID: 1809380809}
   m_Layer: 0
-  m_Name: "\u6CB9\u6876\u5237\u65B0\u70B9"
+  m_Name: PWR_WildSpawnPoint_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4035,7 +4035,7 @@ GameObject:
   - component: {fileID: 2021959687}
   - component: {fileID: 2021959686}
   m_Layer: 0
-  m_Name: "\u6CB9\u6876\u5237\u65B0\u70B9 (1)"
+  m_Name: PWR_WildSpawnPoint_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
