@@ -18,12 +18,12 @@ namespace Deadzone.Power.EditorTools
     /// </summary>
     public static class PWR_StationBuilder
     {
-        const string ArtRoot = "Assets/Art/PWR";
+        const string ArtRoot = "Assets/PowerYard";
         const string TexDir = ArtRoot + "/Textures";
         const string MatDir = ArtRoot + "/Materials";
-        const string PrefabDir = "Assets/Prefabs/PWR";
+        const string PrefabDir = "Assets/PowerYard/Prefabs";
         const string DefDir = PrefabDir + "/Defs";
-        const string ModelDir = "Assets/Models/PWR";
+        const string ModelDir = "Assets/PowerYard/Models";
         const string XROriginPath = "Assets/Samples/XR Interaction Toolkit/3.5.1/Starter Assets/Prefabs/XR Origin (XR Rig).prefab";
         const string StationRootName = "PWR_Station";
 
@@ -125,7 +125,7 @@ namespace Deadzone.Power.EditorTools
         static Material Scroll(string name, Texture2D tex, Color color, Vector2 speed, Vector2 tiling)
         {
             var shader = Shader.Find("PWR/UVScroll");
-            if (shader == null) throw new Exception("Shader PWR/UVScroll not found (Assets/Art/PWR/Shaders).");
+            if (shader == null) throw new Exception("Shader PWR/UVScroll not found (Assets/PowerYard/Shaders).");
             var mat = new Material(shader);
             mat.SetTexture("_BaseMap", tex);
             mat.SetTextureScale("_BaseMap", tiling);

@@ -12,7 +12,7 @@ namespace Deadzone.Power.EditorTools
     /// </summary>
     public class PWR_ModelMaterialPostprocessor : AssetPostprocessor
     {
-        const string ModelDir = "Assets/Models/PWR/";
+        const string ModelDir = "Assets/PowerYard/Models/";
 
         public override int GetPostprocessOrder() => 100;
 
