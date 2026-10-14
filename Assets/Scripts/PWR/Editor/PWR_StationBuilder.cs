@@ -33,6 +33,13 @@ namespace Deadzone.Power.EditorTools
         static readonly Vector2Int FloodlightCell = new Vector2Int(4, 5);
         static readonly Vector2Int BankHintCell = new Vector2Int(4, 4);
 
+        // Power chain speed: generator output, generator -> bank, bank -> charger and the charger's intake
+        // all run at this many units per 0.5 s tick. 5.5 = 11/s, so a full charge (1000) takes ~90 s.
+        const float PowerPerTick = 5.5f;
+        // Energy one unit of a fuel stat burns into; the burn rate follows the output so fuel lasts as
+        // many units of energy as before (1 coal = 25 fuel = 150 energy).
+        const float EnergyPerFuelStat = 6f;
+
         // ------------------------------------------------------------------ menu
 
         [MenuItem("Tools/PWR/Build Assets + Setup Scene")]
@@ -417,7 +424,7 @@ namespace Deadzone.Power.EditorTools
                 var node = Add<PWR_PowerNode>(go);
                 node.role = PWR_PowerRole.Sink;
                 node.energyStat = "Progress";
-                node.maxReceivePerTick = 3f;
+                node.maxReceivePerTick = PowerPerTick;
                 node.acceptingPower = false;
                 var ch = Add<PWR_CellCharger>(go);
                 ch.slottedBatteryVisual = slot;
@@ -440,7 +447,7 @@ namespace Deadzone.Power.EditorTools
                 var node = Add<PWR_PowerNode>(go);
                 node.role = PWR_PowerRole.Storage;
                 node.energyStat = "Charge";
-                node.transferPerTick = 3f;
+                node.transferPerTick = PowerPerTick;
                 Label(go, "Battery Bank", 1.4f, "Charge%");
                 p.bank = Save(go, "PWR_BatteryBank");
             }
@@ -682,13 +689,14 @@ namespace Deadzone.Power.EditorTools
             var node = Add<PWR_PowerNode>(go);
             node.role = PWR_PowerRole.Source;
             node.energyStat = "Energy";
-            node.transferPerTick = 3f;
+            node.transferPerTick = PowerPerTick;
             var gen = Add<PWR_Generator>(go);
             gen.displayName = display;
             gen.fuelStat = fuelStat;
             gen.fuelResource = fuel;
             gen.fuelPerUnit = fuelPerUnit;
-            gen.energyPerSecond = 6f;
+            gen.energyPerSecond = PowerPerTick / node.tickInterval;
+            gen.burnPerSecond = gen.energyPerSecond / EnergyPerFuelStat;
             gen.blastMaterial = AssetDatabase.LoadAssetAtPath<Material>($"{MatDir}/PWR_BlastRing.mat");
             gen.runningLight = light;
             Interactable(go, "Refuel");

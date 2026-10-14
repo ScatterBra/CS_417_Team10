@@ -16,7 +16,7 @@ namespace Deadzone.Power
         public string fuelStat = "CoalLevel";
         public PWR_ResourceType fuelResource = PWR_ResourceType.Coal;
 
-        [Tooltip("Fuel stat gained per unit of fuel resource (1 unit of fuel stat burns per second).")]
+        [Tooltip("Fuel stat gained per unit of fuel resource (burnPerSecond of it burns each second).")]
         public float fuelPerUnit = 25f;
         public float burnPerSecond = 1f;
         public string energyStat = "Energy";

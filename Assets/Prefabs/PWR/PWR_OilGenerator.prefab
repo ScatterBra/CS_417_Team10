@@ -121,7 +121,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_PowerNode
   role: 0
   energyStat: Energy
-  transferPerTick: 3
+  transferPerTick: 5.5
   maxReceivePerTick: 1000
   tickInterval: 0.5
   online: 1
@@ -142,9 +142,9 @@ MonoBehaviour:
   fuelStat: OilLevel
   fuelResource: 2
   fuelPerUnit: 40
-  burnPerSecond: 1
+  burnPerSecond: 1.8333334
   energyStat: Energy
-  energyPerSecond: 6
+  energyPerSecond: 11
   blastMaterial: {fileID: 2100000, guid: d65ab3f7b4273ed41bd7428ad1255e4a, type: 2}
   runningLight: {fileID: 676853043262370377}
 --- !u!114 &2926056442687520694

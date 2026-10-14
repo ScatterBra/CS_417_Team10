@@ -110,7 +110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_PowerNode
   role: 1
   energyStat: Charge
-  transferPerTick: 3
+  transferPerTick: 5.5
   maxReceivePerTick: 1000
   tickInterval: 0.5
   online: 1

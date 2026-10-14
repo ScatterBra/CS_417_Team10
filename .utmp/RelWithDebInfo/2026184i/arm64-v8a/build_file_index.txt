@@ -1,0 +1,2 @@
+C:\MyApps\Unity\project\MP2\CS_417_Team10\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\MyApps\Unity\project\MP2\CS_417_Team10\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

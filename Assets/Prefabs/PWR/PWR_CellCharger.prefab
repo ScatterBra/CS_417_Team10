@@ -215,7 +215,7 @@ MonoBehaviour:
   role: 2
   energyStat: Progress
   transferPerTick: 3
-  maxReceivePerTick: 3
+  maxReceivePerTick: 5.5
   tickInterval: 0.5
   online: 1
   acceptingPower: 0
