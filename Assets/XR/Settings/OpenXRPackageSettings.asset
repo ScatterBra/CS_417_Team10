@@ -401,22 +401,22 @@ MonoBehaviour:
   features:
   - {fileID: 4999843758176647298}
   - {fileID: 4404081492286497906}
-  - {fileID: 1833759966073780732}
+  - {fileID: 6999401559042325108}
   - {fileID: 1638573928182638574}
   - {fileID: 9218753582242535510}
-  - {fileID: -8477481991805340505}
+  - {fileID: 285718516698573450}
   - {fileID: 200076275931864917}
-  - {fileID: -4867409839809100498}
-  - {fileID: -4122411140763927892}
-  - {fileID: -5598364520015650431}
+  - {fileID: 491541212674743207}
+  - {fileID: 43109728453015436}
+  - {fileID: 6569297710125728884}
   - {fileID: 7453410484377240551}
   - {fileID: 269338883003197925}
   - {fileID: -420171981509469654}
   - {fileID: -1575356492167727718}
   - {fileID: -7559486924396379569}
   - {fileID: -6060512319377651837}
-  - {fileID: 2416909000746564077}
-  - {fileID: -684881700085087924}
+  - {fileID: 3159007074194190191}
+  - {fileID: 521303998515041283}
   - {fileID: 8920987095329250182}
   - {fileID: 28370017985085248}
   - {fileID: -5201821104434502535}
@@ -911,7 +911,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeef8d85de8db242bdda70cc7ff5acd, type: 3}
   m_Name: OculusTouchControllerProfile Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.OculusTouchControllerProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Oculus Touch Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.oculustouch

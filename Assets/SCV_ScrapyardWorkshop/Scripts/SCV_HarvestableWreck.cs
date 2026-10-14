@@ -1,16 +1,10 @@
-using System.Collections;
 using UnityEngine;
 
 public class SCV_HarvestableWreck : MonoBehaviour
 {
-    [SerializeField] private SCV_ResourceManager resourceManager;
-
     [Header("Wreck Resources")]
     [SerializeField] private int scrapRemaining = 6;
     [SerializeField] private int scrapPerHarvest = 1;
-
-    [Header("Salvage Respawn")]
-    [SerializeField] private float respawnDelay = 7f;
 
     [Header("Visual Chunks")]
     [SerializeField] private GameObject chunk1;
@@ -19,17 +13,17 @@ public class SCV_HarvestableWreck : MonoBehaviour
 
     [SerializeField] private GameObject harvestCanvas;
 
+    private SCV_ResourceManager resourceManager;
+    private SCV_SalvageSpawner salvageSpawner;
+
     private Vector3 chunk1FullScale;
     private Vector3 chunk2FullScale;
     private Vector3 chunk3FullScale;
 
-    private int startingScrap;
-    private bool isRespawning = false;
+    public int ScrapRemaining => scrapRemaining;
 
     private void Awake()
     {
-        startingScrap = scrapRemaining;
-
         if (chunk1 != null)
             chunk1FullScale = chunk1.transform.localScale;
 
@@ -42,19 +36,34 @@ public class SCV_HarvestableWreck : MonoBehaviour
         UpdateVisuals();
     }
 
+    public void Initialize(
+        SCV_ResourceManager manager,
+        SCV_SalvageSpawner spawner)
+    {
+        resourceManager = manager;
+        salvageSpawner = spawner;
+
+        UpdateVisuals();
+    }
+
     public void Harvest()
     {
         if (scrapRemaining <= 0)
-        {
-            if (isRespawning)
-                Debug.Log("Waiting for new salvage...");
-            else
-                Debug.Log("This wreck has no scrap remaining.");
+            return;
 
+        if (resourceManager == null)
+        {
+            Debug.LogError(
+                gameObject.name +
+                " does not have a Resource Manager."
+            );
             return;
         }
 
-        int amount = Mathf.Min(scrapPerHarvest, scrapRemaining);
+        int amount = Mathf.Min(
+            scrapPerHarvest,
+            scrapRemaining
+        );
 
         scrapRemaining -= amount;
         resourceManager.AddScrap(amount);
@@ -71,36 +80,17 @@ public class SCV_HarvestableWreck : MonoBehaviour
         {
             Debug.Log(
                 gameObject.name +
-                " is fully harvested. New salvage incoming..."
+                " depleted and destroyed."
             );
 
             if (harvestCanvas != null)
                 harvestCanvas.SetActive(false);
 
-            if (!isRespawning)
-                StartCoroutine(RespawnWreck());
+            if (salvageSpawner != null)
+                salvageSpawner.NotifyWreckDepleted(this);
+
+            Destroy(gameObject);
         }
-    }
-
-    private IEnumerator RespawnWreck()
-    {
-        isRespawning = true;
-
-        yield return new WaitForSeconds(respawnDelay);
-
-        scrapRemaining = startingScrap;
-
-        UpdateVisuals();
-
-        if (harvestCanvas != null)
-            harvestCanvas.SetActive(true);
-
-        isRespawning = false;
-
-        Debug.Log(
-            "New salvage has arrived! Scrap available: " +
-            scrapRemaining
-        );
     }
 
     private void UpdateVisuals()
