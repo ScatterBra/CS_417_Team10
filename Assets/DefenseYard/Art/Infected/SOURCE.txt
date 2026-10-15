@@ -1,0 +1,15 @@
+Zombie Apocalypse Kit (March 2024), by Quaternius
+https://quaternius.com/packs/zombieapocalypsekit.html
+License: CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Selected source meshes: Zombie_Chubby (walker), Zombie_Basic (runner), Zombie_Arm (juggernaut).
+Supplied animations retained: Idle, Walk, Run, Run_Arms, Punch, Death, HitReact.
+The game uses Idle / Walk / Punch; the runner plays Walk at a quicker rate. Movement remains controlled by gameplay.
+
+Downloaded glTF sources from the public CC0 mirror:
+https://github.com/agentkaerf/FreeModels/tree/main/Zombie%20Apocalypse%20Kit%20-%20March%202024
+Converted to FBX with Blender 4.5.3; removed the unused Icosphere helper and unused animation clips.
+Added Unity materials, controllers, sizes, grounded prefab offsets and gameplay colliders.
+License.txt is the mirror's original bundled license; its pack title is a template.
+The original creator's linked Zombie Apocalypse Kit page explicitly identifies this pack as CC0.
