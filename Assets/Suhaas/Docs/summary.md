@@ -3,7 +3,7 @@
 ## (a) Project overview
 Zombie survival VR game (CS 417, Team 10). This log covers the **Clinic station** owned by Suhaas.
 - Unity 6000.5.6f1, URP 17.5.0, Input System 1.20.0 (Active Input Handling = Input System Package (New)).
-- XR Interaction Toolkit 3.6.1, XR Plugin Management 4.7.0. No XR loader enabled for PC.
+- XR Interaction Toolkit 3.5.1, XR Plugin Management 4.7.0. No XR loader enabled for PC.
 - All Clinic assets live under `Assets/Suhaas/` and are prefixed `MED_`.
 - Folder structure: `Assets/Suhaas/{Scenes, Prefabs, Scripts, Materials, Audio, Textures, Docs}`.
 - Test scene: `Assets/Suhaas/Scenes/MED_Clinic.unity` (XR rig + XR Device Simulator, no headset needed).
@@ -13,8 +13,8 @@ Zombie survival VR game (CS 417, Team 10). This log covers the **Clinic station*
 
 ### Step 1 - 2026-10-14 - Foundation
 Created:
-- Packages: XR Interaction Toolkit 3.6.1, XR Plugin Management 4.7.0 (plus auto-installed dependencies: XR Core Utils, Legacy Input Helpers).
-- XRI samples imported: Starter Assets, XR Device Simulator -> `Assets/Samples/XR Interaction Toolkit/3.6.1/`.
+- Packages: XR Interaction Toolkit 3.5.1, XR Plugin Management 4.7.0 (plus auto-installed dependencies: XR Core Utils, Legacy Input Helpers).
+- XRI samples imported: Starter Assets, XR Device Simulator -> `Assets/Samples/XR Interaction Toolkit/3.5.1/`.
 - Folders under `Assets/Suhaas/`.
 - Materials: `MED_Wall.mat`, `MED_Floor.mat` (URP/Lit).
 - Prefab `MED_ClinicStation.prefab` (15 x 15 m room).
@@ -419,3 +419,4 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 - `MED_TestTools` now also holds "TEST: CALL DELIVERY NOW" (test-only; remove at integration). The delivery path, bay, sign and spawner are part of the station prefab and are not test-only.
 - The delivery path starts 4 m outside the north wall, where there is no floor; the cart appears over the void and drives in through the doorway. The delivery area is reserved on the build grid (0.75 m around the curve plus the 2x2 bay), so it is always clear of buildings and wild items; moving the station moves the path with it (local space).
 - A cart only gives the player supplies while waiting; it is not refunded or saved. Cargo is random per cart (4-6 units of Herbs, Water, Alcohol, Gauze).
+- XRI version change (2026-10-15): after merging main, the project was on XRI 3.6.1 with both `3.5.1` and `3.6.1` sample folders, giving duplicate-assembly errors. Standardised on XRI 3.5.1 (matches main): `Packages/manifest.json` and `packages-lock.json` set to 3.5.1, `Assets/Samples/XR Interaction Toolkit/3.6.1` deleted. Both versions share the same asset GUIDs, so no scene or prefab references were changed.
