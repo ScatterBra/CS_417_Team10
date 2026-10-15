@@ -132,6 +132,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8017041458808901348}
   - component: {fileID: 1514772378616480369}
+  - component: {fileID: 5201086738145424569}
   m_Layer: 0
   m_Name: MED_StatBar
   m_TagString: Untagged
@@ -174,6 +175,31 @@ MonoBehaviour:
   billboard: 1
   normalized: 1
   alpha: 0.85
+  useFixedColor: 0
+  fixedColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &5201086738145424569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2636731234586323098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: statbars
+  title: STAT BARS
+  body: Bars show how much is left or how far along something is.
+  anchor: {fileID: 8017041458808901348}
+  offset: {x: 0.6, y: 0.4, z: 0}
+  pointHeight: 0
+  trigger: 0
+  proximityDistance: 2.5
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &8365870160788570906
 GameObject:
   m_ObjectHideFlags: 0

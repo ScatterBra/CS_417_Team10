@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7127187316719960539}
   - component: {fileID: 4931427030543139949}
   - component: {fileID: 242257140670001084}
+  - component: {fileID: 352149863026989934}
   m_Layer: 0
   m_Name: MED_PlayerHUD
   m_TagString: Untagged
@@ -76,6 +77,29 @@ MonoBehaviour:
   rightColumn: {fileID: 4279408634574957477}
   panelBackdrop: {fileID: 6683995410313839550}
   panelBackdropAlpha: 0.55
+--- !u!114 &352149863026989934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708537601255305739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: hud
+  title: YOUR SUPPLIES
+  body: Look down to see your Herbs, Water and Medicine.
+  anchor: {fileID: 7127187316719960539}
+  offset: {x: 0, y: 0.3, z: 0}
+  pointHeight: 0
+  trigger: 2
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 0.55
 --- !u!1 &1311757550229104121
 GameObject:
   m_ObjectHideFlags: 0
@@ -939,6 +963,10 @@ PrefabInstance:
     - target: {fileID: 2636731234586323098, guid: c3439f7ff6817d14fa66cc0b59a918bd, type: 3}
       propertyPath: m_Name
       value: MED_HealthBar
+      objectReference: {fileID: 0}
+    - target: {fileID: 5201086738145424569, guid: c3439f7ff6817d14fa66cc0b59a918bd, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8017041458808901348, guid: c3439f7ff6817d14fa66cc0b59a918bd, type: 3}
       propertyPath: m_LocalScale.x

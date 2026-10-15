@@ -2531,6 +2531,7 @@ GameObject:
   - component: {fileID: 75812083769315963}
   - component: {fileID: 1947880888179851837}
   - component: {fileID: 1108164759172540060}
+  - component: {fileID: 7323456775591349}
   m_Layer: 0
   m_Name: MED_PrepBench
   m_TagString: Untagged
@@ -2621,6 +2622,29 @@ MonoBehaviour:
   statBar: {fileID: 3144808727694059861}
   workingProp: {fileID: 890441800382306824}
   messageAnchor: {fileID: 3860115501814374956}
+--- !u!114 &7323456775591349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7091441030655593120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: bench
+  title: PREP BENCH
+  body: Press a green recipe card to prepare supplies.
+  anchor: {fileID: 6850203953597533850}
+  offset: {x: 0.8, y: 1.9, z: 0}
+  pointHeight: 0.9
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &7105568664122758105
 GameObject:
   m_ObjectHideFlags: 0

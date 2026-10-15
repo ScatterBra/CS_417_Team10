@@ -1092,6 +1092,7 @@ GameObject:
   - component: {fileID: 8824907409943483717}
   - component: {fileID: 8990557065049687408}
   - component: {fileID: 7977728561041152941}
+  - component: {fileID: 7984255501807092046}
   m_Layer: 0
   m_Name: MED_MedicineCabinet
   m_TagString: Untagged
@@ -1183,6 +1184,29 @@ MonoBehaviour:
   statBar: {fileID: 3932513466455510037}
   messageAnchor: {fileID: 2164073671349938981}
   maxUseDistance: 3.5
+--- !u!114 &7984255501807092046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3788637449023589249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: cabinet
+  title: MEDICINE CABINET
+  body: STOCK stores Medicine, TAKE returns it.
+  anchor: {fileID: 6906919819842274199}
+  offset: {x: 0.9, y: 2.6, z: 0}
+  pointHeight: 1.2
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &4281704306304334205
 GameObject:
   m_ObjectHideFlags: 0

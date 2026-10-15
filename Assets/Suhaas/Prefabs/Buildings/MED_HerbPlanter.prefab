@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 822649882493240860}
   - component: {fileID: 4203856814045442764}
   - component: {fileID: 8496131494285603106}
+  - component: {fileID: 6628239655395004396}
   m_Layer: 0
   m_Name: MED_HerbPlanter
   m_TagString: Untagged
@@ -241,6 +242,29 @@ MonoBehaviour:
   - {fileID: 976803495073646978}
   ripeGlow: {fileID: 2385524672054171231}
   messageAnchor: {fileID: 3708381592179953474}
+--- !u!114 &6628239655395004396
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958848708352946035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: planter
+  title: HERB PLANTER
+  body: PLANT a herb, WATER it, harvest with the Sickle when ripe.
+  anchor: {fileID: 9199794624674391591}
+  offset: {x: 0.75, y: 1.7, z: 0}
+  pointHeight: 0.4
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &1198310625477365185
 GameObject:
   m_ObjectHideFlags: 0

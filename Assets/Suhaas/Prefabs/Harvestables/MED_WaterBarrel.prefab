@@ -1650,6 +1650,7 @@ GameObject:
   - component: {fileID: 1060157275163899556}
   - component: {fileID: 1998749384164146627}
   - component: {fileID: 3037703456894299667}
+  - component: {fileID: 3203518073780945262}
   m_Layer: 0
   m_Name: MED_WaterBarrel
   m_TagString: Untagged
@@ -1760,6 +1761,29 @@ MonoBehaviour:
   maxUseDistance: 3.5
   pourButton: {fileID: 6325980473802672698}
   messageAnchor: {fileID: 8806383514687496833}
+--- !u!114 &3203518073780945262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7593679149859250760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: barrel
+  title: RAIN BARREL
+  body: Dip the Bucket for Water. Rain refills it; POUR adds more.
+  anchor: {fileID: 3404048583225041038}
+  offset: {x: 0.8, y: 1.9, z: 0}
+  pointHeight: 0.8
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &7600053016922168389
 GameObject:
   m_ObjectHideFlags: 0

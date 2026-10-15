@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 1942316238983540536}
   - component: {fileID: 9112936832957750293}
   - component: {fileID: 6681873172070814591}
+  - component: {fileID: 5458318973092686196}
   m_Layer: 0
   m_Name: MED_HerbPatch
   m_TagString: Untagged
@@ -225,6 +226,29 @@ MonoBehaviour:
   - {fileID: 88288704953862802}
   - {fileID: 8357916995224672654}
   - {fileID: 5865626430243463366}
+--- !u!114 &5458318973092686196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 500800596436492418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: herbpatch
+  title: WILD HERBS
+  body: Swing the Sickle (or press trigger) to gather Herbs.
+  anchor: {fileID: 6985239910848650578}
+  offset: {x: 0.7, y: 1.3, z: 0}
+  pointHeight: 0.4
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &1395306277131656650
 GameObject:
   m_ObjectHideFlags: 0

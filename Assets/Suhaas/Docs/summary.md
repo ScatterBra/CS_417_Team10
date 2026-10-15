@@ -120,6 +120,20 @@ Files affected:
 - Materials: `MED_RipeGlow`, `MED_SterilizerBody`, `MED_ButtonRipen`
 - Docs: `summary.md`
 
+### Step 8 - 2026-10-15 - Pop-up tutorials (13) and Interface Metaphor write-up
+Created:
+- `MED_TutorialManager` (child `MED_Tutorials` of `MED_ClinicStation`; also created on demand if missing): static set of tutorial ids shown this session, a queue of pending pop-ups, **at most one pop-up visible at a time**, `ReArmAll()` clears the shown set and the queue. It owns a single reusable world-space panel built in code: dark semi-transparent rounded rectangle (generated rounded-rect texture, `MED_HudPanel` material), a blue "i" icon, bold title, body text (TextMeshPro) and a thin pointer line to the object. The panel is billboarded to the head, fades in and out (0.4 s), is floated 0.5 m toward the player and clamped to a band around eye level (0.35 m below to 0.4 m above) so it never sinks into walls or gets cropped, and sits beside the object (offset sideways and up) so it does not cover the buttons. It shows for 8 s; after the 3 s minimum it hides early if the player is more than 6 m away or looks more than 95 degrees away. The id is marked shown the moment the panel appears, so a pop-up never repeats in a run unless `ReArmAll()` is called. A queued proximity pop-up is dropped (and can fire again later) if the player has walked off before its turn.
+- `MED_PopupTutorial` (component): `tutorialId` (shared by every instance of a kind of object), `title`, `body`, `anchor`, `offset` (x sideways along the player's right, y up), `pointHeight`, trigger (Proximity / OnEvent / TimeAfterStart), `proximityDistance` (default 3 m), 55 degree view cone against the head forward, `delaySeconds`, `panelScale`. Proximity = head within distance AND object in the cone AND not yet shown. OnEvent = `Fire()` / `FireById()` from code. TimeAfterStart = `Time.timeSinceLevelLoad` >= delay. The component sits on the prefab itself for buildings and harvestables, so any instance can trigger it; placement ghosts have all scripts disabled, so they never trigger it.
+- Hooks: `MED_BuildingMini.OnGrabbed` calls `MED_PopupTutorial.FireById("grid", transform)` so the grid pop-up anchors to the grabbed model. The `MED_StatBar` prefab carries the "statbars" pop-up (2.5 m); the HUD's own always-visible health bar has it disabled so it does not fire at spawn.
+- Test tool: `MED_ResetTutorialsButton` ("TEST: RESET TUTORIALS", light blue, x=-3.0, z=-2.3 in `MED_TestTools`) calls `MED_TutorialManager.ReArmAll()`.
+- Docs: new "Interface Metaphor" section and the pop-up tutorial table below. No gameplay code was changed for the write-up.
+
+Files affected:
+- Scripts: `MED_TutorialManager.cs`, `MED_PopupTutorial.cs`, `MED_ResetTutorialsButton.cs`; changed `MED_BuildingMini.cs`
+- Prefabs: changed `MED_ClinicStation.prefab` (manager, shelf/grid/rack pop-ups, reset button), `MED_PlayerHUD.prefab`, `MED_StatBar.prefab`, `Buildings/MED_PrepBench`, `MED_MedicineCabinet`, `MED_TreatmentStation`, `MED_Sterilizer`, `MED_HerbPlanter`, `Harvestables/MED_HerbPatch`, `MED_SupplyCrate`, `MED_WaterBarrel`
+- Materials: `MED_ButtonTutorial`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
@@ -226,8 +240,95 @@ Metaphor: an **apothecary / field clinic**. Each job is matched to the real-worl
 
 Harvesting works by swinging the tool through the target (speed over 0.5 m/s) or by holding the trigger/activate button while touching it, so it works in the XR Device Simulator and in a headset.
 
+## Interface Metaphor
+Every signifier below exists in the current scripts and prefabs.
+
+### Global metaphor and conventions
+The whole station is a **field-clinic camp**: wooden shelves, crates and barrels outside, an apothecary bench, a ward corner with a bed, a cabinet and a steam autoclave inside. Real-world tools do real jobs (a sickle cuts herbs, a crowbar opens crates, a bucket draws water). Conventions: **green = available / go, grey = unavailable, red = blocked or hot** (red-tinted blocked grid cells, red ghost, red Heat bar and glow, red "HOT"); stat bars are gauges floating over the object (health-style red-yellow-green for "how much is left", flat blue for Moisture, green for Growth, red for Heat); every interactive button uses the same `MED_ActionButton` style (green when the action is possible right now, grey when not, white-ish on hover, pressed in on select) and the same failure messages ("Too far", "No Water", ...) as floating text; every success shows a rising "+N Resource" text.
+
+### Prefabs
+**MED_HerbPatch - a wild garden patch you pick from.**
+- Affordance: harvest Herbs with the Sickle (swing or hold the trigger while touching). Signifiers: green plants on a low patch and the name label "Herb Patch" (a plant is something you cut); a floating "+1 Herbs"; a squash and puff on every hit (the plant reacts like it was cut); the message "Use the Sickle" for a wrong tool (a real-world tool for a real job).
+- Dynamic: depletion (HerbsRemaining). Signifiers: stat bar over the patch (a gauge) and one plant disappears per remaining unit (fewer plants = less left); "EMPTY" message at 0.
+- Dynamic: death. Signifier: the patch shrinks away in a puff when empty (a picked-clean patch is gone).
+- Dynamic: wild placement. Signifier: patches sit at random spots on the floor with random yaw (they grow wild, nobody built them).
+
+**MED_SupplyCrate - an army medical supply crate.**
+- Affordance: open with the Crowbar. Signifiers: red-cross crate with a name label; "Use the Crowbar" for a wrong tool; floating "+1 Alcohol" / "+1 Gauze"; squash and puff on every hit.
+- Dynamic: random content. Signifiers: lid band color (blue = alcohol, white = gauze) and the label "ALCOHOL" or "GAUZE" (a stencilled content label on a crate).
+- Dynamic: depletion (SuppliesRemaining). Signifiers: stat bar and the lid opening wider as supplies come out (a crate pried open further each time); "EMPTY" at 0.
+- Dynamic: death. Signifier: shrink and puff when empty.
+
+**MED_PrepBench - an apothecary workbench with recipe cards.**
+- Affordance: build from a shelf model (see the shelf below). Signifier: the "Prep Bench" label and wooden table with a mortar and pestle.
+- Affordance: prepare a recipe by pressing a card on the board (5 recipes). Signifiers: each card prints the recipe name plus "inputs -> output" like a written recipe; card color green when the bench is idle and you hold the inputs, grey otherwise (a card you can fill); hover highlight and press-in; floating "Need 2 Herbs (have 1)", "Bench is busy" or "Too far" when it cannot start.
+- Dynamic: timed preparation (PrepProgress). Signifiers: stat bar (faint idle, bright while working) and the pestle spinning and bobbing (someone is grinding); floating "+1 Medicine" when done.
+- Dynamic: busy / idle state. Signifiers: all cards turn grey while preparing and the pestle rests when idle.
+
+**MED_MedicineCabinet - a glass-front medicine cabinet with bottles.**
+- Affordance: STOCK +1 (store a Medicine). Signifiers: button labelled "STOCK +1", green only when you hold Medicine and the cabinet is not full; "Cabinet full" / "No Medicine" / "Too far"; floating "+1 Stocked".
+- Affordance: TAKE 1 (get a Medicine back). Signifiers: button labelled "TAKE 1", green only when stock is at least 1; "Cabinet empty"; floating "+1 Medicine".
+- Dynamic: stock level (CabinetStock). Signifiers: amber bottles behind the glass pane, one per 2 stock (a fuller cabinet looks fuller), and a stat bar.
+
+**MED_TreatmentStation - a hospital bed with an IV bag and a "stand here" pad.**
+- Affordance: REFILL +1 (load Medicine into the IV supply). Signifiers: console button "REFILL +1" (green when you hold Medicine and it is not full); "Station is full" / "No Medicine"; the IV bag liquid level and a stat bar rise (the IV bag is the medicine tank).
+- Affordance: TREAT (heal yourself, 20 HP per dose). Signifiers: big "TREAT" button, green only when you stand on the pad, health is not full and the station has medicine; messages "Step onto the green pad", "Health is full", "Station is empty - refill it"; floating "+N HP".
+- Affordance: stand on the pad. Signifiers: a green pad labelled "STAND HERE" that brightens while you stand on it (a patient lies or stands where the pad is).
+- Dynamic: timed dose (TreatProgress, auto-repeat while health is not full and medicine remains). Signifiers: a small progress bar shown only while treating and a pulsing glow on the bed; "Fully healed" / "Treatment cancelled" messages when it stops.
+
+**MED_Sterilizer - a steam autoclave.**
+- Affordance: START (sterilize 2 Gauze + 1 Water into 1 BandageKit). Signifiers: button "START", green only when idle, cool (Heat < 0.2) and the inputs are held; messages "Sterilizer is busy", "Still hot - wait", "Need 1 Gauze + 1 Water" style (only the missing items); floating "+1 BandageKit" at the end.
+- Dynamic: heating then sterilizing (Heat, SterilizeProgress). Signifiers: body glow from orange to red with Heat (hot metal), the lid lifting slightly and small steam puffs rising while it runs (an autoclave venting), a red Heat bar and a blue progress bar shown only while active.
+- Dynamic: cooling when idle (Heat falls even when unused). Signifiers: the glow and Heat bar fade over about 8 s; a red "HOT" label above the lid while Heat > 0.5 (do not touch yet) and the grey START button.
+
+**MED_HerbPlanter - a garden planter box with soil that darkens when wet.**
+- Affordance: PLANT (spend 1 Herbs). Signifiers: button "PLANT -1 HERB", green only when empty and you hold a Herb; "Already planted" / "Need 1 Herbs"; floating "Planted".
+- Affordance: WATER (spend 1 Water, Moisture +0.5). Signifiers: button "WATER -1", green only when the soil is not wet and you hold Water; "Soil is wet" / "No Water"; floating "Watered"; the soil darkens and a blue Moisture bar rises (wet soil is dark).
+- Affordance: harvest the ripe plant with the Sickle (3 Herbs, planter stays). Signifiers: full-size plant with a soft golden pulsing glow when ripe; "Not ripe yet" / "Plant something first" / "Use the Sickle"; floating "+3 Herbs".
+- Dynamic: drying (Moisture). Signifiers: soil color lightens and the blue bar falls.
+- Dynamic: growth only while damp (Growth). Signifiers: green Growth bar and the plant growing taller and wider; with dry soil growth pauses and the plant droops (squashed, tipped, leaves turn yellow-brown, like a wilting plant).
+
+**MED_WaterBarrel - a rain barrel.**
+- Affordance: draw water with the Bucket. Signifiers: wooden barrel with the label "Water Barrel"; the water surface drops with each dip; floating "+1 Water"; "Use the Bucket" for a wrong tool.
+- Affordance: POUR 1 WATER (tip your Water in). Signifiers: button "POUR 1 WATER" on the barrel, green only when the barrel is not full and you hold Water; "Barrel is full" / "No Water" / "Too far"; floating "+1 Poured".
+- Dynamic: passive rain (about 1 Water per 6 s while not full). Signifiers: the water surface and the stat bar creep up on their own (a rain barrel fills itself); "EMPTY" label at 0.
+
+**MED_ModelShelf (support prop) - toy models on a shelf like a dollhouse.**
+- Affordance: grab a toy model and release it on the floor to build the full-size building. Signifiers: the sign "CLINIC MODELS - grab one, point at the floor, release to build"; five small models with name labels; the model flies back to its slot on an invalid release and a fresh model appears after building.
+- Dynamic: the build grid. Signifiers: the grid fades in only while a model is held, reserved cells tinted red, and a green or red translucent ghost of the building (green = go, red = blocked); the ghost faces the way you face (head yaw snapped to 90 degrees); a short pop when the building appears.
+
+**MED_ToolRack (support prop) - a tool rack on the wall.**
+- Affordance: grab a Sickle, Crowbar or Bucket. Signifiers: the sign "TOOLS", three named tool props in their slots, haptic pulse on a hit.
+- Dynamic: tools ease back to their slot when left alone for 3 s (a tidy rack).
+
+### Gaps (affordances or dynamics without a clear signifier)
+1. **Tool matching before use:** HerbPatch, SupplyCrate and the ripe planter do not show which tool they need; it is only revealed by the "Use the ..." message after a wrong hit and by the pop-ups.
+2. **Barrel rain:** no rain or drip visual; the passive refill is only visible as the water surface and bar slowly rising.
+3. **Planter harvest and ripeness:** there is no "RIPE" label or button; ripe is shown only by the golden glow and full-size plant, and "Not ripe yet" appears only after a Sickle hit.
+4. **Stat bars are unnamed:** a bar has no text saying whether it is Moisture, Growth, Heat or stock; the planter (blue/green) and sterilizer (red/blue) rely on color and the pop-up.
+5. **Sterilizer restart rule:** the 0.2 Heat threshold is invisible; between 0.2 and 0.5 Heat there is no "HOT" label, only the red bar and the "Still hot - wait" message.
+6. **Shelf rotation and costs:** building rotation follows head yaw and is only visible through the ghost; there is no cost display (costs are empty for now).
+7. **Cabinet fill is coarse:** one bottle per 2 stock, so a single STOCK press can show no visible change; only the stat bar shows it.
+8. **Treatment station dose progress:** the TreatProgress bar and bed glow exist only while treating; there is no signifier of how many doses the stored Medicine allows other than the bag level.
+
 ## (g) Pop-up tutorial list
-_(none yet)_
+Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialManager`); "TEST: RESET TUTORIALS" makes them all appear again. Shared ids mean a second instance of the same object does not repeat the tutorial.
+
+| # | id | Object | Title / text | Trigger |
+|---|---|---|---|---|
+| 1 | shelf | Model Shelf | CLINIC MODELS / Grab a model, point at the floor, release to build. | Proximity (3.5 m, view cone) |
+| 2 | toolrack | Tool Rack | TOOLS / Grab a tool to gather supplies. | Proximity (3.5 m) |
+| 3 | herbpatch | Herb Patch (any; anchored to whichever triggers) | WILD HERBS / Swing the Sickle (or press trigger) to gather Herbs. | Proximity (3 m) |
+| 4 | crate | Supply Crate | SUPPLY CRATE / Crack it with the Crowbar for Alcohol or Gauze. | Proximity (3 m) |
+| 5 | barrel | Water Barrel | RAIN BARREL / Dip the Bucket for Water. Rain refills it; POUR adds more. | Proximity (3 m) |
+| 6 | bench | Prep Bench | PREP BENCH / Press a green recipe card to prepare supplies. | Proximity (3 m) |
+| 7 | cabinet | Medicine Cabinet | MEDICINE CABINET / STOCK stores Medicine, TAKE returns it. | Proximity (3 m) |
+| 8 | station | Treatment Station | TREATMENT STATION / REFILL it, stand on the green pad, press TREAT. | Proximity (3.5 m) |
+| 9 | sterilizer | Sterilizer | STERILIZER / START heats and sterilizes gauze. Wait for it to cool. | Proximity (3 m) |
+| 10 | planter | Herb Planter | HERB PLANTER / PLANT a herb, WATER it, harvest with the Sickle when ripe. | Proximity (3 m) |
+| 11 | grid | Build grid (grabbed model) | BUILD GRID / Green = free spot. Red = blocked. Face a direction to rotate. | OnEvent: first grab of any shelf model |
+| 12 | hud | Player HUD | YOUR SUPPLIES / Look down to see your Herbs, Water and Medicine. | TimeAfterStart (6 s), follows the HUD |
+| 13 | statbars | Any stat bar | STAT BARS / Bars show how much is left or how far along something is. | Proximity (2.5 m, view cone), anchored to that bar |
 
 ## (h) Rubric story tracker
 | Story | Target pts | Status |
@@ -240,9 +341,9 @@ _(none yet)_
 | Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress, Growth, Moisture, Heat, SterilizeProgress, barrel rain; Euler integration) |
 | Resource Content (8+ resources) | 3 | Not started |
 | Wild Instances | 2 | Done (Step 4) |
-| Interface Metaphor (0-4, target 3) | 3 | Not started |
+| Interface Metaphor (0-4, target 3) | 3 | Write-up drafted (Step 8, "Interface Metaphor" section, 8 gaps listed for review) |
 | Building Content (5) | 4 | Done (5 buildings, Step 3) |
-| Pop-up Tutorials (8) | 3 | Not started |
+| Pop-up Tutorials (13) | 4 | Done (Step 8; 13 spatial pop-ups, one at a time, once per run) |
 | Git Merged | 2 | Not started |
 | Pull Request Reviewed | 2 | Not started |
 | **Sidequests** | | |
@@ -281,3 +382,5 @@ _(none yet)_
 - `MED_TestTools` now also holds "TEST: RIPEN PLANTERS" (test-only; remove at integration).
 - Herb Planter and Sterilizer inputs are spent on action; there is no refund if the building is destroyed. Planter/Sterilizer/barrel state (growth, heat, water) is not saved.
 - Barrel rain adds fractional WaterLevel, so a bucket dip at a level below 1 still yields 1 Water (the stat clamps at 0).
+- `MED_TestTools` now also holds "TEST: RESET TUTORIALS" (test-only; remove at integration). Pop-ups are shown once per Play session; the shown set is static and resets on entering Play mode.
+- The pop-up panel is clamped to a band around eye level and floated 0.5 m toward the player; tall objects therefore get a panel lower than their top. The HUD health bar has its pop-up disabled so "STAT BARS" waits for a bar on a machine, patch, crate or barrel.

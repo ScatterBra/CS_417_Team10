@@ -756,6 +756,7 @@ GameObject:
   - component: {fileID: 4563455106023531421}
   - component: {fileID: 2184703638700096968}
   - component: {fileID: 9099481524129069858}
+  - component: {fileID: 2298325974906011729}
   m_Layer: 0
   m_Name: MED_SupplyCrate
   m_TagString: Untagged
@@ -847,6 +848,29 @@ MonoBehaviour:
   gauzeBand: {fileID: 2100000, guid: b0a7d4370a71f0847b4dc3b8497dd45e, type: 2}
   label: {fileID: 2674633612410472279}
   maxLidAngle: 35
+--- !u!114 &2298325974906011729
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7816864306938134228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: crate
+  title: SUPPLY CRATE
+  body: Crack it with the Crowbar for Alcohol or Gauze.
+  anchor: {fileID: 7164233701658604989}
+  offset: {x: 0.7, y: 1.6, z: 0}
+  pointHeight: 0.5
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1001 &8083616617772455505
 PrefabInstance:
   m_ObjectHideFlags: 0

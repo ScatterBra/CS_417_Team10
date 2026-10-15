@@ -1305,6 +1305,7 @@ GameObject:
   - component: {fileID: 8092184338690009864}
   - component: {fileID: 8894095362163397518}
   - component: {fileID: 1018326503128084388}
+  - component: {fileID: 9005556757858011743}
   m_Layer: 0
   m_Name: MED_Sterilizer
   m_TagString: Untagged
@@ -1413,6 +1414,29 @@ MonoBehaviour:
   - {fileID: 4875113058452817989}
   hotLabel: {fileID: 4451573077851975006}
   messageAnchor: {fileID: 8367721402368144196}
+--- !u!114 &9005556757858011743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7002181558930086411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: sterilizer
+  title: STERILIZER
+  body: START heats and sterilizes gauze. Wait for it to cool.
+  anchor: {fileID: 3098119111966555099}
+  offset: {x: 0.8, y: 2.1, z: 0}
+  pointHeight: 0.6
+  trigger: 0
+  proximityDistance: 3
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &7805037983208792354
 GameObject:
   m_ObjectHideFlags: 0

@@ -35,6 +35,7 @@ public class MED_BuildingMini : MonoBehaviour
     {
         if (routine != null) { StopCoroutine(routine); routine = null; }
         IsHeld = true;
+        MED_PopupTutorial.FireById("grid", transform);   // first grab of any model explains the build grid
         if (Shelf != null && Shelf.Placer != null) Shelf.Placer.BeginCarry(this, args.interactorObject);
     }
 

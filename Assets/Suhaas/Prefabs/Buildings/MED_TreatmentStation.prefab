@@ -2487,6 +2487,7 @@ GameObject:
   - component: {fileID: 3756926527404265238}
   - component: {fileID: 150984502559624240}
   - component: {fileID: 4306683487886521817}
+  - component: {fileID: 6433415035987439874}
   m_Layer: 0
   m_Name: MED_TreatmentStation
   m_TagString: Untagged
@@ -2567,6 +2568,29 @@ MonoBehaviour:
   ivLiquid: {fileID: 1997659268018867368}
   ivFullHeight: 0.24
   messageAnchor: {fileID: 421796129263454372}
+--- !u!114 &6433415035987439874
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7702092383178678382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e679a2dfdf6b044e810640a00fa9c85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MED_PopupTutorial
+  tutorialId: station
+  title: TREATMENT STATION
+  body: REFILL it, stand on the green pad, press TREAT.
+  anchor: {fileID: 3756926527404265238}
+  offset: {x: 1, y: 2.2, z: 0}
+  pointHeight: 0.8
+  trigger: 0
+  proximityDistance: 3.5
+  viewConeAngle: 55
+  delaySeconds: 6
+  panelScale: 1
 --- !u!1 &8824430529539144294
 GameObject:
   m_ObjectHideFlags: 0
