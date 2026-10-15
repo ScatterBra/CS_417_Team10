@@ -15,20 +15,29 @@ public class SCV_DamagedPanel : MonoBehaviour
 
     public void Repair()
     {
+        TryRepair();
+    }
+
+    public bool TryRepair()
+    {
         if (currentCondition >= maxCondition)
         {
-            Debug.Log("Panel is already fully repaired.");
+            Debug.Log("Defense panel is already fully repaired.");
 
-            panelDisplay.ShowFeedback("DEFENSE ALREADY FULL");
-            return;
+            if (panelDisplay != null)
+                panelDisplay.ShowFeedback("DEFENSE ALREADY FULL");
+
+            return false;
         }
 
         if (!resourceManager.SpendRepairKit(1))
         {
             Debug.Log("No repair kits available.");
 
-            panelDisplay.ShowFeedback("NO REPAIRS AVAILABLE");
-            return;
+            if (panelDisplay != null)
+                panelDisplay.ShowFeedback("NO REPAIRS AVAILABLE");
+
+            return false;
         }
 
         currentCondition = Mathf.Min(
@@ -37,9 +46,14 @@ public class SCV_DamagedPanel : MonoBehaviour
         );
 
         Debug.Log(
-            "Panel repaired. Condition: " +
+            "Defense panel repaired: " +
             currentCondition + "/" + maxCondition
         );
+
+        if (panelDisplay != null)
+            panelDisplay.ShowFeedback("PANEL REPAIRED");
+
+        return true;
     }
 
     [ContextMenu("Repair Panel")]

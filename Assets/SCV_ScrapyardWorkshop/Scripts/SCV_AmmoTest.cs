@@ -12,22 +12,26 @@ public class SCV_AmmoTest : MonoBehaviour
     public int StoredAmmo => storedAmmo;
     public int MaxAmmo => maxAmmo;
 
-    public void LoadAmmo()
+    public bool LoadAmmo()
     {
         if (storedAmmo >= maxAmmo)
         {
             Debug.Log("Ammo storage is full.");
 
-            ammoDisplay.ShowFeedback("AMMO STORAGE FULL");
-            return;
+            if (ammoDisplay != null)
+                ammoDisplay.ShowFeedback("AMMO STORAGE FULL");
+
+            return false;
         }
 
         if (!resourceManager.SpendAmmo(1))
         {
             Debug.Log("No crafted ammo available.");
 
-            ammoDisplay.ShowFeedback("NO AMMO AVAILABLE");
-            return;
+            if (ammoDisplay != null)
+                ammoDisplay.ShowFeedback("NO AMMO AVAILABLE");
+
+            return false;
         }
 
         storedAmmo++;
@@ -36,6 +40,11 @@ public class SCV_AmmoTest : MonoBehaviour
             "Ammo loaded into storage: " +
             storedAmmo + "/" + maxAmmo
         );
+
+        if (ammoDisplay != null)
+            ammoDisplay.ShowFeedback("AMMO LOADED");
+
+        return true;
     }
 
     [ContextMenu("Load Ammo")]

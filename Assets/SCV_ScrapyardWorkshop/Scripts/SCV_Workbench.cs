@@ -12,6 +12,13 @@ public class SCV_Workbench : MonoBehaviour
     [SerializeField] private int repairPartsCost = 2;
     [SerializeField] private int repairKitsProduced = 1;
 
+    [Header("Physical Crafted Items")]
+    [SerializeField] private GameObject ammoBoxPrefab;
+    [SerializeField] private GameObject repairKitPrefab;
+
+    [SerializeField] private Transform ammoSpawnPoint;
+    [SerializeField] private Transform repairKitSpawnPoint;
+
     public int AmmoPartsCost => ammoPartsCost;
     public int AmmoProduced => ammoProduced;
     public int RepairPartsCost => repairPartsCost;
@@ -30,6 +37,11 @@ public class SCV_Workbench : MonoBehaviour
 
         resourceManager.AddAmmo(ammoProduced);
 
+        for (int i = 0; i < ammoProduced; i++)
+        {
+            SpawnItem(ammoBoxPrefab, ammoSpawnPoint);
+        }
+
         LastMessage = "AMMO CRAFTED";
         Debug.Log("Crafted " + ammoProduced + " ammo.");
     }
@@ -46,10 +58,26 @@ public class SCV_Workbench : MonoBehaviour
         for (int i = 0; i < repairKitsProduced; i++)
         {
             resourceManager.AddRepairKit(1);
+            SpawnItem(repairKitPrefab, repairKitSpawnPoint);
         }
 
         LastMessage = "REPAIR KIT CRAFTED";
         Debug.Log("Crafted " + repairKitsProduced + " repair kit.");
+    }
+
+    private void SpawnItem(GameObject prefab, Transform spawnPoint)
+    {
+        if (prefab == null || spawnPoint == null)
+        {
+            Debug.LogWarning("Crafted item prefab or spawn point is missing.");
+            return;
+        }
+
+        Instantiate(
+            prefab,
+            spawnPoint.position,
+            spawnPoint.rotation
+        );
     }
 
     [ContextMenu("Craft Ammo")]
