@@ -56,6 +56,20 @@ Files affected:
 - Texture: `Assets/Suhaas/Textures/MED_GridLine.png`
 - Docs: `summary.md`
 
+### Step 4 - 2026-10-15 - Harvesting loop (wild herb patches, supply crates, water barrel)
+Created:
+- Base: `MED_Harvestable` (holds a `MED_Stat` "remaining", resource, yield per hit, required tool, 0.4 s cooldown, destroyOnEmpty). `TryHarvest(tool, player)`: wrong tool shows a floating "Use the <tool>"; right tool reduces the stat by 1, adds the resource, shows a rising "+1 Herbs" text, squashes the visual, spawns a small particle puff and sends a haptic pulse. On depletion (if destroyOnEmpty): shrink-and-puff, frees its grid cells, raises `OnDepleted`, destroys itself. A `MED_StatBar` (Step 2 prefab) floats above every harvestable. Supporting scripts: `MED_ToolType`, `MED_FloatingText`, `MED_HerbPatchVisual`, `MED_CrateVisual`, `MED_BarrelVisual`.
+- Tools (supporting props, not content prefabs): `MED_HarvestTool` + `MED_Sickle`, `MED_Crowbar`, `MED_Bucket` prefabs in `Assets/Suhaas/Prefabs/Tools/` (kinematic Rigidbody, box collider, `XRGrabInteractable`, name label). Harvest triggers when the tool's hit point overlaps a harvestable AND (swing speed > 0.5 m/s OR the activate/trigger button is held). `MED_ToolRack` (east wall, sign "TOOLS") holds the three tools; a tool left alone for 3 s eases back to its slot.
+- Harvestables (`Assets/Suhaas/Prefabs/Harvestables/`): `MED_HerbPatch`, `MED_SupplyCrate`, `MED_WaterBarrel`, plus the shared `MED_HarvestPuff` particle prefab.
+- Wild instances: `MED_WildSpawner` on `MED_Wild` in the station. On Play (new random seed every run) it places 5-8 herb patches and 3-4 supply crates on random free grid cells (never on reserved or occupied cells) under `MED_WildInstances`, with random yaw. `Respawn()` destroys them and rolls a new set. The fixed water barrel (`MED_WaterBarrel`, east wall, x=7, z=-1) is not part of the wild set; its cells and the rack's cells are reserved.
+- Test tools in `MED_TestTools`: `MED_RerollWildButton` ("RE-ROLL WILD ITEMS" calls `Respawn()`) and `MED_RefillBarrelButton` ("REFILL BARREL"). "CLEAR ALL BUILDINGS" only removes buildings (fixed: it no longer frees every grid cell, so wild cells stay occupied).
+
+Files affected:
+- Scripts: `MED_ToolType.cs`, `MED_FloatingText.cs`, `MED_Harvestable.cs`, `MED_HarvestTool.cs`, `MED_ToolRack.cs`, `MED_WildSpawner.cs`, `MED_HerbPatchVisual.cs`, `MED_CrateVisual.cs`, `MED_BarrelVisual.cs`, `MED_RerollWildButton.cs`, `MED_RefillBarrelButton.cs`; changed `MED_BuildingPlacer.cs`
+- Prefabs: 3 tools, 3 harvestables, `MED_HarvestPuff`; changed `MED_ClinicStation.prefab` (MED_ToolRack, MED_WaterBarrel, MED_WildInstances, MED_Wild, two test buttons, reserved areas)
+- Materials: `MED_GreyMetal`, `MED_Water`, `MED_BandAlcohol`, `MED_BandGauze`, `MED_PuffMat`, `MED_ButtonReroll`, `MED_ButtonRefill`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
@@ -65,20 +79,30 @@ Files affected:
 | MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet, red cross, door line. Mini: MED_Mini_MedicineCabinet. |
 | MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | 2x1 bed with pale-blue cushion, pillow and green cross. Mini: MED_Mini_TreatmentStation. |
 | MED_HerbPlanter | Assets/Suhaas/Prefabs/Buildings/MED_HerbPlanter.prefab | 1x1 low soil box with green herbs. Mini: MED_Mini_HerbPlanter. |
-| MED_StatBar | Assets/Suhaas/Prefabs/MED_StatBar.prefab | Reusable world-space stat bar. Not yet used by other prefabs. |
+| MED_StatBar | Assets/Suhaas/Prefabs/MED_StatBar.prefab | Reusable world-space stat bar. Used by HerbPatch, SupplyCrate and WaterBarrel. |
+| MED_HerbPatch | Assets/Suhaas/Prefabs/Harvestables/MED_HerbPatch.prefab | Harvest with Sickle (1 Herbs per hit); random wild spawn; one plant disappears per hit; Death on depletion (shrink + puff, cells freed). Stat: HerbsRemaining. |
+| MED_SupplyCrate | Assets/Suhaas/Prefabs/Harvestables/MED_SupplyCrate.prefab | Harvest with Crowbar (1 Alcohol or Gauze per hit, chosen randomly at spawn and shown by lid band + label); random wild spawn; lid opens as supplies drop; Death on depletion. Stat: SuppliesRemaining. |
+| MED_WaterBarrel | Assets/Suhaas/Prefabs/Harvestables/MED_WaterBarrel.prefab | Harvest with Bucket (1 Water per hit); water surface follows the stat; shows "EMPTY" at 0 and stays (refills in a later step). Fixed instance near the east wall. Stat: WaterLevel. |
+| MED_Sickle / MED_Crowbar / MED_Bucket | Assets/Suhaas/Prefabs/Tools/ | Supporting props: grabbable harvest tools on the east-wall rack. Not claimed as content prefabs. |
 | MED_PlayerHUD | Assets/Suhaas/Prefabs/MED_PlayerHUD.prefab | Floating health HUD + look-down resource panel. Scene object, not part of the station. |
 
 ## (d) Stat list
-Framework exists (`MED_Stat`, `MED_StatBar`). No stats claimed yet.
+Framework: `MED_Stat` (clamped value, `OnChanged`) and `MED_StatBar` (world-space bar, green to yellow to red).
+
+| Stat | Owning prefab | Max | What changes it | How it is shown |
+|---|---|---|---|---|
+| HerbsRemaining | MED_HerbPatch | 4 | -1 per Sickle hit | Floating stat bar; one plant disappears per remaining unit |
+| SuppliesRemaining | MED_SupplyCrate | 5 | -1 per Crowbar hit | Floating stat bar; the lid opens wider as it drops |
+| WaterLevel | MED_WaterBarrel | 10 | -1 per Bucket hit; "REFILL BARREL" test button (real refill in a later step) | Floating stat bar; water surface height; "EMPTY" label at 0 |
 
 ## (e) Resource list
 | Resource | Status |
 |---|---|
 | Health | Implemented (max 100, starts at 50, HUD bar, test buttons) |
-| Herbs | Framework ready, gameplay in later steps |
-| Water | Framework ready, gameplay in later steps |
-| Alcohol | Framework ready, gameplay in later steps |
-| Gauze | Framework ready, gameplay in later steps |
+| Herbs | Obtainable (Step 4): MED_HerbPatch + Sickle |
+| Water | Obtainable (Step 4): MED_WaterBarrel + Bucket |
+| Alcohol | Obtainable (Step 4): MED_SupplyCrate + Crowbar (blue band) |
+| Gauze | Obtainable (Step 4): MED_SupplyCrate + Crowbar (white band) |
 | Medicine | Framework ready, gameplay in later steps |
 | BandageKit | Framework ready, gameplay in later steps |
 | Antiseptic | Framework ready, gameplay in later steps |
@@ -100,30 +124,41 @@ Signifiers shared by all five: a small toy model on a shelf slot (grabbable, wit
 
 All costs are empty for now.
 
+### Harvesting (Step 4)
+Metaphor: an **apothecary / field clinic**. Each job is matched to the real-world tool for it: a sickle cuts herbs, a crowbar pries open crates, a bucket is dipped into a barrel. Tools sit on a labeled rack ("TOOLS"); the player grabs one and uses it on the matching object. Signifiers for every affordance: a named object with a floating stat bar, a floating "+1 <Resource>" on success, a squash and puff on each hit, and a "Use the <tool>" message when the wrong tool is used.
+
+| Affordance | Tool and target | Yields | Signifiers |
+|---|---|---|---|
+| Harvest herbs | Sickle on HerbPatch | Herbs | Green plants with a stat bar; plants vanish one by one; the patch pops away when empty |
+| Open supply crate | Crowbar on SupplyCrate | Alcohol or Gauze | Red-cross crate; blue band = ALCOHOL, white band = GAUZE; lid opens wider as supplies drop |
+| Draw water | Bucket on WaterBarrel | Water | Water surface drops with each dip; "EMPTY" label at 0 |
+
+Harvesting works by swinging the tool through the target (speed over 0.5 m/s) or by holding the trigger/activate button while touching it, so it works in the XR Device Simulator and in a headset.
+
 ## (g) Pop-up tutorial list
 _(none yet)_
 
 ## (h) Rubric story tracker
 | Story | Target pts | Status |
 |---|---|---|
-| Statted Instances (prerequisite) | 0 | Not started |
+| Statted Instances (prerequisite) | 0 | In progress (HerbPatch, SupplyCrate, WaterBarrel carry stats) |
 | Player Resource (prerequisite) | 0 | Not started - framework ready |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
 | Prefab Content (8 prefabs) | 3 | Not started |
 | Stat Content (8 stats) | 3 | Not started |
 | Passive Stat Gain | 2 | Not started |
 | Resource Content (8+ resources) | 3 | Not started |
-| Wild Instances | 2 | Not started |
+| Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Not started |
 | Building Content (5) | 4 | Done (5 buildings, Step 3) |
 | Pop-up Tutorials (8) | 3 | Not started |
 | Git Merged | 2 | Not started |
 | Pull Request Reviewed | 2 | Not started |
 | **Sidequests** | | |
-| Harvesting (3 affordances) | 3 | Not started |
+| Harvesting (3 affordances) | 3 | Done (Step 4) |
 | Caretaking (3) | 3 | Not started |
 | Crafting (5 recipes) | 3 | Not started |
-| Death | 2 | Not started |
+| Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
 | Intermittent Instances | 2 | Not started |
 | Path Following | 2 | Not started |
 | Texture Animation Signifiers | 3 | Not started |
@@ -140,3 +175,8 @@ _(none yet)_
 - Buildings face the player: a building's front is local -Z and it takes the player's head yaw (snapped to 90 degrees) at placement.
 - The shelf is on the west wall (about 7 m from the spawn), so the player has to walk to it.
 - The HUD has no depth-test override: if the player pushes close to a wall, the HUD can clip into it.
+- Harvesting needs a held tool near a target: hold the trigger while touching, or swing quickly. Tools are kinematic and hover where released; after 3 s they ease back to the rack.
+- "RE-ROLL WILD ITEMS" and "REFILL BARREL" are in `MED_TestTools` (test-only; remove at integration).
+- The `MED_PlayerHUD` resource panel (look down) shows Herbs, Water, Alcohol and Gauze updating as they are harvested.
+- In the XR Device Simulator, sending haptics logs a harmless warning ("Failed to get haptic capabilities of XRSimulatedController").
+- `com.unity.xr.openxr` is in the project manifest (not added by this log). No XR loader is enabled for PC.

@@ -81,7 +81,6 @@ public class MED_BuildingPlacer : MonoBehaviour
             grid.Free(b);
             Destroy(b.gameObject);
         }
-        grid.FreeAll();
         shelf.RestockAll();
     }
 
