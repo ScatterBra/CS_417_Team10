@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37da1926d6f29c14bb1d7c1a93b0c06b, type: 3}
+  m_Name: MED_Def_MedicineCabinet
+  m_EditorClassIdentifier: Assembly-CSharp::MED_BuildingDefinition
+  displayName: Medicine Cabinet
+  fullPrefab: {fileID: 3788637449023589249, guid: 6fd910e5c17354f4d9d61e83f0ca978b, type: 3}
+  miniPrefab: {fileID: 7237368855833953234, guid: 2fee438ab3718d34b8517bb33bde7dbb, type: 3}
+  footprint: {x: 1, y: 1}
+  costs: []

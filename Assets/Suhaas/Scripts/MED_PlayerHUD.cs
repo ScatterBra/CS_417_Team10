@@ -6,10 +6,12 @@ using UnityEngine;
 public class MED_PlayerHUD : MonoBehaviour
 {
     static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    static MED_PlayerHUD instance;
 
     [SerializeField] MED_HudFollow follow;
     [SerializeField] MED_StatBar healthBar;
     [SerializeField] TextMeshPro healthLabel;
+    [SerializeField] TextMeshPro messageLabel;
     [SerializeField] GameObject resourcePanel;
     [SerializeField] TextMeshPro leftColumn;
     [SerializeField] TextMeshPro rightColumn;
@@ -19,16 +21,40 @@ public class MED_PlayerHUD : MonoBehaviour
     MED_PlayerResources resources;
     MaterialPropertyBlock backdropBlock;
     float lastVisibility = -1f;
+    float messageTimer;
+
+    /// <summary>Shows a short message under the health bar. Safe to call when no HUD exists.</summary>
+    public static void ShowMessage(string text, float seconds = 2f)
+    {
+        if (instance == null) instance = FindAnyObjectByType<MED_PlayerHUD>();
+        if (instance != null) instance.ShowMessageInternal(text, seconds);
+        else Debug.Log("[HUD message] " + text);
+    }
+
+    void ShowMessageInternal(string text, float seconds)
+    {
+        if (messageLabel == null) return;
+        messageLabel.text = text;
+        messageLabel.alpha = 1f;
+        messageTimer = seconds;
+    }
+
+    void Awake()
+    {
+        instance = this;
+    }
 
     void Start()
     {
         backdropBlock = new MaterialPropertyBlock();
+        if (messageLabel != null) { messageLabel.text = ""; messageLabel.alpha = 0f; }
         TryBind();
         SetPanelVisibility(0f);
     }
 
     void OnDestroy()
     {
+        if (instance == this) instance = null;
         if (resources != null) resources.OnResourceChanged -= OnResourceChanged;
     }
 
@@ -44,9 +70,18 @@ public class MED_PlayerHUD : MonoBehaviour
 
     void Update()
     {
+        UpdateMessage();
         if (resources == null) { TryBind(); return; }
         float v = follow != null ? follow.PanelVisibility : 0f;
         if (!Mathf.Approximately(v, lastVisibility)) SetPanelVisibility(v);
+    }
+
+    void UpdateMessage()
+    {
+        if (messageLabel == null || messageTimer <= 0f) return;
+        messageTimer -= Time.deltaTime;
+        messageLabel.alpha = Mathf.Clamp01(messageTimer / 0.5f);
+        if (messageTimer <= 0f) messageLabel.text = "";
     }
 
     void Refresh()
