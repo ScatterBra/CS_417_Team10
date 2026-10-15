@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5797925dd77e22d4faf2b390ec6441da, type: 3}
+  m_Name: PWR_Build_OilGenerator
+  m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_BuildableDef
+  displayName: Oil Generator
+  prefab: {fileID: 5310244557349247301, guid: 9013b617d3e2e0043a3e8c2983181aaf, type: 3}
+  cost: []
+  requiredFoundationId: 
+  maxCount: 1
+  ghostSize: {x: 1.1047242, y: 0.7160274, z: 0.7492322}
+  ghostCenter: {x: 0.00000011920929, y: 0.3580137, z: 0}
