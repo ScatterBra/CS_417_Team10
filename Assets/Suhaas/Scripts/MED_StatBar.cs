@@ -12,6 +12,9 @@ public class MED_StatBar : MonoBehaviour
     [SerializeField, Range(0f, 1f)] float normalized = 1f;
     [SerializeField, Range(0f, 1f)] float alpha = 0.85f;
 
+    [SerializeField] bool useFixedColor;
+    [SerializeField] Color fixedColor = Color.white;
+
     MaterialPropertyBlock fillBlock, bgBlock;
     float fullWidth = 1f;
     const float BackgroundAlphaFactor = 0.5f;
@@ -46,6 +49,15 @@ public class MED_StatBar : MonoBehaviour
         SetNormalized(stat.Normalized);
     }
 
+    /// <summary>Use one flat color (e.g. blue for Moisture) instead of the red-yellow-green health gradient.</summary>
+    public void SetFixedColor(Color c)
+    {
+        Init();
+        useFixedColor = true;
+        fixedColor = c;
+        Apply();
+    }
+
     public void SetAlpha(float a)
     {
         Init();
@@ -71,7 +83,7 @@ public class MED_StatBar : MonoBehaviour
         }
         if (fillRenderer != null)
         {
-            var c = Evaluate(normalized);
+            var c = useFixedColor ? fixedColor : Evaluate(normalized);
             c.a = alpha;
             fillRenderer.GetPropertyBlock(fillBlock);
             fillBlock.SetColor(BaseColorId, c);

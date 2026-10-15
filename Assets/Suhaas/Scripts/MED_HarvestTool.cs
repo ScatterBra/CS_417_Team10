@@ -26,7 +26,7 @@ public class MED_HarvestTool : MonoBehaviour
     float idleTimer;
     bool activateHeld;
     readonly Collider[] hits = new Collider[16];
-    readonly HashSet<MED_Harvestable> touched = new HashSet<MED_Harvestable>();
+    readonly HashSet<MED_IToolTarget> touched = new HashSet<MED_IToolTarget>();
 
     public MED_ToolType ToolType => toolType;
     public bool IsHeld => holder != null;
@@ -65,7 +65,7 @@ public class MED_HarvestTool : MonoBehaviour
         if (touched.Count == 0) return;
         if (player == null) player = FindAnyObjectByType<MED_PlayerResources>();
         foreach (var h in touched)
-            if (h != null) h.TryHarvest(this, player);
+            if (h != null && !(h is Object o && o == null)) h.TryHarvest(this, player);
     }
 
     void FindTouched()
@@ -75,7 +75,7 @@ public class MED_HarvestTool : MonoBehaviour
         int n = Physics.OverlapSphereNonAlloc(p, hitRadius, hits, ~0, QueryTriggerInteraction.Collide);
         for (int i = 0; i < n; i++)
         {
-            var h = hits[i].GetComponentInParent<MED_Harvestable>();
+            var h = hits[i].GetComponentInParent<MED_IToolTarget>();
             if (h != null) touched.Add(h);
         }
     }

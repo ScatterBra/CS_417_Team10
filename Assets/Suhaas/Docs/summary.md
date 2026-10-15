@@ -103,19 +103,36 @@ Files affected:
 - Materials: `MED_PadGreen`, `MED_BedGlow`, `MED_ConsoleBody`, `MED_ButtonAction`, `MED_IVBag`, `MED_IVLiquid`, `MED_BottleAmber`, `MED_Glass`, `MED_ButtonMedicine`
 - Docs: `summary.md`
 
+### Step 7 - 2026-10-15 - Herb Planter, Sterilizer and Water Barrel (Caretaking, passive dynamics)
+Created:
+- `MED_HerbPlanter` (added to `MED_HerbPlanter.prefab`; `MED_Building` and the look are kept): stats `Growth` (0..1) and `Moisture` (0..1), both start 0; states Empty / Growing / Ripe. PLANT (only when Empty, spends 1 Herbs; "Already planted" / "Need 1 Herbs"), WATER (spends 1 Water, Moisture +0.5; "Soil is wet" at >= 0.95 is checked first, then "No Water"; works with or without a plant). `Update` uses Euler integration: Moisture -= 0.04 * dt (never below 0); while Growing and Moisture > 0, Growth += (1 / 30) * dt, and at 1 the state becomes Ripe. With Moisture at 0 growth pauses and the plant droops (squashed, tipped, leaves turn yellow-brown). A Sickle on a Ripe plant gives 3 Herbs ("+3 Herbs"), resets to Empty with Growth 0 and does not destroy the planter ("Not ripe yet" / "Plant something first" / "Use the Sickle" otherwise). Visuals: soil darkens with Moisture, plant height and width follow Growth, a pulsing golden glow when Ripe, blue Moisture and green Growth `MED_StatBar`s.
+- `MED_IToolTarget` interface (`TryHarvest(tool, player)`): `MED_Harvestable` implements it and `MED_HarvestTool` now hits any `MED_IToolTarget`, so the planter reuses the existing tool-hit logic. `MED_StatBar` gained `SetFixedColor` (flat blue/green/red bars); the default gradient is unchanged.
+- `MED_Sterilizer` (added to `MED_Sterilizer.prefab`): stats `Heat` (0..1) and `SterilizeProgress` (0..1); states Idle / Heating / Sterilizing; recipe asset `Data/Recipes/MED_Recipe_SterileBandages` (2 Gauze + 1 Water -> 1 BandageKit). START needs the player within 3.5 m, Idle ("Sterilizer is busy"), Heat < 0.2 ("Still hot - wait") and the inputs ("Need 1 Gauze + 1 Water" style, listing only what is missing); inputs are spent at once on start. Euler integration: Heating Heat += (1/3) * dt until 1, then Sterilizing SterilizeProgress += (1/3) * dt until 1, then +1 BandageKit ("+1 BandageKit"), progress reset, Idle. While Idle, Heat -= (1/8) * dt even if nobody is near. Visuals: body emission orange to red with Heat (`MED_SterilizerBody` material), lid and knob lift, steam puffs rise while active, red Heat bar, blue progress bar (only while active), "HOT" label when Heat > 0.5.
+- `MED_BarrelController` (added to `MED_WaterBarrel.prefab`; the bucket harvest, destroyOnEmpty = false and the REFILL BARREL test button are untouched): passive rain with Euler integration WaterLevel += (1/6) * dt while below max, and a "POUR 1 WATER" button (spends 1 Water, WaterLevel +1; "Barrel is full" checked first, then "No Water").
+- All buttons use `MED_ActionButton` (green/grey from events, no per-frame polling), the 3.5 m "Too far" rule and `MED_FloatingText`; capacity/state problems are reported before resource problems.
+- Test tool: `MED_RipenPlantersButton` ("TEST: RIPEN PLANTERS", yellow, at x=3.0, z=-2.3 in `MED_TestTools`, its own free grid cell) sets Growth = 1 and state Ripe on every planter.
+- HUD: `MED_PlayerHUD` lists every `MED_ResourceType`, so Herbs, Water, Gauze and BandageKit update when these machines spend or give them.
+
+Files affected:
+- Scripts: `MED_IToolTarget.cs`, `MED_HerbPlanter.cs`, `MED_Sterilizer.cs`, `MED_BarrelController.cs`, `MED_RipenPlantersButton.cs`; changed `MED_Harvestable.cs`, `MED_HarvestTool.cs`, `MED_StatBar.cs`
+- Prefabs: changed `Buildings/MED_HerbPlanter.prefab`, `Buildings/MED_Sterilizer.prefab`, `Harvestables/MED_WaterBarrel.prefab`, `MED_ClinicStation.prefab` (ripen button + pedestal)
+- Data: `Assets/Suhaas/Data/Recipes/MED_Recipe_SterileBandages.asset`
+- Materials: `MED_RipeGlow`, `MED_SterilizerBody`, `MED_ButtonRipen`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
 | MED_ClinicStation | Assets/Suhaas/Prefabs/MED_ClinicStation.prefab | 15x15 m room. Children: MED_Floor, MED_Walls (North with 2 m doorway + MED_DoorMarker, South, East, West), MED_PlayerSpawn (z=-5.5, facing +Z/north), MED_Grid, MED_ModelShelf (5 toy models + placer), MED_Buildings (placed buildings), MED_TestTools (removable at integration). |
 | MED_PrepBench | Assets/Suhaas/Prefabs/Buildings/MED_PrepBench.prefab | 2x1 wooden table. Mini: MED_Mini_PrepBench. Affordances/dynamics so far: build from a shelf model; prepare 5 recipes from a recipe-card board; passive PrepProgress over each recipe's duration; busy/idle state (working prop + progress bar). |
-| MED_Sterilizer | Assets/Suhaas/Prefabs/Buildings/MED_Sterilizer.prefab | 1x1 silver cylinder with lid. Mini: MED_Mini_Sterilizer. |
+| MED_Sterilizer | Assets/Suhaas/Prefabs/Buildings/MED_Sterilizer.prefab | 1x1 silver cylinder with lid. Mini: MED_Mini_Sterilizer. Affordances/dynamics: build from a shelf model; START (spend 2 Gauze + 1 Water, run a sterilize cycle for 1 BandageKit); passive heating then sterilizing (Euler); passive cooling while Idle (blocks restarting until Heat < 0.2); glow, steam and HOT label signifiers. |
 | MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet with glass-front bottles. Mini: MED_Mini_MedicineCabinet. Affordances/dynamics so far: build from a shelf model; STOCK +1 (spend Medicine, raise CabinetStock); TAKE 1 (get Medicine back); stat bar and bottle count follow CabinetStock. |
 | MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | **2x2 footprint**: bed (back row) with IV bag, console, and a green treatment pad (front row). Mini: MED_Mini_TreatmentStation. Affordances/dynamics so far: build from a shelf model; REFILL +1 (spend Medicine, raise StoredMedicine); TREAT while standing on the pad (20 HP per 1.5 s dose, passive TreatProgress, auto-repeat until healed, empty, or the player steps off). |
-| MED_HerbPlanter | Assets/Suhaas/Prefabs/Buildings/MED_HerbPlanter.prefab | 1x1 low soil box with green herbs. Mini: MED_Mini_HerbPlanter. |
+| MED_HerbPlanter | Assets/Suhaas/Prefabs/Buildings/MED_HerbPlanter.prefab | 1x1 low soil box with green herbs. Mini: MED_Mini_HerbPlanter. Affordances/dynamics: build from a shelf model; PLANT (spend 1 Herbs); WATER (spend 1 Water, raise Moisture); Sickle harvest of a ripe plant (3 Herbs, planter stays); passive soil drying; passive growth only while the soil is damp; drooping when dry; glow when ripe. |
 | MED_StatBar | Assets/Suhaas/Prefabs/MED_StatBar.prefab | Reusable world-space stat bar. Used by HerbPatch, SupplyCrate and WaterBarrel. |
 | MED_HerbPatch | Assets/Suhaas/Prefabs/Harvestables/MED_HerbPatch.prefab | Harvest with Sickle (1 Herbs per hit); random wild spawn; one plant disappears per hit; Death on depletion (shrink + puff, cells freed). Stat: HerbsRemaining. |
 | MED_SupplyCrate | Assets/Suhaas/Prefabs/Harvestables/MED_SupplyCrate.prefab | Harvest with Crowbar (1 Alcohol or Gauze per hit, chosen randomly at spawn and shown by lid band + label); random wild spawn; lid opens as supplies drop; Death on depletion. Stat: SuppliesRemaining. |
-| MED_WaterBarrel | Assets/Suhaas/Prefabs/Harvestables/MED_WaterBarrel.prefab | Harvest with Bucket (1 Water per hit); water surface follows the stat; shows "EMPTY" at 0 and stays (refills in a later step). Fixed instance near the east wall. Stat: WaterLevel. |
+| MED_WaterBarrel | Assets/Suhaas/Prefabs/Harvestables/MED_WaterBarrel.prefab | Harvest with Bucket (1 Water per hit); water surface follows the stat; shows "EMPTY" at 0 and stays. Fixed instance near the east wall. Stat: WaterLevel. Affordances/dynamics: harvest with Bucket; passive rain collection (+1 per ~6 s while not full); POUR 1 WATER by hand (spends 1 Water); test REFILL BARREL button. |
 | MED_Sickle / MED_Crowbar / MED_Bucket | Assets/Suhaas/Prefabs/Tools/ | Supporting props: grabbable harvest tools on the east-wall rack. Not claimed as content prefabs. |
 | MED_PlayerHUD | Assets/Suhaas/Prefabs/MED_PlayerHUD.prefab | Floating health HUD + look-down resource panel. Scene object, not part of the station. |
 
@@ -126,11 +143,15 @@ Framework: `MED_Stat` (clamped value, `OnChanged`) and `MED_StatBar` (world-spac
 |---|---|---|---|---|
 | HerbsRemaining | MED_HerbPatch | 4 | -1 per Sickle hit | Floating stat bar; one plant disappears per remaining unit |
 | SuppliesRemaining | MED_SupplyCrate | 5 | -1 per Crowbar hit | Floating stat bar; the lid opens wider as it drops |
-| WaterLevel | MED_WaterBarrel | 10 | -1 per Bucket hit; "REFILL BARREL" test button (real refill in a later step) | Floating stat bar; water surface height; "EMPTY" label at 0 |
+| WaterLevel | MED_WaterBarrel | 10 | -1 per Bucket hit; passive rain +1/6 per second (Euler) while below max; +1 with POUR 1 WATER (spends Water); "REFILL BARREL" test button | Floating stat bar; water surface height; "EMPTY" label at 0 |
 | PrepProgress | MED_PrepBench | 0-1 | Time: advances by Euler integration (`+= (1 / duration) * dt`) while Preparing; resets to 0 when done | Floating stat bar over the bench (bright while Preparing); the pestle spins and bobs |
 | CabinetStock | MED_MedicineCabinet | 10 | +1 with STOCK +1 (spends Medicine), -1 with TAKE 1 | Stat bar over the cabinet; visible bottles = ceil(stock / 2) |
 | StoredMedicine | MED_TreatmentStation | 10 | +1 with REFILL +1 (spends Medicine), -1 per completed dose | Stat bar over the console; IV bag liquid level |
 | TreatProgress | MED_TreatmentStation | 0-1 | Time: Euler integration `+= (1 / 1.5) * dt` while Treating; reset when a dose completes or is cancelled | Small bar over the bed, shown only while treating; pulsing bed glow |
+| Heat | MED_Sterilizer | 0-1 | Euler: `+= (1/3) * dt` while Heating (reaches 1); `-= (1/8) * dt` while Idle (cooling runs even when unused) | Red stat bar; body emission orange to red; "HOT" label above 0.5; lid lifts and steam rises while active |
+| SterilizeProgress | MED_Sterilizer | 0-1 | Euler: `+= (1/3) * dt` while Sterilizing; reset to 0 when the BandageKit is delivered | Blue stat bar shown only while active |
+| Growth | MED_HerbPlanter | 0-1 | PLANT sets 0; Euler `+= (1/30) * dt` while Growing and Moisture > 0; RIPEN test button sets 1; harvest resets to 0 | Green stat bar; plant scale/height; golden glow at 1 |
+| Moisture | MED_HerbPlanter | 0-1 | WATER +0.5 (spends Water); Euler `-= 0.04 * dt` (drying) | Blue stat bar; soil color darkens when wet; plant droops at 0 while Growing |
 
 ## (e) Resource list
 | Resource | Status |
@@ -156,6 +177,7 @@ Signifiers shared by all five: a small toy model on a shelf slot (grabbable, wit
 | Prep Bench | Build from shelf model | 2x1 | Wooden table. |
 | Sterilizer | Build from shelf model | 1x1 | Silver cylinder with lid. |
 | Medicine Cabinet | Build from shelf model | 1x1 | White cabinet with red cross. |
+
 | Treatment Station | Build from shelf model | 2x1 | Bed with green cross. |
 | Herb Planter | Build from shelf model | 1x1 | Soil box with herbs. |
 
@@ -174,7 +196,12 @@ Metaphor: an **apothecary bench**. Raw herbs, water, alcohol and gauze go onto t
 
 Signifiers: a recipe-card board on the bench (name plus "inputs -> output" on each card), card color (green = can start now, grey = missing inputs or bench busy), hover highlight and press-in on select, a progress bar over the bench, a spinning mortar-and-pestle while working, a floating "+1 <Product>" when done, and floating "Bench is busy" / "Too far" / "Need 2 Herbs (have 1)" messages when a recipe cannot start. The player must stand within 3.5 m of the bench.
 
-### Caretaking (Step 6)
+Extra recipe (Step 7, at the Sterilizer instead of the Prep Bench): **Sterile Bandages = 2 Gauze + 1 Water -> 1 BandageKit** (heat 3 s + sterilize 3 s; asset `MED_Recipe_SterileBandages`). Signifiers: START button green when idle, cool and the inputs are held; steam, glow and a progress bar while it runs.
+
+### Passive Stat Gain (Steps 5-7)
+All use Euler integration (`value += rate * dt` in `Update`): PrepProgress, TreatProgress, Growth (only while the soil is damp), Moisture (drying), Heat (heating while Heating, cooling while Idle), SterilizeProgress, and barrel rain (WaterLevel).
+
+### Caretaking (Steps 6-7)
 Metaphor: a **hospital ward**: a bed with an IV bag, a cabinet of medicine bottles, and a green "stand here" pad for treatment. Caretaking means keeping these supplied with the Medicine you crafted.
 
 | # | Affordance | Spends | Raises | Signifiers |
@@ -182,7 +209,10 @@ Metaphor: a **hospital ward**: a bed with an IV bag, a cabinet of medicine bottl
 | 1 | Refill the Treatment Station (REFILL +1) | 1 Medicine | StoredMedicine | IV bag liquid level, stat bar, console button turns green when you hold Medicine and the station is not full |
 | 2 | Restock the Medicine Cabinet (STOCK +1) | 1 Medicine | CabinetStock | Bottles appear behind the glass (one per 2 stock), stat bar, button green/grey |
 
-A third Caretaking affordance (watering herbs) is planned. Treatment itself (TREAT, standing on the green pad) uses the stocked Medicine to heal the player: the pad brightens when you stand on it, the bed glows while treating, and a progress bar fills for each dose. The TREAT button is green only when treatment can start right now.
+| 3 | Water the Herb Planter (WATER) | 1 Water | Moisture (+0.5) | Soil color darkens when wet, blue Moisture bar, plant droops when dry, button green/grey ("Soil is wet" / "No Water") |
+| 4 | Pour Water into the Water Barrel (POUR 1 WATER) | 1 Water | WaterLevel (+1) | Water surface rises, stat bar, button green/grey ("Barrel is full" / "No Water") |
+
+Metaphor links (Step 7): the Herb Planter is the clinic's **garden planter**: soil that darkens when wet and a plant that wilts if neglected. The Sterilizer is the **autoclave**: it glows orange to red and steams while it runs, shows "HOT" afterwards and has to cool before the next load. The Water Barrel is the **rain barrel**: it fills slowly by itself and can be topped up by hand. Treatment itself (TREAT, standing on the green pad) uses the stocked Medicine to heal the player: the pad brightens when you stand on it, the bed glows while treating, and a progress bar fills for each dose. The TREAT button is green only when treatment can start right now.
 
 ### Harvesting (Step 4)
 Metaphor: an **apothecary / field clinic**. Each job is matched to the real-world tool for it: a sickle cuts herbs, a crowbar pries open crates, a bucket is dipped into a barrel. Tools sit on a labeled rack ("TOOLS"); the player grabs one and uses it on the matching object. Signifiers for every affordance: a named object with a floating stat bar, a floating "+1 <Resource>" on success, a squash and puff on each hit, and a "Use the <tool>" message when the wrong tool is used.
@@ -192,6 +222,7 @@ Metaphor: an **apothecary / field clinic**. Each job is matched to the real-worl
 | Harvest herbs | Sickle on HerbPatch | Herbs | Green plants with a stat bar; plants vanish one by one; the patch pops away when empty |
 | Open supply crate | Crowbar on SupplyCrate | Alcohol or Gauze | Red-cross crate; blue band = ALCOHOL, white band = GAUZE; lid opens wider as supplies drop |
 | Draw water | Bucket on WaterBarrel | Water | Water surface drops with each dip; "EMPTY" label at 0 |
+| Harvest ripe herbs (Step 7, 4th harvestable) | Sickle on a ripe Herb Planter | 3 Herbs | Golden glow and full-size plant when ripe; "Not ripe yet" / "Plant something first"; the planter is not destroyed and returns to Empty |
 
 Harvesting works by swinging the tool through the target (speed over 0.5 m/s) or by holding the trigger/activate button while touching it, so it works in the XR Device Simulator and in a headset.
 
@@ -204,9 +235,9 @@ _(none yet)_
 | Statted Instances (prerequisite) | 0 | In progress (HerbPatch, SupplyCrate, WaterBarrel carry stats) |
 | Player Resource (prerequisite) | 0 | Not started - framework ready |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
-| Prefab Content (8 prefabs) | 3 | In progress (5 so far: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation) |
-| Stat Content (8 stats) | 3 | In progress (7 so far: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress) |
-| Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress; Euler integration) |
+| Prefab Content (8 prefabs) | 3 | Done (8 with >= 3 affordances/dynamics: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation, Sterilizer, HerbPlanter, WaterBarrel) |
+| Stat Content (8 stats) | 3 | Done (11: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress, Heat, SterilizeProgress, Growth, Moisture; target 8 reached) |
+| Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress, Growth, Moisture, Heat, SterilizeProgress, barrel rain; Euler integration) |
 | Resource Content (8+ resources) | 3 | Not started |
 | Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Not started |
@@ -216,7 +247,7 @@ _(none yet)_
 | Pull Request Reviewed | 2 | Not started |
 | **Sidequests** | | |
 | Harvesting (3 affordances) | 3 | Done (Step 4) |
-| Caretaking (3) | 3 | In progress (2 of 3 affordances: refill Treatment Station, restock Medicine Cabinet; 2 pts so far) |
+| Caretaking (3) | 3 | Done (4 affordances, 3 pts tier: refill Treatment Station, restock Medicine Cabinet, water Herb Planter, pour into Water Barrel) |
 | Crafting (5 recipes) | 3 | Done (Step 5) |
 | Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
 | Intermittent Instances | 2 | Not started |
@@ -247,3 +278,6 @@ _(none yet)_
 - The "+N HP" text shows the HP actually gained, so the last dose before full health can read less than +20.
 - Medicine put into the cabinet or station is lost if the building is destroyed (for example with "CLEAR ALL BUILDINGS"); there is no refund.
 - `MED_TestTools` now also holds "TEST: +5 MEDICINE" (test-only; remove at integration).
+- `MED_TestTools` now also holds "TEST: RIPEN PLANTERS" (test-only; remove at integration).
+- Herb Planter and Sterilizer inputs are spent on action; there is no refund if the building is destroyed. Planter/Sterilizer/barrel state (growth, heat, water) is not saved.
+- Barrel rain adds fractional WaterLevel, so a bucket dip at a level below 1 still yields 1 Water (the stat clamps at 0).

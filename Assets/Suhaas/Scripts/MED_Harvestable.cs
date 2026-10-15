@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Base behavior for anything a tool can harvest. Holds a "remaining" MED_Stat.
-public class MED_Harvestable : MonoBehaviour
+public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
 {
     [SerializeField] MED_Stat stat = new MED_Stat();
     [SerializeField] MED_ResourceType resource = MED_ResourceType.Herbs;
