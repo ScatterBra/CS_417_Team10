@@ -23,6 +23,10 @@ public class MED_GridManager : MonoBehaviour
     [SerializeField] List<Transform> reservedAreas = new List<Transform>();
     [SerializeField] float reservedAreaPadding = 0.1f;
     [SerializeField] List<Vector2Int> extraReservedCells = new List<Vector2Int>();
+    [Tooltip("Cells within pathReserveRadius of the delivery curve and all cells of the delivery bay are blocked.")]
+    [SerializeField] MED_DeliveryPath deliveryPath;
+    [SerializeField] MED_DeliveryBay deliveryBay;
+    [SerializeField] float pathReserveRadius = 0.75f;
     [SerializeField] bool drawGizmos = true;
 
     [Header("Visual")]
@@ -169,7 +173,48 @@ public class MED_GridManager : MonoBehaviour
 
         foreach (var c in extraReservedCells) reserved.Add(c);
 
+        // Runs in Awake (and in the editor for Gizmos), so it is always finished before MED_WildSpawner.Start places anything.
+        if (deliveryPath != null) ReservePath();
+        if (deliveryBay != null) ReserveBay();
+
         reserved.RemoveWhere(c => !IsInBounds(c));
+    }
+
+    /// <summary>Reserves every cell that comes within pathReserveRadius of the delivery curve.</summary>
+    void ReservePath()
+    {
+        float r = pathReserveRadius;
+        float length = deliveryPath.TotalLength;
+        for (float d = 0f; d <= length + 0.01f; d += 0.25f)
+        {
+            var p = transform.InverseTransformPoint(deliveryPath.GetPointAtDistance(d));
+            int x0 = Mathf.FloorToInt((p.x - r) / cellSize + gridSize.x * 0.5f);
+            int x1 = Mathf.FloorToInt((p.x + r) / cellSize + gridSize.x * 0.5f);
+            int z0 = Mathf.FloorToInt((p.z - r) / cellSize + gridSize.y * 0.5f);
+            int z1 = Mathf.FloorToInt((p.z + r) / cellSize + gridSize.y * 0.5f);
+            for (int x = x0; x <= x1; x++)
+                for (int z = z0; z <= z1; z++)
+                {
+                    var center = CellLocalCenter(new Vector2Int(x, z));
+                    float half = cellSize * 0.5f;
+                    float dx = Mathf.Max(Mathf.Abs(p.x - center.x) - half, 0f);
+                    float dz = Mathf.Max(Mathf.Abs(p.z - center.z) - half, 0f);
+                    if (dx * dx + dz * dz <= r * r) reserved.Add(new Vector2Int(x, z));
+                }
+        }
+    }
+
+    void ReserveBay()
+    {
+        var c = transform.InverseTransformPoint(deliveryBay.transform.position);
+        var half = deliveryBay.Size * 0.5f - Vector2.one * 0.01f;
+        int x0 = Mathf.FloorToInt((c.x - half.x) / cellSize + gridSize.x * 0.5f);
+        int x1 = Mathf.FloorToInt((c.x + half.x) / cellSize + gridSize.x * 0.5f);
+        int z0 = Mathf.FloorToInt((c.z - half.y) / cellSize + gridSize.y * 0.5f);
+        int z1 = Mathf.FloorToInt((c.z + half.y) / cellSize + gridSize.y * 0.5f);
+        for (int x = x0; x <= x1; x++)
+            for (int z = z0; z <= z1; z++)
+                reserved.Add(new Vector2Int(x, z));
     }
 
     Vector3 CellLocalCenter(Vector2Int c) =>

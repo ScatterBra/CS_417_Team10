@@ -134,6 +134,23 @@ Files affected:
 - Materials: `MED_ButtonTutorial`
 - Docs: `summary.md`
 
+### Step 9 - 2026-10-15 - Supply cart deliveries (Intermittent Instances) on a curved path (Path Following)
+Created:
+- `MED_DeliveryPath` (object `MED_DeliveryPath` in `MED_ClinicStation`, 7 child waypoints `WP_01`..`WP_07`): a Catmull-Rom curve through the waypoints (mirrored phantom end points) in the path's local space, sampled 24 times per segment into an arc-length table. API: `TotalLength` (about 17 m), `GetPointAtDistance(d)`, `GetTangentAtDistance(d)` (both world space, distance clamped), `Build()` (context menu "Rebuild Path"). Gizmos draw the curve and the waypoint spheres. Route: starts 4 m outside the north doorway (0, 11.65), through the door (0, 7.65), then an S-curve (bend right to x=2.8, bend left to x=-2.4) to the bay at (-2, 0); it stays clear of the shelf, rack, barrel and test tools.
+- Floor signifier: `MED_DeliveryLine`, 15 flat pale-yellow dashed quads (`MED_DeliveryLine` unlit transparent material) along the inside part of the route.
+- `MED_DeliveryBay` at (-2, 0): 2x2 cell dark pad with a yellow/black hazard-striped border (primitives, `MED_HazardYellow`, `MED_HazardBlack`, `MED_BayPad`) and a post sign "DELIVERY BAY" facing the room.
+- Grid: `MED_GridManager` has new fields `deliveryPath`, `deliveryBay`, `pathReserveRadius` (0.75 m). In `RebuildReserved` (called from Awake, so before `MED_WildSpawner.Start`, and in the editor for Gizmos) it reserves every cell within 0.75 m of the curve and all bay cells; they are drawn with the other reserved cells. Play test: all 51 in-room path samples are on reserved cells, bay cells reserved, 0 wild items on reserved cells.
+- `MED_SupplyCart` (`Assets/Suhaas/Prefabs/Delivery/MED_SupplyCart.prefab`): wooden bed, four wheels with spokes, handle, red-cross flag, up to 6 stacked crates, name label "SUPPLY CART", "Next: <type>" label, cargo `MED_StatBar`, two UNLOAD buttons (one per side). Stats `RouteProgress` (0..1) and `CargoRemaining` (0..N, N = 4 to 6). States Arriving / Waiting / Leaving. Arriving: `distance += speed * dt` (Euler integration, 1.2 m/s), position and rotation from the curve, wheels turn by distance / radius. Waiting: up to 90 s; UNLOAD is green only when cargo remains and the player is within 3.5 m ("Too far", "Cart is still arriving", "Cart is empty"); each press gives 1 unit of the next cargo type (random mix of Herbs, Water, Alcohol, Gauze, grouped by type) with a floating "+1 Gauze". Leaving (cargo 0 or 90 s): 0.5 s turn-around, then `distance -= speed * dt` back along the path, "Cart left with N supplies" if cargo remains, destroyed at the path start. No colliders except the button colliders.
+- `MED_DeliverySpawner` (object `MED_Deliveries`): first cart after a random 15 to 25 s, then 40 to 70 s after each cart is gone (`UnityEngine.Random`, serialized min/max), never two carts. Floating "DELIVERY ARRIVING" at the doorway. `SpawnNow()` returns false and shows "Cart already here" if a cart is present. Sign `MED_DeliverySign` on the inside of the north wall right of the doorway: "DELIVERIES" plus a status line ("Next delivery in M:SS", "Cart arriving...", "Cart at bay - unload!", "Cart leaving").
+- Pop-up tutorial #14 "cart" on the cart prefab (Proximity 3.5 m).
+- Test tool: `MED_CallDeliveryButton` ("TEST: CALL DELIVERY NOW", orange, x=4.2, z=-2.3 in `MED_TestTools`); it only calls `SpawnNow()`, the cart still drives the whole path.
+
+Files affected:
+- Scripts: `MED_DeliveryPath.cs`, `MED_DeliveryBay.cs`, `MED_SupplyCart.cs`, `MED_DeliverySpawner.cs`, `MED_CallDeliveryButton.cs`; changed `MED_GridManager.cs`
+- Prefabs: new `Delivery/MED_SupplyCart.prefab`; changed `MED_ClinicStation.prefab` (path, waypoints, dashed line, bay, bay sign, delivery sign, spawner, grid references, test button)
+- Materials: `MED_DeliveryLine`, `MED_HazardYellow`, `MED_HazardBlack`, `MED_BayPad`, `MED_ButtonDelivery`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
@@ -143,6 +160,7 @@ Files affected:
 | MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet with glass-front bottles. Mini: MED_Mini_MedicineCabinet. Affordances/dynamics so far: build from a shelf model; STOCK +1 (spend Medicine, raise CabinetStock); TAKE 1 (get Medicine back); stat bar and bottle count follow CabinetStock. |
 | MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | **2x2 footprint**: bed (back row) with IV bag, console, and a green treatment pad (front row). Mini: MED_Mini_TreatmentStation. Affordances/dynamics so far: build from a shelf model; REFILL +1 (spend Medicine, raise StoredMedicine); TREAT while standing on the pad (20 HP per 1.5 s dose, passive TreatProgress, auto-repeat until healed, empty, or the player steps off). |
 | MED_HerbPlanter | Assets/Suhaas/Prefabs/Buildings/MED_HerbPlanter.prefab | 1x1 low soil box with green herbs. Mini: MED_Mini_HerbPlanter. Affordances/dynamics: build from a shelf model; PLANT (spend 1 Herbs); WATER (spend 1 Water, raise Moisture); Sickle harvest of a ripe plant (3 Herbs, planter stays); passive soil drying; passive growth only while the soil is damp; drooping when dry; glow when ripe. |
+| MED_SupplyCart | Assets/Suhaas/Prefabs/Delivery/MED_SupplyCart.prefab | Wooden cart with wheels, handle, red-cross flag and stacked crates. Not player-built: spawned at random intervals by `MED_DeliverySpawner`. Affordances/dynamics: arrives along the curved `MED_DeliveryPath` (Euler path distance, wheels spin); waits at the delivery bay up to 90 s; UNLOAD (1 unit of the next cargo type per press, from the player-held button); CargoRemaining and RouteProgress stats; leaves backward along the path when empty or after the wait (cart left with N supplies); random cargo (4 to 6 units) and random intermittent arrival (15-25 s first, then 40-70 s). Qualifying prefabs (3+ affordances/dynamics): 9. |
 | MED_StatBar | Assets/Suhaas/Prefabs/MED_StatBar.prefab | Reusable world-space stat bar. Used by HerbPatch, SupplyCrate and WaterBarrel. |
 | MED_HerbPatch | Assets/Suhaas/Prefabs/Harvestables/MED_HerbPatch.prefab | Harvest with Sickle (1 Herbs per hit); random wild spawn; one plant disappears per hit; Death on depletion (shrink + puff, cells freed). Stat: HerbsRemaining. |
 | MED_SupplyCrate | Assets/Suhaas/Prefabs/Harvestables/MED_SupplyCrate.prefab | Harvest with Crowbar (1 Alcohol or Gauze per hit, chosen randomly at spawn and shown by lid band + label); random wild spawn; lid opens as supplies drop; Death on depletion. Stat: SuppliesRemaining. |
@@ -166,6 +184,8 @@ Framework: `MED_Stat` (clamped value, `OnChanged`) and `MED_StatBar` (world-spac
 | SterilizeProgress | MED_Sterilizer | 0-1 | Euler: `+= (1/3) * dt` while Sterilizing; reset to 0 when the BandageKit is delivered | Blue stat bar shown only while active |
 | Growth | MED_HerbPlanter | 0-1 | PLANT sets 0; Euler `+= (1/30) * dt` while Growing and Moisture > 0; RIPEN test button sets 1; harvest resets to 0 | Green stat bar; plant scale/height; golden glow at 1 |
 | Moisture | MED_HerbPlanter | 0-1 | WATER +0.5 (spends Water); Euler `-= 0.04 * dt` (drying) | Blue stat bar; soil color darkens when wet; plant droops at 0 while Growing |
+| RouteProgress | MED_SupplyCart | 0-1 | Path distance / path length: Euler `distance += 1.2 * dt` while Arriving, `-= 1.2 * dt` while Leaving | The cart's position on the curve (no bar); dashed line on the floor shows the route |
+| CargoRemaining | MED_SupplyCart | 0-N (4 to 6, random per cart) | -1 per UNLOAD press | Stat bar over the cart, "Next: <type>" label, visible stacked crates reduce one per unit |
 
 ## (e) Resource list
 | Resource | Status |
@@ -213,7 +233,7 @@ Signifiers: a recipe-card board on the bench (name plus "inputs -> output" on ea
 Extra recipe (Step 7, at the Sterilizer instead of the Prep Bench): **Sterile Bandages = 2 Gauze + 1 Water -> 1 BandageKit** (heat 3 s + sterilize 3 s; asset `MED_Recipe_SterileBandages`). Signifiers: START button green when idle, cool and the inputs are held; steam, glow and a progress bar while it runs.
 
 ### Passive Stat Gain (Steps 5-7)
-All use Euler integration (`value += rate * dt` in `Update`): PrepProgress, TreatProgress, Growth (only while the soil is damp), Moisture (drying), Heat (heating while Heating, cooling while Idle), SterilizeProgress, and barrel rain (WaterLevel).
+All use Euler integration (`value += rate * dt` in `Update`): PrepProgress, TreatProgress, Growth (only while the soil is damp), Moisture (drying), Heat (heating while Heating, cooling while Idle), SterilizeProgress, barrel rain (WaterLevel), and the supply cart's distance along the delivery curve (`distance += speed * dt`, which drives RouteProgress).
 
 ### Caretaking (Steps 6-7)
 Metaphor: a **hospital ward**: a bed with an IV bag, a cabinet of medicine bottles, and a green "stand here" pad for treatment. Caretaking means keeping these supplied with the Medicine you crafted.
@@ -301,6 +321,15 @@ The whole station is a **field-clinic camp**: wooden shelves, crates and barrels
 - Affordance: grab a Sickle, Crowbar or Bucket. Signifiers: the sign "TOOLS", three named tool props in their slots, haptic pulse on a hit.
 - Dynamic: tools ease back to their slot when left alone for 3 s (a tidy rack).
 
+**MED_SupplyCart (Step 9) - a mail / delivery cart at a depot.**
+- Dynamic: it arrives on its own along the road. Signifiers: the dashed pale-yellow road line on the floor from the doorway to the bay (a marked delivery route); the cart rolls with wheels that turn in proportion to the distance and faces the way it travels (a real cart on a road); the floating "DELIVERY ARRIVING" text at the doorway; the "DELIVERIES" sign by the doorway with its status line ("Next delivery in M:SS", "Cart arriving...", "Cart at bay - unload!", "Cart leaving") like a depot notice board.
+- Affordance: UNLOAD (take one supply). Signifiers: "UNLOAD" buttons on both sides of the cart, green only while the cart waits at the bay, cargo remains and you are within 3.5 m, grey otherwise; messages "Too far", "Cart is still arriving", "Cart is leaving", "Cart is empty"; floating "+1 Gauze" (parcels handed over).
+- Dynamic: cargo (CargoRemaining). Signifiers: stacked wooden crates on the bed that disappear one per unit (a lighter cart), the stat bar, and the "Next: <type>" label (the next parcel to hand out).
+- Dynamic: waiting and leaving. Signifiers: the cart stays at the bay for up to 90 s, then turns around and drives out backward along the same line; the sign switches to "Cart leaving"; "Cart left with N supplies" if you missed some. The red-cross flag and "SUPPLY CART" label mark it as medical supplies.
+
+**Delivery bay and sign (Step 9) - a loading bay.**
+- Signifiers: a 2x2 floor pad with a yellow/black hazard-striped border (a loading dock where vehicles park and you stand clear), the post sign "DELIVERY BAY", and the cells being blocked for building (red when the grid is shown) so nothing can be built where the cart drives.
+
 ### Gaps (affordances or dynamics without a clear signifier)
 1. **Tool matching before use:** HerbPatch, SupplyCrate and the ripe planter do not show which tool they need; it is only revealed by the "Use the ..." message after a wrong hit and by the pop-ups.
 2. **Barrel rain:** no rain or drip visual; the passive refill is only visible as the water surface and bar slowly rising.
@@ -310,6 +339,8 @@ The whole station is a **field-clinic camp**: wooden shelves, crates and barrels
 6. **Shelf rotation and costs:** building rotation follows head yaw and is only visible through the ghost; there is no cost display (costs are empty for now).
 7. **Cabinet fill is coarse:** one bottle per 2 stock, so a single STOCK press can show no visible change; only the stat bar shows it.
 8. **Treatment station dose progress:** the TreatProgress bar and bed glow exist only while treating; there is no signifier of how many doses the stored Medicine allows other than the bag level.
+9. **Supply cart wait time:** the 90 s limit is not shown anywhere (no countdown on the cart); the cart just leaves, with "Cart left with N supplies".
+10. **Supply cart route progress:** RouteProgress has no bar; it is only visible as the cart's position, and the dashed line stops at the bay.
 
 ## (g) Pop-up tutorial list
 Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialManager`); "TEST: RESET TUTORIALS" makes them all appear again. Shared ids mean a second instance of the same object does not repeat the tutorial.
@@ -329,6 +360,7 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 | 11 | grid | Build grid (grabbed model) | BUILD GRID / Green = free spot. Red = blocked. Face a direction to rotate. | OnEvent: first grab of any shelf model |
 | 12 | hud | Player HUD | YOUR SUPPLIES / Look down to see your Herbs, Water and Medicine. | TimeAfterStart (6 s), follows the HUD |
 | 13 | statbars | Any stat bar | STAT BARS / Bars show how much is left or how far along something is. | Proximity (2.5 m, view cone), anchored to that bar |
+| 14 | cart | Supply Cart | SUPPLY CART / Press UNLOAD to take supplies before it leaves. | Proximity (3.5 m, view cone), anchored to the cart |
 
 ## (h) Rubric story tracker
 | Story | Target pts | Status |
@@ -336,14 +368,14 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 | Statted Instances (prerequisite) | 0 | In progress (HerbPatch, SupplyCrate, WaterBarrel carry stats) |
 | Player Resource (prerequisite) | 0 | Not started - framework ready |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
-| Prefab Content (8 prefabs) | 3 | Done (8 with >= 3 affordances/dynamics: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation, Sterilizer, HerbPlanter, WaterBarrel) |
-| Stat Content (8 stats) | 3 | Done (11: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress, Heat, SterilizeProgress, Growth, Moisture; target 8 reached) |
+| Prefab Content (8 prefabs) | 3 | Done (9 with >= 3 affordances/dynamics: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation, Sterilizer, HerbPlanter, WaterBarrel, SupplyCart) |
+| Stat Content (8 stats) | 4 | Done (13: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress, Heat, SterilizeProgress, Growth, Moisture, RouteProgress, CargoRemaining) |
 | Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress, Growth, Moisture, Heat, SterilizeProgress, barrel rain; Euler integration) |
 | Resource Content (8+ resources) | 3 | Not started |
 | Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Write-up drafted (Step 8, "Interface Metaphor" section, 8 gaps listed for review) |
 | Building Content (5) | 4 | Done (5 buildings, Step 3) |
-| Pop-up Tutorials (13) | 4 | Done (Step 8; 13 spatial pop-ups, one at a time, once per run) |
+| Pop-up Tutorials (13) | 4 | Done (Step 8; 14 spatial pop-ups now incl. the cart, one at a time, once per run) |
 | Git Merged | 2 | Not started |
 | Pull Request Reviewed | 2 | Not started |
 | **Sidequests** | | |
@@ -351,8 +383,8 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 | Caretaking (3) | 3 | Done (4 affordances, 3 pts tier: refill Treatment Station, restock Medicine Cabinet, water Herb Planter, pour into Water Barrel) |
 | Crafting (5 recipes) | 3 | Done (Step 5) |
 | Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
-| Intermittent Instances | 2 | Not started |
-| Path Following | 2 | Not started |
+| Intermittent Instances | 2 | Done (Step 9: random supply-cart deliveries, 15-25 s then 40-70 s) |
+| Path Following | 2 | Done (Step 9: cart follows the curved `MED_DeliveryPath`, constant speed via arc-length table) |
 | Texture Animation Signifiers | 3 | Not started |
 
 ## (i) Notes and known issues
@@ -384,3 +416,6 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 - Barrel rain adds fractional WaterLevel, so a bucket dip at a level below 1 still yields 1 Water (the stat clamps at 0).
 - `MED_TestTools` now also holds "TEST: RESET TUTORIALS" (test-only; remove at integration). Pop-ups are shown once per Play session; the shown set is static and resets on entering Play mode.
 - The pop-up panel is clamped to a band around eye level and floated 0.5 m toward the player; tall objects therefore get a panel lower than their top. The HUD health bar has its pop-up disabled so "STAT BARS" waits for a bar on a machine, patch, crate or barrel.
+- `MED_TestTools` now also holds "TEST: CALL DELIVERY NOW" (test-only; remove at integration). The delivery path, bay, sign and spawner are part of the station prefab and are not test-only.
+- The delivery path starts 4 m outside the north wall, where there is no floor; the cart appears over the void and drives in through the doorway. The delivery area is reserved on the build grid (0.75 m around the curve plus the 2x2 bay), so it is always clear of buildings and wild items; moving the station moves the path with it (local space).
+- A cart only gives the player supplies while waiting; it is not refunded or saved. Cargo is random per cart (4-6 units of Herbs, Water, Alcohol, Gauze).
