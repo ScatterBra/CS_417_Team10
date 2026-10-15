@@ -202,6 +202,9 @@ public class MED_BuildingPlacer : MonoBehaviour
         if (def == null || def.fullPrefab == null) return;
         ghost = Instantiate(def.fullPrefab);
         ghost.name = "MED_BuildingGhost";
+        // The ghost is a pure preview: switch off every script (benches, recipe cards, ...) and any stat bars.
+        foreach (var mb in ghost.GetComponentsInChildren<MonoBehaviour>(true)) mb.enabled = false;
+        foreach (var bar in ghost.GetComponentsInChildren<MED_StatBar>(true)) bar.gameObject.SetActive(false);
         foreach (var b in ghost.GetComponentsInChildren<MED_Building>()) Destroy(b);
         foreach (var c in ghost.GetComponentsInChildren<Collider>()) Destroy(c);
         foreach (var label in ghost.GetComponentsInChildren<TMP_Text>()) label.gameObject.SetActive(false);

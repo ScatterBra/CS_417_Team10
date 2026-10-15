@@ -70,11 +70,27 @@ Files affected:
 - Materials: `MED_GreyMetal`, `MED_Water`, `MED_BandAlcohol`, `MED_BandGauze`, `MED_PuffMat`, `MED_ButtonReroll`, `MED_ButtonRefill`
 - Docs: `summary.md`
 
+### Step 5 - 2026-10-15 - Crafting at the Prep Bench (5 recipes, timed preparation)
+Created:
+- Data: `MED_Recipe` ScriptableObject (name, inputs, outputs, duration, `Description()` like "2 Herbs + 1 Water -> Medicine") and 5 assets in `Assets/Suhaas/Data/Recipes/` (`MED_Recipe_Medicine`, `_Antiseptic`, `_BandageKit`, `_Painkiller`, `_Tonic`).
+- `MED_PrepBench` (added to the existing `MED_PrepBench.prefab`, `MED_Building` and the look are kept): stat `PrepProgress` (0..1), states Idle / Preparing. `TryStartRecipe(recipe)` fails with a floating message if the bench is busy ("Bench is busy"), the player is farther than 3.5 m ("Too far"), or inputs are missing ("Need 2 Herbs (have 1)"). On success all inputs are spent at once (every input is checked first, so partial spending cannot happen). While Preparing, `PrepProgress` advances in `Update` by Euler integration (`+= (1 / duration) * dt`); at 1 the outputs are added, a floating "+1 Medicine" rises, and the bench returns to Idle. Each bench instance works independently.
+- Visuals: a `MED_StatBar` over the bench (faint when Idle, bright while Preparing) and a mortar-and-pestle prop that spins and bobs while Preparing and rests when Idle.
+- Recipe board (`MED_RecipeBoard`, on the back edge of the bench, tilted back 20 degrees so its face tips up toward a standing player): five `MED_RecipeCard` buttons (primitive card + TextMeshPro name and description lines, `XRSimpleInteractable`). Cards are green when the bench is Idle and the player can afford the recipe, grey otherwise, updated from `MED_PlayerResources.OnResourceChanged` and bench state events (no per-frame polling). Hover highlight and a press-in animation on select.
+- Test tool: `MED_AddSuppliesButton` ("TEST: +4 RAW SUPPLIES", +4 each of Herbs, Water, Alcohol, Gauze) in `MED_TestTools`.
+- Building ghost: the placement ghost now switches off every script and stat bar on the ghost, so a ghost bench does not run its recipe logic.
+
+Files affected:
+- Scripts: `MED_Recipe.cs`, `MED_PrepBench.cs`, `MED_RecipeCard.cs`, `MED_AddSuppliesButton.cs`; changed `MED_BuildingPlacer.cs`
+- Data: `Assets/Suhaas/Data/Recipes/MED_Recipe_*.asset` (5)
+- Prefabs: changed `Buildings/MED_PrepBench.prefab` (bench script, prop, bar, board, cards) and `MED_ClinicStation.prefab` (supplies button)
+- Materials: `MED_BoardPanel`, `MED_RecipeCard`, `MED_ButtonSupplies`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
 | MED_ClinicStation | Assets/Suhaas/Prefabs/MED_ClinicStation.prefab | 15x15 m room. Children: MED_Floor, MED_Walls (North with 2 m doorway + MED_DoorMarker, South, East, West), MED_PlayerSpawn (z=-5.5, facing +Z/north), MED_Grid, MED_ModelShelf (5 toy models + placer), MED_Buildings (placed buildings), MED_TestTools (removable at integration). |
-| MED_PrepBench | Assets/Suhaas/Prefabs/Buildings/MED_PrepBench.prefab | 2x1 wooden table. Mini: MED_Mini_PrepBench. |
+| MED_PrepBench | Assets/Suhaas/Prefabs/Buildings/MED_PrepBench.prefab | 2x1 wooden table. Mini: MED_Mini_PrepBench. Affordances/dynamics so far: build from a shelf model; prepare 5 recipes from a recipe-card board; passive PrepProgress over each recipe's duration; busy/idle state (working prop + progress bar). |
 | MED_Sterilizer | Assets/Suhaas/Prefabs/Buildings/MED_Sterilizer.prefab | 1x1 silver cylinder with lid. Mini: MED_Mini_Sterilizer. |
 | MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet, red cross, door line. Mini: MED_Mini_MedicineCabinet. |
 | MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | 2x1 bed with pale-blue cushion, pillow and green cross. Mini: MED_Mini_TreatmentStation. |
@@ -94,6 +110,7 @@ Framework: `MED_Stat` (clamped value, `OnChanged`) and `MED_StatBar` (world-spac
 | HerbsRemaining | MED_HerbPatch | 4 | -1 per Sickle hit | Floating stat bar; one plant disappears per remaining unit |
 | SuppliesRemaining | MED_SupplyCrate | 5 | -1 per Crowbar hit | Floating stat bar; the lid opens wider as it drops |
 | WaterLevel | MED_WaterBarrel | 10 | -1 per Bucket hit; "REFILL BARREL" test button (real refill in a later step) | Floating stat bar; water surface height; "EMPTY" label at 0 |
+| PrepProgress | MED_PrepBench | 0-1 | Time: advances by Euler integration (`+= (1 / duration) * dt`) while Preparing; resets to 0 when done | Floating stat bar over the bench (bright while Preparing); the pestle spins and bobs |
 
 ## (e) Resource list
 | Resource | Status |
@@ -124,6 +141,19 @@ Signifiers shared by all five: a small toy model on a shelf slot (grabbable, wit
 
 All costs are empty for now.
 
+### Crafting (Step 5)
+Metaphor: an **apothecary bench**. Raw herbs, water, alcohol and gauze go onto the bench, a card on the recipe board says what each preparation needs, and the pestle grinds while the bar fills.
+
+| Recipe | Inputs | Output | Duration |
+|---|---|---|---|
+| Medicine | 2 Herbs + 1 Water | 1 Medicine | 4 s |
+| Antiseptic | 1 Alcohol + 1 Water | 1 Antiseptic | 3 s |
+| BandageKit | 2 Gauze + 1 Antiseptic | 1 BandageKit | 4 s |
+| Painkiller | 2 Herbs + 1 Alcohol | 1 Painkiller | 4 s |
+| Tonic | 1 Herbs + 2 Water | 1 Tonic | 3 s |
+
+Signifiers: a recipe-card board on the bench (name plus "inputs -> output" on each card), card color (green = can start now, grey = missing inputs or bench busy), hover highlight and press-in on select, a progress bar over the bench, a spinning mortar-and-pestle while working, a floating "+1 <Product>" when done, and floating "Bench is busy" / "Too far" / "Need 2 Herbs (have 1)" messages when a recipe cannot start. The player must stand within 3.5 m of the bench.
+
 ### Harvesting (Step 4)
 Metaphor: an **apothecary / field clinic**. Each job is matched to the real-world tool for it: a sickle cuts herbs, a crowbar pries open crates, a bucket is dipped into a barrel. Tools sit on a labeled rack ("TOOLS"); the player grabs one and uses it on the matching object. Signifiers for every affordance: a named object with a floating stat bar, a floating "+1 <Resource>" on success, a squash and puff on each hit, and a "Use the <tool>" message when the wrong tool is used.
 
@@ -145,8 +175,8 @@ _(none yet)_
 | Player Resource (prerequisite) | 0 | Not started - framework ready |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
 | Prefab Content (8 prefabs) | 3 | Not started |
-| Stat Content (8 stats) | 3 | Not started |
-| Passive Stat Gain | 2 | Not started |
+| Stat Content (8 stats) | 3 | In progress (4 so far: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress) |
+| Passive Stat Gain | 2 | Done (PrepProgress, Euler integration; Step 5) |
 | Resource Content (8+ resources) | 3 | Not started |
 | Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Not started |
@@ -157,7 +187,7 @@ _(none yet)_
 | **Sidequests** | | |
 | Harvesting (3 affordances) | 3 | Done (Step 4) |
 | Caretaking (3) | 3 | Not started |
-| Crafting (5 recipes) | 3 | Not started |
+| Crafting (5 recipes) | 3 | Done (Step 5) |
 | Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
 | Intermittent Instances | 2 | Not started |
 | Path Following | 2 | Not started |
@@ -180,3 +210,6 @@ _(none yet)_
 - The `MED_PlayerHUD` resource panel (look down) shows Herbs, Water, Alcohol and Gauze updating as they are harvested.
 - In the XR Device Simulator, sending haptics logs a harmless warning ("Failed to get haptic capabilities of XRSimulatedController").
 - `com.unity.xr.openxr` is in the project manifest (not added by this log). No XR loader is enabled for PC.
+- Crafting inputs are spent when a recipe starts. If the bench is destroyed mid-preparation (for example with "CLEAR ALL BUILDINGS"), the inputs are not refunded.
+- `MED_TestTools` now also holds "TEST: +4 RAW SUPPLIES" (test-only; remove at integration).
+- The bench uses `FindAnyObjectByType<MED_PlayerResources>()` at runtime (no scene references); `FindFirstObjectByType` is deprecated in this Unity version.
