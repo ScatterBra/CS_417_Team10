@@ -15,5 +15,5 @@ MonoBehaviour:
   displayName: Treatment Station
   fullPrefab: {fileID: 7702092383178678382, guid: 7beef2e4ef89e6f4f8253bae2ab0daa9, type: 3}
   miniPrefab: {fileID: 7879028879850305455, guid: d69820158f1ccb744bb45deb3c3e95ae, type: 3}
-  footprint: {x: 2, y: 1}
+  footprint: {x: 2, y: 2}
   costs: []

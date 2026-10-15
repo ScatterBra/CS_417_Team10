@@ -86,14 +86,31 @@ Files affected:
 - Materials: `MED_BoardPanel`, `MED_RecipeCard`, `MED_ButtonSupplies`
 - Docs: `summary.md`
 
+### Step 6 - 2026-10-15 - Medicine Cabinet and Treatment Station (Caretaking)
+Created:
+- `MED_ActionButton`: reusable button (hover highlight, press-in animation, green/grey availability set by its owner from events). `MED_PlayerProximity`: head-distance helper used for the 3.5 m rule.
+- `MED_MedicineCabinet` (added to the existing `MED_MedicineCabinet.prefab`; `MED_Building` and the look are kept): stat `CabinetStock` (0..10, starts 0). Buttons on the front: "STOCK +1" (spends 1 Medicine, +1 stock; fails with "No Medicine" / "Cabinet full") and "TAKE 1" (-1 stock, +1 Medicine; fails with "Cabinet empty"). Both need the player within 3.5 m ("Too far"). Visuals: 5 amber bottles behind a glass pane (visible bottles = ceil(stock / 2)) and a stat bar. Button colors update from `OnResourceChanged` and the stat's `OnChanged`.
+- `MED_TreatmentStation` (added to `MED_TreatmentStation.prefab`, footprint now **2x2**): back row is the bed, front row is a green treatment pad ("STAND HERE"). Stats `StoredMedicine` (0..10, starts 0) and `TreatProgress` (0..1). Console beside the bed with "REFILL +1" (spends 1 Medicine into StoredMedicine; "No Medicine" / "Station is full") and a big "TREAT". TREAT works only while the camera is inside the pad rectangle (rectangle math, no physics triggers), otherwise "Step onto the green pad"; it also refuses when health is full ("Health is full") or the station is empty ("Station is empty - refill it"). State machine Idle/Treating: while Treating, `TreatProgress` advances by Euler integration (`+= (1 / doseDuration) * dt`, dose 1.5 s). At 1, health is re-checked (full: spend nothing, "Fully healed"), then 1 StoredMedicine is spent, Health +20 (capped at 100 by `MED_PlayerResources`) and a floating "+N HP" shows. The next dose starts automatically while health is not full, the station has medicine and the player is still on the pad; otherwise it stops with "Fully healed" / "Station is empty - refill it" (no message if the player stepped away). Stepping off the pad cancels the dose, resets progress and spends nothing ("Treatment cancelled").
+- Station visuals: IV bag on a pole whose liquid fill follows StoredMedicine/10, a stat bar for StoredMedicine, a TreatProgress bar shown only while treating, a pulsing glow on the bed while treating, and the pad brightening while the player stands on it. Colliders cover only the bed and console so the player can walk onto the pad.
+- Miniature of the Treatment Station rebuilt to match (bed + pad + console). The Step 3 placer already handles a 2x2 footprint (anchor cell = min corner; the extra cells are on the + side; a square footprint is the same under 90-degree turns, and the pivot is the footprint center).
+- Test tool: `MED_AddMedicineButton` ("TEST: +5 MEDICINE") in `MED_TestTools`.
+- Fix: refill/stock checks report 'full' before 'no Medicine'.
+
+Files affected:
+- Scripts: `MED_ActionButton.cs`, `MED_PlayerProximity.cs`, `MED_MedicineCabinet.cs`, `MED_TreatmentStation.cs`, `MED_AddMedicineButton.cs`
+- Prefabs: changed `Buildings/MED_MedicineCabinet.prefab`, `Buildings/MED_TreatmentStation.prefab`, `Buildings/MED_Mini_TreatmentStation.prefab`, `MED_ClinicStation.prefab` (test button)
+- Data: changed `Assets/Suhaas/Data/MED_Def_TreatmentStation.asset` (footprint 2x2)
+- Materials: `MED_PadGreen`, `MED_BedGlow`, `MED_ConsoleBody`, `MED_ButtonAction`, `MED_IVBag`, `MED_IVLiquid`, `MED_BottleAmber`, `MED_Glass`, `MED_ButtonMedicine`
+- Docs: `summary.md`
+
 ## (c) Prefab list
 | Prefab | Path | Notes |
 |---|---|---|
 | MED_ClinicStation | Assets/Suhaas/Prefabs/MED_ClinicStation.prefab | 15x15 m room. Children: MED_Floor, MED_Walls (North with 2 m doorway + MED_DoorMarker, South, East, West), MED_PlayerSpawn (z=-5.5, facing +Z/north), MED_Grid, MED_ModelShelf (5 toy models + placer), MED_Buildings (placed buildings), MED_TestTools (removable at integration). |
 | MED_PrepBench | Assets/Suhaas/Prefabs/Buildings/MED_PrepBench.prefab | 2x1 wooden table. Mini: MED_Mini_PrepBench. Affordances/dynamics so far: build from a shelf model; prepare 5 recipes from a recipe-card board; passive PrepProgress over each recipe's duration; busy/idle state (working prop + progress bar). |
 | MED_Sterilizer | Assets/Suhaas/Prefabs/Buildings/MED_Sterilizer.prefab | 1x1 silver cylinder with lid. Mini: MED_Mini_Sterilizer. |
-| MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet, red cross, door line. Mini: MED_Mini_MedicineCabinet. |
-| MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | 2x1 bed with pale-blue cushion, pillow and green cross. Mini: MED_Mini_TreatmentStation. |
+| MED_MedicineCabinet | Assets/Suhaas/Prefabs/Buildings/MED_MedicineCabinet.prefab | 1x1 tall white cabinet with glass-front bottles. Mini: MED_Mini_MedicineCabinet. Affordances/dynamics so far: build from a shelf model; STOCK +1 (spend Medicine, raise CabinetStock); TAKE 1 (get Medicine back); stat bar and bottle count follow CabinetStock. |
+| MED_TreatmentStation | Assets/Suhaas/Prefabs/Buildings/MED_TreatmentStation.prefab | **2x2 footprint**: bed (back row) with IV bag, console, and a green treatment pad (front row). Mini: MED_Mini_TreatmentStation. Affordances/dynamics so far: build from a shelf model; REFILL +1 (spend Medicine, raise StoredMedicine); TREAT while standing on the pad (20 HP per 1.5 s dose, passive TreatProgress, auto-repeat until healed, empty, or the player steps off). |
 | MED_HerbPlanter | Assets/Suhaas/Prefabs/Buildings/MED_HerbPlanter.prefab | 1x1 low soil box with green herbs. Mini: MED_Mini_HerbPlanter. |
 | MED_StatBar | Assets/Suhaas/Prefabs/MED_StatBar.prefab | Reusable world-space stat bar. Used by HerbPatch, SupplyCrate and WaterBarrel. |
 | MED_HerbPatch | Assets/Suhaas/Prefabs/Harvestables/MED_HerbPatch.prefab | Harvest with Sickle (1 Herbs per hit); random wild spawn; one plant disappears per hit; Death on depletion (shrink + puff, cells freed). Stat: HerbsRemaining. |
@@ -111,6 +128,9 @@ Framework: `MED_Stat` (clamped value, `OnChanged`) and `MED_StatBar` (world-spac
 | SuppliesRemaining | MED_SupplyCrate | 5 | -1 per Crowbar hit | Floating stat bar; the lid opens wider as it drops |
 | WaterLevel | MED_WaterBarrel | 10 | -1 per Bucket hit; "REFILL BARREL" test button (real refill in a later step) | Floating stat bar; water surface height; "EMPTY" label at 0 |
 | PrepProgress | MED_PrepBench | 0-1 | Time: advances by Euler integration (`+= (1 / duration) * dt`) while Preparing; resets to 0 when done | Floating stat bar over the bench (bright while Preparing); the pestle spins and bobs |
+| CabinetStock | MED_MedicineCabinet | 10 | +1 with STOCK +1 (spends Medicine), -1 with TAKE 1 | Stat bar over the cabinet; visible bottles = ceil(stock / 2) |
+| StoredMedicine | MED_TreatmentStation | 10 | +1 with REFILL +1 (spends Medicine), -1 per completed dose | Stat bar over the console; IV bag liquid level |
+| TreatProgress | MED_TreatmentStation | 0-1 | Time: Euler integration `+= (1 / 1.5) * dt` while Treating; reset when a dose completes or is cancelled | Small bar over the bed, shown only while treating; pulsing bed glow |
 
 ## (e) Resource list
 | Resource | Status |
@@ -154,6 +174,16 @@ Metaphor: an **apothecary bench**. Raw herbs, water, alcohol and gauze go onto t
 
 Signifiers: a recipe-card board on the bench (name plus "inputs -> output" on each card), card color (green = can start now, grey = missing inputs or bench busy), hover highlight and press-in on select, a progress bar over the bench, a spinning mortar-and-pestle while working, a floating "+1 <Product>" when done, and floating "Bench is busy" / "Too far" / "Need 2 Herbs (have 1)" messages when a recipe cannot start. The player must stand within 3.5 m of the bench.
 
+### Caretaking (Step 6)
+Metaphor: a **hospital ward**: a bed with an IV bag, a cabinet of medicine bottles, and a green "stand here" pad for treatment. Caretaking means keeping these supplied with the Medicine you crafted.
+
+| # | Affordance | Spends | Raises | Signifiers |
+|---|---|---|---|---|
+| 1 | Refill the Treatment Station (REFILL +1) | 1 Medicine | StoredMedicine | IV bag liquid level, stat bar, console button turns green when you hold Medicine and the station is not full |
+| 2 | Restock the Medicine Cabinet (STOCK +1) | 1 Medicine | CabinetStock | Bottles appear behind the glass (one per 2 stock), stat bar, button green/grey |
+
+A third Caretaking affordance (watering herbs) is planned. Treatment itself (TREAT, standing on the green pad) uses the stocked Medicine to heal the player: the pad brightens when you stand on it, the bed glows while treating, and a progress bar fills for each dose. The TREAT button is green only when treatment can start right now.
+
 ### Harvesting (Step 4)
 Metaphor: an **apothecary / field clinic**. Each job is matched to the real-world tool for it: a sickle cuts herbs, a crowbar pries open crates, a bucket is dipped into a barrel. Tools sit on a labeled rack ("TOOLS"); the player grabs one and uses it on the matching object. Signifiers for every affordance: a named object with a floating stat bar, a floating "+1 <Resource>" on success, a squash and puff on each hit, and a "Use the <tool>" message when the wrong tool is used.
 
@@ -174,9 +204,9 @@ _(none yet)_
 | Statted Instances (prerequisite) | 0 | In progress (HerbPatch, SupplyCrate, WaterBarrel carry stats) |
 | Player Resource (prerequisite) | 0 | Not started - framework ready |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
-| Prefab Content (8 prefabs) | 3 | Not started |
-| Stat Content (8 stats) | 3 | In progress (4 so far: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress) |
-| Passive Stat Gain | 2 | Done (PrepProgress, Euler integration; Step 5) |
+| Prefab Content (8 prefabs) | 3 | In progress (5 so far: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation) |
+| Stat Content (8 stats) | 3 | In progress (7 so far: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress) |
+| Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress; Euler integration) |
 | Resource Content (8+ resources) | 3 | Not started |
 | Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Not started |
@@ -186,7 +216,7 @@ _(none yet)_
 | Pull Request Reviewed | 2 | Not started |
 | **Sidequests** | | |
 | Harvesting (3 affordances) | 3 | Done (Step 4) |
-| Caretaking (3) | 3 | Not started |
+| Caretaking (3) | 3 | In progress (2 of 3 affordances: refill Treatment Station, restock Medicine Cabinet; 2 pts so far) |
 | Crafting (5 recipes) | 3 | Done (Step 5) |
 | Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
 | Intermittent Instances | 2 | Not started |
@@ -213,3 +243,7 @@ _(none yet)_
 - Crafting inputs are spent when a recipe starts. If the bench is destroyed mid-preparation (for example with "CLEAR ALL BUILDINGS"), the inputs are not refunded.
 - `MED_TestTools` now also holds "TEST: +4 RAW SUPPLIES" (test-only; remove at integration).
 - The bench uses `FindAnyObjectByType<MED_PlayerResources>()` at runtime (no scene references); `FindFirstObjectByType` is deprecated in this Unity version.
+- Treatment Station footprint is 2x2 (bed row + pad row). Its colliders cover only the bed and console so the player can walk onto the pad.
+- The "+N HP" text shows the HP actually gained, so the last dose before full health can read less than +20.
+- Medicine put into the cabinet or station is lost if the building is destroyed (for example with "CLEAR ALL BUILDINGS"); there is no refund.
+- `MED_TestTools` now also holds "TEST: +5 MEDICINE" (test-only; remove at integration).
