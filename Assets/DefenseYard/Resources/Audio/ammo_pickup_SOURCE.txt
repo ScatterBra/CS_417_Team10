@@ -1,0 +1,7 @@
+Ammo pickup: project-authored 0.72-second metallic handling/rattle mix.
+Sources (both CC0 1.0):
+- Kenney Impact Sounds, impactMetal_light_000 through 004: https://kenney.nl/assets/impact-sounds
+- pickup_ammo.wav by Thunderman98 (2022-10-29): https://freesound.org/people/Thunderman98/sounds/656183/
+  Public high-quality preview: https://cdn.freesound.org/previews/656/656183_14422849-hq.mp3
+License: https://creativecommons.org/publicdomain/zero/1.0/
+Edits: nine staggered/pitched light-metal transients with decreasing gain over a short ammo-handling layer; mono 44.1kHz PCM, 0.82 peak, soft tail fade. Playback volume 0.75 with the existing slight pitch variation.

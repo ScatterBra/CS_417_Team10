@@ -1,0 +1,187 @@
+[
+  {
+    "asset": "aerial_asphalt_01",
+    "author": {
+      "Rob Tuytel": "All"
+    },
+    "source": "https://polyhaven.com/a/aerial_asphalt_01",
+    "license": "CC0",
+    "files": [
+      {
+        "file": "aerial_asphalt_01_diff_2k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/aerial_asphalt_01/aerial_asphalt_01_diff_2k.png",
+        "bytes": 9755527
+      },
+      {
+        "file": "aerial_asphalt_01_nor_gl_2k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/aerial_asphalt_01/aerial_asphalt_01_nor_gl_2k.png",
+        "bytes": 6982232
+      },
+      {
+        "file": "aerial_asphalt_01_rough_2k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/aerial_asphalt_01/aerial_asphalt_01_rough_2k.png",
+        "bytes": 2229610
+      },
+      {
+        "file": "aerial_asphalt_01_ao_2k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/aerial_asphalt_01/aerial_asphalt_01_ao_2k.png",
+        "bytes": 2714896
+      }
+    ]
+  },
+  {
+    "asset": "barrel_03",
+    "author": {
+      "Serhii Khromov": "All"
+    },
+    "source": "https://polyhaven.com/a/barrel_03",
+    "license": "CC0",
+    "files": [
+      {
+        "file": "barrel_03_1k.fbx",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/1k/barrel_03/barrel_03_1k.fbx",
+        "bytes": 63996
+      },
+      {
+        "file": "barrel_03_diff_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/barrel_03/barrel_03_diff_1k.png",
+        "bytes": 4317766
+      },
+      {
+        "file": "barrel_03_nor_gl_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/barrel_03/barrel_03_nor_gl_1k.png",
+        "bytes": 4170632
+      },
+      {
+        "file": "barrel_03_rough_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/barrel_03/barrel_03_rough_1k.png",
+        "bytes": 1582214
+      },
+      {
+        "file": "barrel_03_metal_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/barrel_03/barrel_03_metal_1k.png",
+        "bytes": 210020
+      },
+      {
+        "file": "barrel_03_ao_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/barrel_03/barrel_03_ao_1k.png",
+        "bytes": 1353570
+      }
+    ]
+  },
+  {
+    "asset": "concrete_road_barrier",
+    "author": {
+      "Amal Kumar": "All"
+    },
+    "source": "https://polyhaven.com/a/concrete_road_barrier",
+    "license": "CC0",
+    "files": [
+      {
+        "file": "concrete_road_barrier_1k.fbx",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/1k/concrete_road_barrier/concrete_road_barrier_1k.fbx",
+        "bytes": 2887676
+      },
+      {
+        "file": "concrete_road_barrier_diff_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/concrete_road_barrier/concrete_road_barrier_diff_1k.png",
+        "bytes": 5391835
+      },
+      {
+        "file": "concrete_road_barrier_nor_gl_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/concrete_road_barrier/concrete_road_barrier_nor_gl_1k.png",
+        "bytes": 6188403
+      },
+      {
+        "file": "concrete_road_barrier_rough_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/concrete_road_barrier/concrete_road_barrier_rough_1k.png",
+        "bytes": 1718001
+      },
+      {
+        "file": "concrete_road_barrier_ao_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/concrete_road_barrier/concrete_road_barrier_ao_1k.png",
+        "bytes": 1747365
+      }
+    ]
+  },
+  {
+    "asset": "portable_generator",
+    "author": {
+      "James Ray Cock": "All"
+    },
+    "source": "https://polyhaven.com/a/portable_generator",
+    "license": "CC0",
+    "files": [
+      {
+        "file": "portable_generator_1k.fbx",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/1k/portable_generator/portable_generator_1k.fbx",
+        "bytes": 873900
+      },
+      {
+        "file": "portable_generator_diff_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/portable_generator/portable_generator_diff_1k.png",
+        "bytes": 5905401
+      },
+      {
+        "file": "portable_generator_nor_gl_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/portable_generator/portable_generator_nor_gl_1k.png",
+        "bytes": 5188472
+      },
+      {
+        "file": "portable_generator_rough_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/portable_generator/portable_generator_rough_1k.png",
+        "bytes": 1755848
+      },
+      {
+        "file": "portable_generator_metal_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/portable_generator/portable_generator_metal_1k.png",
+        "bytes": 1156896
+      },
+      {
+        "file": "portable_generator_ao_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/portable_generator/portable_generator_ao_1k.png",
+        "bytes": 1509731
+      }
+    ]
+  },
+  {
+    "asset": "hanging_industrial_lamp",
+    "author": {
+      "Kuutti Siitonen": "All"
+    },
+    "source": "https://polyhaven.com/a/hanging_industrial_lamp",
+    "license": "CC0",
+    "files": [
+      {
+        "file": "hanging_industrial_lamp_1k.fbx",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/fbx/1k/hanging_industrial_lamp/hanging_industrial_lamp_1k.fbx",
+        "bytes": 329244
+      },
+      {
+        "file": "hanging_industrial_lamp_diff_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/hanging_industrial_lamp/hanging_industrial_lamp_diff_1k.png",
+        "bytes": 5127189
+      },
+      {
+        "file": "hanging_industrial_lamp_nor_gl_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/hanging_industrial_lamp/hanging_industrial_lamp_nor_gl_1k.png",
+        "bytes": 4952681
+      },
+      {
+        "file": "hanging_industrial_lamp_rough_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/hanging_industrial_lamp/hanging_industrial_lamp_rough_1k.png",
+        "bytes": 1492017
+      },
+      {
+        "file": "hanging_industrial_lamp_metal_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/hanging_industrial_lamp/hanging_industrial_lamp_metal_1k.png",
+        "bytes": 1442909
+      },
+      {
+        "file": "hanging_industrial_lamp_ao_1k.png",
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/hanging_industrial_lamp/hanging_industrial_lamp_ao_1k.png",
+        "bytes": 1423550
+      }
+    ]
+  }
+]

@@ -1,0 +1,1 @@
+Controller meshes and prefab geometry from Unity XR Interaction Toolkit 3.5.1 Starter Assets sample (UniversalController.fbx). Unity Companion License, as distributed with com.unity.xr.interaction.toolkit. Optional sample button-animation behavior omitted; poses are driven by the official XR Interaction Simulator and Input System TrackedPoseDriver. Materials converted to URP Lit.

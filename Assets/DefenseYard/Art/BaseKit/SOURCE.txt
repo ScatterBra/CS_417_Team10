@@ -1,0 +1,13 @@
+Modular Concrete Interior 3D by AXLplosion (2021), CC0.
+Source: https://opengameart.org/content/modular-concrete-interior-3d
+Download: https://opengameart.org/sites/default/files/modular_concrete_interior.zip
+Original texture credits are preserved in readme.txt.
+Imported selected FBX modules and color/normal maps; assembled and resized for Defense Yard.
+
+Vault door by tbbk (2022), CC0.
+Source: https://opengameart.org/content/vault-door
+Download: https://opengameart.org/sites/default/files/vault_door_and_wall_0.zip
+Textures credited by author to 3Dtextures.me.
+Imported door FBX and metal normal map, with a Unity URP steel material.
+
+License: https://creativecommons.org/publicdomain/zero/1.0/

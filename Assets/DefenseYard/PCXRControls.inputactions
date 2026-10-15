@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "name": "PCXRControls",
+    "maps": [
+        {
+            "name": "Simulator",
+            "id": "44594668-3622-4d17-8b64-52c247613a75",
+            "actions": [
+                {
+                    "name": "Toggle Manipulate Head",
+                    "type": "Button",
+                    "id": "71549f70-463e-43bd-8a5f-d2896db4ede1",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "e79c4e34-4b2c-4dff-b201-c6b50005afa4",
+                    "path": "<Keyboard>/f8",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Toggle Manipulate Head",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
