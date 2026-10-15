@@ -1,0 +1,11 @@
+Missile Turret by Zsky, from Low Poly Sci Fi Turrets
+https://poly.pizza/m/RqnAj5N9fL
+https://zsky2000.itch.io/low-poly-sci-fi-turrets
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Source GLB: https://static.poly.pizza/79dee9d7-9e8a-4c86-afad-47bf293a0bbe.glb
+Changes: converted GLB to FBX in Blender; recolored Unity materials; normalized footprint and ground contact;
+added separate yaw/pitch pivots, alternating muzzle points and an authored recoil animation.
+No original animation was supplied with this model. LauncherIdle/LauncherFire are project-authored.
+Keep this attribution with distributed project assets and builds.

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5797925dd77e22d4faf2b390ec6441da, type: 3}
+  m_Name: PWR_Build_ConveyorBelt
+  m_EditorClassIdentifier: Assembly-CSharp::Deadzone.Power.PWR_BuildableDef
+  displayName: Conveyor Belt
+  prefab: {fileID: 265071487375676777, guid: 327df7ccd7991ce4cace5a0865962875, type: 3}
+  cost:
+  - type: 0
+    amount: 1
+  requiredFoundationId: ConcretePad
+  maxCount: 0
+  ghostSize: {x: 0.94, y: 0.120000005, z: 1.0000001}
+  ghostCenter: {x: 0, y: 0.060000002, z: 0}

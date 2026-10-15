@@ -1,0 +1,5 @@
+Dead Pine Tree by Skywolf Game Studios. CC0 1.0.
+https://github.com/SkywolfGameStudios/CC0Tree
+Revision: 87bb11df88ae456e6a0fc0002d6a19be9fadbf36
+Original file: All Models/Nature/SM_DeadPineTree.fbx
+Used as distant silhouettes outside the playable yard.
