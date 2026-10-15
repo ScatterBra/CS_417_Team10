@@ -43,6 +43,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: 'SCV_RepairKit  '
       objectReference: {fileID: 0}
+    - target: {fileID: -6689036041284674117, guid: 46aa47926126d58448d06026c43bdca7, type: 3}
+      propertyPath: m_TagString
+      value: RepairKit
+      objectReference: {fileID: 0}
     - target: {fileID: 2774220344278030320, guid: 46aa47926126d58448d06026c43bdca7, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.5

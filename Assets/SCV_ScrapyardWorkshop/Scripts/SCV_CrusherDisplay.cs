@@ -9,24 +9,51 @@ public class SCV_CrusherDisplay : MonoBehaviour
 
     private void Update()
     {
-        if (crusher.IsProcessing)
+        if (crusher == null ||
+            resourceManager == null ||
+            statusText == null)
         {
-            statusText.text =
-                "CRUSHER\n" +
-                "PROCESSING...";
+            return;
         }
-        else if (resourceManager.scrap < 2)
+
+        string stateText;
+
+        if (!string.IsNullOrEmpty(crusher.FeedbackMessage))
         {
-            statusText.text =
-                "CRUSHER\n" +
-                "NEED 2 SCRAP";
+            stateText = crusher.FeedbackMessage;
+        }
+        else if (crusher.IsProcessing)
+        {
+            stateText = "PROCESSING...";
+        }
+        else if (crusher.CrusherCondition <= 0)
+        {
+            stateText = "BROKEN\nREPAIR REQUIRED";
+        }
+        else if (resourceManager.scrap < crusher.ScrapCost)
+        {
+            stateText =
+                "NEED " +
+                crusher.ScrapCost +
+                " SCRAP";
         }
         else
         {
-            statusText.text =
-                "CRUSHER\n" +
+            stateText =
                 "READY\n" +
-                "2 SCRAP -> 1 PART";
+                crusher.ScrapCost +
+                " SCRAP -> " +
+                crusher.PartsProduced +
+                " PART";
         }
+
+        statusText.text =
+            "CRUSHER\n" +
+            "CONDITION: " +
+            crusher.CrusherCondition +
+            "/" +
+            crusher.MaxCrusherCondition +
+            "\n" +
+            stateText;
     }
 }
