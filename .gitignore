@@ -61,3 +61,8 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+.utmp/
+build/
+*.apk
+MED_Builds/
