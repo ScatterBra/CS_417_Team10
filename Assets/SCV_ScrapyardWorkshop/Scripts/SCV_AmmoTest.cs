@@ -19,7 +19,10 @@ public class SCV_AmmoTest : MonoBehaviour
             Debug.Log("Ammo storage is full.");
 
             if (ammoDisplay != null)
-                ammoDisplay.ShowFeedback("AMMO STORAGE FULL");
+                ammoDisplay.ShowFeedback(
+                    "<color=#FF4444>AMMO STORAGE FULL\n" +
+                    "USE AMMO BEFORE LOADING MORE</color>"
+                );
 
             return false;
         }
@@ -29,7 +32,11 @@ public class SCV_AmmoTest : MonoBehaviour
             Debug.Log("No crafted ammo available.");
 
             if (ammoDisplay != null)
-                ammoDisplay.ShowFeedback("NO AMMO AVAILABLE");
+                ammoDisplay.ShowFeedback(
+                    "<color=#FF4444>CANNOT LOAD AMMO\n" +
+                    "NO CRAFTED AMMO AVAILABLE\n" +
+                    "CRAFT AMMO AT THE WORKBENCH</color>"
+                );
 
             return false;
         }
@@ -42,7 +49,7 @@ public class SCV_AmmoTest : MonoBehaviour
         );
 
         if (ammoDisplay != null)
-            ammoDisplay.ShowFeedback("AMMO LOADED");
+            ammoDisplay.ShowFeedback("<color=#66FF66>AMMO LOADED</color>");
 
         return true;
     }
