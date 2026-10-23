@@ -58,7 +58,10 @@ public class SCV_DamagedPanel : MonoBehaviour
         );
 
         if (panelDisplay != null)
-            panelDisplay.ShowFeedback("<color=#66FF66>PANEL REPAIRED</color>");
+            panelDisplay.ShowFeedback(
+                "<color=#66FF66>REPAIR TEST SUCCESSFUL\n" +
+                "DEFENSE RESTORED</color>"
+            );
 
         return true;
     }

@@ -43,6 +43,7 @@ public class SCV_Crusher : MonoBehaviour
         feedbackEndTime = Time.time + feedbackDuration;
     }
 
+
     private bool isProcessing = false;
 
     public bool IsProcessing => isProcessing;
@@ -145,6 +146,26 @@ public class SCV_Crusher : MonoBehaviour
         );
 
         isProcessing = false;
+    }
+
+    public void TestRun()
+    {
+        if (crusherCondition <= 0)
+        {
+            SetFeedback(
+                "<color=#FF4444>TEST FAILED\n" +
+                "CRUSHER MUST BE REPAIRED FIRST</color>"
+            );
+
+            return;
+        }
+
+        SetFeedback(
+            "<color=#66FF66>CRUSHER TEST SUCCESSFUL\n" +
+            "SYSTEM READY FOR PROCESSING</color>"
+        );
+
+        Debug.Log("Crusher sandbox test completed.");
     }
 
     public bool TryRepair()

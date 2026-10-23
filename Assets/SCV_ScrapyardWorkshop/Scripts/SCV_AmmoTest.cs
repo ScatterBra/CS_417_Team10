@@ -49,7 +49,10 @@ public class SCV_AmmoTest : MonoBehaviour
         );
 
         if (ammoDisplay != null)
-            ammoDisplay.ShowFeedback("<color=#66FF66>AMMO LOADED</color>");
+            ammoDisplay.ShowFeedback(
+                "<color=#66FF66>AMMO TEST SUCCESSFUL\n" +
+                "SUPPLY ACCEPTED</color>"
+            );
 
         return true;
     }

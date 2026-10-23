@@ -31,6 +31,9 @@ public class SCV_ProgressionManager : MonoBehaviour
     private bool craftedAmmo = false;
     private bool craftedRepairKit = false;
 
+    public bool WorkshopComplete =>
+    currentStage == WorkshopStage.WorkshopComplete;
+
     private void Start()
     {
         // MP2B begins with later mechanics locked.
