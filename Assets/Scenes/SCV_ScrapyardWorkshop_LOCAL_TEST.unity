@@ -2992,6 +2992,8 @@ MonoBehaviour:
   revealCanvas: {fileID: 767564696}
   revealText: {fileID: 1181446508}
   revealDuration: 7
+  interactionUnlockDelay: 2
+  defenseSupplyInteraction: {fileID: 83732183}
 --- !u!4 &611378273
 Transform:
   m_ObjectHideFlags: 0

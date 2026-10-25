@@ -28,6 +28,10 @@ public class SCV_ProgressionManager : MonoBehaviour
     [SerializeField] private TMP_Text revealText;
     [SerializeField] private float revealDuration = 4f;
 
+    [SerializeField] private float interactionUnlockDelay = 2f;
+
+    [SerializeField] private GameObject defenseSupplyInteraction;
+
     private bool craftedAmmo = false;
     private bool craftedRepairKit = false;
 
@@ -46,6 +50,9 @@ public class SCV_ProgressionManager : MonoBehaviour
         if (revealCanvas != null)
             revealCanvas.SetActive(false);
 
+        if (defenseSupplyInteraction != null)
+            defenseSupplyInteraction.SetActive(false);
+
         UpdateObjective();
     }
 
@@ -56,15 +63,23 @@ public class SCV_ProgressionManager : MonoBehaviour
 
         currentStage = WorkshopStage.ProcessPart;
 
-        if (crusherInteraction != null)
-            crusherInteraction.SetActive(true);
-
         ShowReveal(
             "<color=#66D9FF>CRUSHER ONLINE</color>\n" +
             "Process salvaged Scrap into reusable Parts."
         );
 
         UpdateObjective();
+
+        Invoke(
+            nameof(EnableCrusherInteraction),
+            interactionUnlockDelay
+        );
+    }
+
+    private void EnableCrusherInteraction()
+    {
+        if (crusherInteraction != null)
+            crusherInteraction.SetActive(true);
     }
 
     public void FirstPartProduced()
@@ -74,17 +89,24 @@ public class SCV_ProgressionManager : MonoBehaviour
 
         currentStage = WorkshopStage.CraftSupplies;
 
-        if (workbenchInteraction != null)
-            workbenchInteraction.SetActive(true);
-
         ShowReveal(
             "<color=#66D9FF>WORKBENCH ONLINE</color>\n" +
             "Use Parts to manufacture Ammo and Repair Kits."
         );
 
         UpdateObjective();
+
+        Invoke(
+            nameof(EnableWorkbenchInteraction),
+            interactionUnlockDelay
+        );
     }
 
+    private void EnableWorkbenchInteraction()
+    {
+        if (workbenchInteraction != null)
+            workbenchInteraction.SetActive(true);
+    }
     public void AmmoCrafted()
     {
         craftedAmmo = true;
@@ -113,6 +135,17 @@ public class SCV_ProgressionManager : MonoBehaviour
         );
 
         UpdateObjective();
+
+        Invoke(
+            nameof(EnableDefenseSupplyInteraction),
+            interactionUnlockDelay
+        );
+    }
+
+    private void EnableDefenseSupplyInteraction()
+    {
+        if (defenseSupplyInteraction != null)
+            defenseSupplyInteraction.SetActive(true);
     }
 
     private void UpdateObjective()
