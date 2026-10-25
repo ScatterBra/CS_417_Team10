@@ -108,19 +108,31 @@ public class SCV_Workbench : MonoBehaviour
         }
     }
 
-    private void SpawnItem(GameObject prefab, Transform spawnPoint)
+    private void SpawnItem(GameObject prefab,Transform spawnPoint)
     {
         if (prefab == null || spawnPoint == null)
         {
-            Debug.LogWarning("Crafted item prefab or spawn point is missing.");
+            Debug.LogWarning(
+                "Crafted item prefab or spawn point is missing."
+            );
             return;
         }
 
-        Instantiate(
+        GameObject spawned = Instantiate(
             prefab,
             spawnPoint.position,
             spawnPoint.rotation
         );
+
+        SCV_CraftedItem craftedItem =
+            spawned.GetComponentInChildren<SCV_CraftedItem>(true);
+
+        if (craftedItem != null)
+        {
+            craftedItem.SetSourceInventory(
+                resourceManager
+            );
+        }
     }
 
     [ContextMenu("Craft Ammo")]

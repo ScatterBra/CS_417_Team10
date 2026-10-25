@@ -8,8 +8,6 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
     [Header("Ammo Delivery")]
     [SerializeField] private int defenseAmmoPerBox = 10;
 
-    [SerializeField] private TMP_Text feedbackText;
-
     [Header("Scrap Delivery")]
     [SerializeField] private int scrapTransferAmount = 10;
 
@@ -18,6 +16,7 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
     [SerializeField] private float repairRange = 8f;
 
     [Header("Feedback")]
+    [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private float feedbackDuration = 3f;
 
     private string feedbackMessage = "";
@@ -40,8 +39,10 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
         feedbackEndTime = Time.time + feedbackDuration;
     }
 
+    // ---------------------------------------------------------
     // CONNECTION #1
-    // SCV crafted Ammo -> Defense Yard ammo
+    // SCV crafted Ammo Box -> Defense Yard ammo
+    // ---------------------------------------------------------
     public void DeliverAmmo()
     {
         DEF_GameState state = DEF_GameState.I;
@@ -51,6 +52,7 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
             SetFeedback(
                 "<color=#FF4444>DEFENSE SYSTEM OFFLINE</color>"
             );
+
             return;
         }
 
@@ -60,15 +62,37 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
                 "<color=#FF4444>DEFENSE AMMO FULL\n" +
                 "USE AMMO BEFORE DELIVERING MORE</color>"
             );
+
             return;
         }
 
+        // Find and reserve the exact physical Ammo Box
+        // belonging to this Workshop inventory.
+        SCV_CraftedItem ammoBox =
+            ReservePhysicalItem(
+                SCV_CraftedItem.ItemType.Ammo
+            );
+
+        if (ammoBox == null)
+        {
+            SetFeedback(
+                "<color=#FF4444>NO AVAILABLE AMMO BOX\n" +
+                "CRAFT ONE AT THE WORKBENCH</color>"
+            );
+
+            return;
+        }
+
+        // Spend the matching inventory resource.
         if (!resourceManager.SpendAmmo(1))
         {
+            ammoBox.ReleaseReservation();
+
             SetFeedback(
                 "<color=#FF4444>NO CRAFTED AMMO\n" +
                 "CRAFT AMMO AT THE WORKBENCH</color>"
             );
+
             return;
         }
 
@@ -79,11 +103,13 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
 
         state.ammo += amountAdded;
 
-        RemovePhysicalAmmoBox();
+        // Destroy the SAME physical box that was reserved.
+        DestroyPhysicalItem(ammoBox);
 
         SetFeedback(
             "<color=#66FF66>1 AMMO BOX DELIVERED\n+" +
-                amountAdded + " DEFENSE AMMO</color>"
+            amountAdded +
+            " DEFENSE AMMO</color>"
         );
 
         Debug.Log(
@@ -92,8 +118,10 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
         );
     }
 
+    // ---------------------------------------------------------
     // CONNECTION #2
-    // SCV harvested Scrap -> Defense Yard building Scrap
+    // SCV harvested Scrap -> Defense Yard Scrap
+    // ---------------------------------------------------------
     public void DeliverScrap()
     {
         DEF_GameState state = DEF_GameState.I;
@@ -103,6 +131,7 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
             SetFeedback(
                 "<color=#FF4444>DEFENSE SYSTEM OFFLINE</color>"
             );
+
             return;
         }
 
@@ -111,6 +140,7 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
             SetFeedback(
                 "<color=#FF4444>DEFENSE SCRAP STORAGE FULL</color>"
             );
+
             return;
         }
 
@@ -118,8 +148,11 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
         {
             SetFeedback(
                 "<color=#FF4444>NOT ENOUGH WORKSHOP SCRAP\n" +
-                "NEED " + scrapTransferAmount + " SCRAP</color>"
+                "NEED " +
+                scrapTransferAmount +
+                " SCRAP</color>"
             );
+
             return;
         }
 
@@ -137,11 +170,14 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
         );
     }
 
+    // ---------------------------------------------------------
     // CONNECTION #3
-    // SCV Repair Kit -> Daryl defense prefab
+    // SCV Repair Kit -> damaged Defense Yard prefab
+    // ---------------------------------------------------------
     public void RepairNearestDefense()
     {
-        GameObject target = FindNearestDamagedDefense();
+        GameObject target =
+            FindNearestDamagedDefense();
 
         if (target == null)
         {
@@ -149,19 +185,42 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
                 "<color=#FF4444>NO DAMAGED DEFENSE NEARBY\n" +
                 "MOVE CLOSER TO A DAMAGED DEFENSE</color>"
             );
+
             return;
         }
 
+        // Reserve the exact physical Repair Kit belonging
+        // to this Workshop inventory.
+        SCV_CraftedItem repairKit =
+            ReservePhysicalItem(
+                SCV_CraftedItem.ItemType.RepairKit
+            );
+
+        if (repairKit == null)
+        {
+            SetFeedback(
+                "<color=#FF4444>NO AVAILABLE REPAIR KIT\n" +
+                "CRAFT ONE AT THE WORKBENCH</color>"
+            );
+
+            return;
+        }
+
+        // Spend the matching Workshop resource.
         if (!resourceManager.SpendRepairKit(1))
         {
+            repairKit.ReleaseReservation();
+
             SetFeedback(
                 "<color=#FF4444>NO REPAIR KIT AVAILABLE\n" +
                 "CRAFT ONE AT THE WORKBENCH</color>"
             );
+
             return;
         }
 
-        DEF_Turret turret = target.GetComponent<DEF_Turret>();
+        DEF_Turret turret =
+            target.GetComponent<DEF_Turret>();
 
         if (turret != null)
         {
@@ -216,7 +275,8 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
             0.6f
         );
 
-        RemovePhysicalRepairKit();
+        // Destroy the SAME Repair Kit that was reserved.
+        DestroyPhysicalItem(repairKit);
 
         SetFeedback(
             "<color=#66FF66>REPAIR KIT APPLIED\n" +
@@ -229,7 +289,12 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
         );
     }
 
-    private void RemovePhysicalAmmoBox()
+    // ---------------------------------------------------------
+    // Finds an unreserved physical crafted item that came
+    // from THIS Workshop's ResourceManager.
+    // ---------------------------------------------------------
+    private SCV_CraftedItem ReservePhysicalItem(
+        SCV_CraftedItem.ItemType type)
     {
         SCV_CraftedItem[] items =
             FindObjectsByType<SCV_CraftedItem>(
@@ -241,38 +306,45 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
             if (item == null)
                 continue;
 
-            if (item.Type ==
-                SCV_CraftedItem.ItemType.Ammo)
-            {
-                Destroy(item.gameObject);
-                return;
-            }
-        }
-    }
-
-    private void RemovePhysicalRepairKit()
-    {
-        SCV_CraftedItem[] items =
-            FindObjectsByType<SCV_CraftedItem>(
-                FindObjectsSortMode.None
-            );
-
-        foreach (SCV_CraftedItem item in items)
-        {
-            if (item == null)
+            if (item.Type != type)
                 continue;
 
+            if (item.SourceInventory != resourceManager)
+                continue;
 
-            if (item.Type ==
-                SCV_CraftedItem.ItemType.RepairKit)
-            {
-                Destroy(item.gameObject);
-                return;
-            }
+            if (item.TryReserve())
+                return item;
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // Destroy the complete physical prefab.
+    // Uses the Rigidbody root when possible.
+    // ---------------------------------------------------------
+    private void DestroyPhysicalItem(
+        SCV_CraftedItem item)
+    {
+        if (item == null)
+            return;
+
+        Rigidbody rb =
+            item.GetComponentInParent<Rigidbody>();
+
+        if (rb != null)
+        {
+            Destroy(rb.gameObject);
+        }
+        else
+        {
+            Destroy(item.gameObject);
         }
     }
 
-
+    // ---------------------------------------------------------
+    // Find nearest damaged Daryl defense within repairRange.
+    // ---------------------------------------------------------
     private GameObject FindNearestDamagedDefense()
     {
         GameObject closest = null;
@@ -350,6 +422,9 @@ public class SCV_DefenseSupplyLink : MonoBehaviour
     private void Update()
     {
         if (feedbackText != null)
-            feedbackText.text = FeedbackMessage;
+        {
+            feedbackText.text =
+                FeedbackMessage;
+        }
     }
 }
