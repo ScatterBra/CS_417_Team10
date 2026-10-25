@@ -11892,6 +11892,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SCV_DamagedPanel
       objectReference: {fileID: 0}
+    - target: {fileID: 4542443562268717993, guid: 73719cd3a40ea5a47bd1c341b53d1a35, type: 3}
+      propertyPath: resourceManager
+      value: 
+      objectReference: {fileID: 468682531}
     - target: {fileID: 5038640589522903606, guid: 73719cd3a40ea5a47bd1c341b53d1a35, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.44
@@ -12009,6 +12013,10 @@ PrefabInstance:
       propertyPath: resourceManager
       value: 
       objectReference: {fileID: 468682531}
+    - target: {fileID: 7872844251920126297, guid: 3710acaefbbc62b43b2f642a963b60b4, type: 3}
+      propertyPath: resourceManager
+      value: 
+      objectReference: {fileID: 468682531}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -12090,6 +12098,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7052990269668013913, guid: 4e05b7002f9c633458e82ee4cd1109fd, type: 3}
+      propertyPath: resourceManager
+      value: 
+      objectReference: {fileID: 468682531}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

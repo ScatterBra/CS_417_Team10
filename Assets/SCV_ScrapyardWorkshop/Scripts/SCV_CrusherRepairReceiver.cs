@@ -1,35 +1,27 @@
 using UnityEngine;
-using System.Collections.Generic;
 
 public class SCV_CrusherRepairReceiver : MonoBehaviour
 {
     [SerializeField] private SCV_Crusher crusher;
-
-    private HashSet<GameObject> processedItems =
-        new HashSet<GameObject>();
+    [SerializeField] private SCV_ResourceManager resourceManager;
 
     private void OnTriggerEnter(Collider other)
     {
-        GameObject repairObject;
+        SCV_CraftedItem item =
+            other.GetComponentInParent<SCV_CraftedItem>();
 
-        if (other.attachedRigidbody != null)
-        {
-            repairObject =
-                other.attachedRigidbody.gameObject;
-        }
-        else
-        {
-            repairObject =
-                other.transform.root.gameObject;
-        }
-
-        if (!repairObject.CompareTag("RepairKit"))
+        if (item == null)
             return;
 
-        if (processedItems.Contains(repairObject))
+        if (item.Type !=
+            SCV_CraftedItem.ItemType.RepairKit)
             return;
 
-        processedItems.Add(repairObject);
+        if (item.SourceInventory != resourceManager)
+            return;
+
+        if (!item.TryReserve())
+            return;
 
         if (crusher.TryRepair())
         {
@@ -37,12 +29,25 @@ public class SCV_CrusherRepairReceiver : MonoBehaviour
                 "Physical repair kit used on crusher."
             );
 
-            repairObject.SetActive(false);
-            Destroy(repairObject);
+            DestroyPhysicalItem(item);
         }
         else
         {
-            processedItems.Remove(repairObject);
+            item.ReleaseReservation();
         }
+    }
+
+    private void DestroyPhysicalItem(SCV_CraftedItem item)
+    {
+        Rigidbody rb =
+            item.GetComponentInParent<Rigidbody>();
+
+        GameObject physicalObject =
+            rb != null
+                ? rb.gameObject
+                : item.gameObject;
+
+        physicalObject.SetActive(false);
+        Destroy(physicalObject);
     }
 }
