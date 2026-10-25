@@ -1,8 +1,12 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class SCV_CrusherRepairReceiver : MonoBehaviour
 {
     [SerializeField] private SCV_Crusher crusher;
+
+    private HashSet<GameObject> processedItems =
+        new HashSet<GameObject>();
 
     private void OnTriggerEnter(Collider other)
     {
@@ -22,6 +26,11 @@ public class SCV_CrusherRepairReceiver : MonoBehaviour
         if (!repairObject.CompareTag("RepairKit"))
             return;
 
+        if (processedItems.Contains(repairObject))
+            return;
+
+        processedItems.Add(repairObject);
+
         if (crusher.TryRepair())
         {
             Debug.Log(
@@ -30,6 +39,10 @@ public class SCV_CrusherRepairReceiver : MonoBehaviour
 
             repairObject.SetActive(false);
             Destroy(repairObject);
+        }
+        else
+        {
+            processedItems.Remove(repairObject);
         }
     }
 }

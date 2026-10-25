@@ -60,7 +60,7 @@ public class SCV_ProgressionManager : MonoBehaviour
             crusherInteraction.SetActive(true);
 
         ShowReveal(
-            "CRUSHER ONLINE\n" +
+            "<color=#66D9FF>CRUSHER ONLINE</color>\n" +
             "Process salvaged Scrap into reusable Parts."
         );
 
@@ -78,7 +78,7 @@ public class SCV_ProgressionManager : MonoBehaviour
             workbenchInteraction.SetActive(true);
 
         ShowReveal(
-            "WORKBENCH ONLINE\n" +
+            "<color=#66D9FF>WORKBENCH ONLINE</color>\n" +
             "Use Parts to manufacture Ammo and Repair Kits."
         );
 
@@ -108,7 +108,7 @@ public class SCV_ProgressionManager : MonoBehaviour
         currentStage = WorkshopStage.WorkshopComplete;
 
         ShowReveal(
-            "WORKSHOP READY\n" +
+            "<color=#66D9FF>WORKSHOP READY</color>\n" +
             "Supplies are prepared for the Defense Yard."
         );
 
