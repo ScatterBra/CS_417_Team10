@@ -5,8 +5,8 @@ namespace Deadzone.Power
 {
     /// <summary>
     /// The charger. Drop a crafted battery into its slot; it then draws power from the neighboring
-    /// battery bank into its Progress stat. At 100% the battery pops out as a Charged Cell and the
-    /// level is complete.
+    /// battery bank into its Progress stat. At 100% the battery pops out as a Charged Cell; picking
+    /// it up is one of the two conditions for the station being complete (see PWR_LevelDirector).
     /// </summary>
     [RequireComponent(typeof(PWR_StatBlock), typeof(PWR_PowerNode))]
     public class PWR_CellCharger : MonoBehaviour, PWR_ISocketOwner
@@ -18,9 +18,14 @@ namespace Deadzone.Power
 
         public static event Action<PWR_CellCharger> BatteryInserted;
         public static event Action<PWR_CellCharger> Completed;
+        /// <summary>The player picked up the ejected Charged Cell for the first time.</summary>
+        public static event Action<PWR_CellCharger> CellCollected;
 
         public bool HasBattery { get; private set; }
         public bool IsComplete { get; private set; }
+        public bool IsCellCollected { get; private set; }
+        /// <summary>Offline until PWR_Progression unlocks it (after the first Battery is crafted).</summary>
+        public bool Locked { get; set; }
         public float ProgressPercent => stats.GetNormalized(progressStat) * 100f;
 
         private PWR_StatBlock stats;
@@ -37,7 +42,12 @@ namespace Deadzone.Power
                     var item = held != null ? held.GetComponentInParent<PWR_ItemObject>() : null;
                     var socket = GetComponentInChildren<PWR_ItemSocket>();
                     if (item != null && socket != null && socket.TryInsert(item)) return;
-                    string msg = IsComplete ? "Charged!" : HasBattery ? $"Charging {ProgressPercent:0}%" : "Insert a Battery";
+                    string msg = Locked ? "Charger offline. Craft a Battery at the Workbench to bring it online."
+                        : item != null && item.resource != PWR_ResourceType.Battery
+                            ? $"The charger only takes a Battery, not a {PWR_Names.Of(item.resource)}."
+                        : IsComplete ? "Charged!"
+                        : HasBattery ? $"Charging {ProgressPercent:0}%"
+                        : "Nothing to charge. Drop a crafted Battery into the charger.";
                     PWR_Feedback.Show(transform.position + Vector3.up * 0.8f, msg, PWR_Feedback.Info);
                 };
         }
@@ -48,7 +58,7 @@ namespace Deadzone.Power
             if (HasBattery && !IsComplete && stats.GetStat(progressStat).IsFull) Complete();
         }
 
-        public bool CanAcceptItem(PWR_ItemObject item) => !HasBattery && !IsComplete && item.resource == PWR_ResourceType.Battery;
+        public bool CanAcceptItem(PWR_ItemObject item) => !Locked && !HasBattery && !IsComplete && item.resource == PWR_ResourceType.Battery;
 
         public void OnItemAccepted(PWR_ItemObject item)
         {
@@ -67,10 +77,20 @@ namespace Deadzone.Power
             if (chargedCellPrefab != null)
             {
                 Transform at = ejectPoint != null ? ejectPoint : transform;
-                Instantiate(chargedCellPrefab, at.position, at.rotation);
+                var cell = Instantiate(chargedCellPrefab, at.position, at.rotation);
+                if (cell.TryGetComponent(out PWR_Grabbable grabbable)) grabbable.Picked += HandleCellPicked;
+                else HandleCellPicked(null); // no way to pick it up: don't block completion
             }
             PWR_Feedback.Show(transform.position + Vector3.up * 0.8f, "Charged Cell ready!", PWR_Feedback.Good);
             Completed?.Invoke(this);
+        }
+
+        private void HandleCellPicked(PWR_Grabbable grabbable)
+        {
+            if (grabbable != null) grabbable.Picked -= HandleCellPicked;
+            if (IsCellCollected) return;
+            IsCellCollected = true;
+            CellCollected?.Invoke(this);
         }
     }
 }

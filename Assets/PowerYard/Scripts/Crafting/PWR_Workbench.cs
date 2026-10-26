@@ -18,6 +18,9 @@ namespace Deadzone.Power
         [Tooltip("Optional physical object that also appears on the bench (battery, light bulb).")]
         public GameObject spawnPrefab;
 
+        /// <summary>Hidden from the panel until PWR_Progression unlocks it (runtime only).</summary>
+        [NonSerialized] public bool locked;
+
         public string Describe() =>
             $"{string.Join(" + ", inputs.Select(i => i.ToString()))}  →  {outputAmount} {PWR_Names.Of(output)}";
     }
@@ -51,17 +54,29 @@ namespace Deadzone.Power
         private void Start() => BuildPanel();
 
         public bool CanCraft(PWR_Recipe recipe) =>
-            current == null && PWR_PlayerResources.Instance != null && PWR_PlayerResources.Instance.CanAfford(recipe.inputs);
+            current == null && !recipe.locked && PWR_PlayerResources.Instance != null && PWR_PlayerResources.Instance.CanAfford(recipe.inputs);
 
         public bool Craft(int index) => index >= 0 && index < recipes.Count && Craft(recipes[index]);
 
+        public void SetRecipeLocked(string recipeName, bool locked)
+        {
+            foreach (var r in recipes)
+                if (r.name == recipeName) r.locked = locked;
+            RefreshPanel();
+        }
+
         public bool Craft(PWR_Recipe recipe)
         {
-            if (current != null) return false;
+            if (recipe.locked) return false;
+            if (current != null)
+            {
+                PWR_Feedback.Show(FeedbackPos, $"The Workbench is busy making {current.name}. Wait for it to finish.", PWR_Feedback.Info);
+                return false;
+            }
             var res = PWR_PlayerResources.Instance;
             if (res == null || !res.TrySpend(recipe.inputs))
             {
-                PWR_Feedback.Show(FeedbackPos, "Missing: " + MissingText(recipe), PWR_Feedback.Bad);
+                PWR_Feedback.Show(FeedbackPos, MissingText(recipe), PWR_Feedback.Bad);
                 return false;
             }
             current = recipe;
@@ -101,13 +116,14 @@ namespace Deadzone.Power
 
         private Vector3 FeedbackPos => (outputPoint != null ? outputPoint.position : transform.position) + Vector3.up * 0.5f;
 
+        /// <summary>"Can't make X: missing 1 Electrolyte. Collect it from the Electrolyte Tank."</summary>
         private static string MissingText(PWR_Recipe recipe)
         {
             var res = PWR_PlayerResources.Instance;
-            var missing = recipe.inputs
-                .Where(i => res == null || res.Get(i.type) < i.amount)
-                .Select(i => $"{i.amount - (res == null ? 0 : res.Get(i.type))} {PWR_Names.Of(i.type)}");
-            return string.Join(", ", missing);
+            var short_ = recipe.inputs.Where(i => res == null || res.Get(i.type) < i.amount).ToList();
+            var missing = short_.Select(i => $"{i.amount - (res == null ? 0 : res.Get(i.type))} {PWR_Names.Of(i.type)}");
+            string how = short_.Count > 0 ? " " + PWR_Names.HowToGet(short_[0].type) : "";
+            return $"Can't {recipe.name}: missing {string.Join(", ", missing)}.{how}";
         }
 
         // ---------- recipe panel ----------
@@ -139,10 +155,17 @@ namespace Deadzone.Power
         private void RefreshPanel()
         {
             for (int i = 0; i < buttons.Count && i < recipes.Count; i++)
-                buttons[i].interactable = CanCraft(recipes[i]);
+            {
+                if (buttons[i].gameObject.activeSelf == recipes[i].locked) buttons[i].gameObject.SetActive(!recipes[i].locked);
+                // Unaffordable recipes stay pressable (pressing explains what is missing) but look dimmed.
+                buttons[i].interactable = !recipes[i].locked;
+                var label = buttons[i].GetComponentInChildren<TMP_Text>();
+                if (label != null) label.alpha = CanCraft(recipes[i]) ? 1f : 0.45f;
+            }
             if (statusText == null) return;
             statusText.text = current != null
                 ? $"Crafting {current.name}... {Mathf.RoundToInt(stats.GetNormalized(progressStat) * 100f)}%"
+                : recipes.All(r => r.locked) ? "No recipes available yet."
                 : "Point at a recipe and pull the trigger.";
         }
     }

@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace Deadzone.Power
 {
     /// <summary>
-    /// Build mode controls. VR: pick an item in the build menu (Y), aim the right controller at the floor,
+    /// Build mode controls. VR: pick an item in the build menu (Y opens it above the right hand), aim the right controller at the floor,
     /// pull the trigger to place, flick the right thumbstick left/right to rotate 90°, B to cancel.
     /// Demolish (menu button): aim at something you built and pull the trigger.
     /// Desktop: 1-5 select, X demolish, mouse to aim, left click place/demolish, R rotate, Q/Esc cancel.
@@ -87,6 +87,15 @@ namespace Deadzone.Power
             var grid = PWR_GridManager.Instance;
             var rig = PWR_PlayerRig.Instance;
             if (bs == null || grid == null) return;
+
+            // Outside the Power area (shared scene) the station's build controls are off, so the
+            // trigger, B and right stick are free for the other areas.
+            if (!PWR_AreaGate.PlayerInside)
+            {
+                if (bs.IsActive) bs.Select(null);
+                if (rig != null) rig.SetTurnEnabled(true);
+                return;
+            }
 
             for (int i = 0; i < hotkeys.Length && i < bs.buildables.Count; i++)
                 if (hotkeys[i].WasPressedThisFrame()) SelectIndex(i);

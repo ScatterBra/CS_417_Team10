@@ -44,5 +44,22 @@ namespace Deadzone.Power
                 default: return type.ToString();
             }
         }
+
+        /// <summary>How the player gets this resource (the "how to fix it" half of error messages).</summary>
+        public static string HowToGet(PWR_ResourceType type)
+        {
+            switch (type)
+            {
+                case PWR_ResourceType.Scrap: return "Pick up scrap metal from the floor.";
+                case PWR_ResourceType.CrudeOil: return "Draw it from an Oil Barrel.";
+                case PWR_ResourceType.RefinedOil: return "Refine Crude Oil at the Workbench.";
+                case PWR_ResourceType.Coal: return "Break a Wooden Crate with the Wrench.";
+                case PWR_ResourceType.CopperWire:
+                case PWR_ResourceType.Glass: return "It arrives by the Delivery Chute; collect it from the Receiving Bin.";
+                case PWR_ResourceType.Fuse: return "Make one at the Workbench from 2 Copper Wire.";
+                case PWR_ResourceType.Electrolyte: return "Collect it from the Electrolyte Tank.";
+                default: return "Craft one at the Workbench.";
+            }
+        }
     }
 }

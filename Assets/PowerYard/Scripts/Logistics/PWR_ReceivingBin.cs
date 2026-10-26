@@ -15,6 +15,8 @@ namespace Deadzone.Power
         public string stockStat = "Stock";
 
         public static event Action<PWR_ReceivingBin> CargoReceived;
+        /// <summary>The player emptied the bin into their resources.</summary>
+        public static event Action<PWR_ReceivingBin> Collected;
 
         private PWR_StatBlock stats;
         private readonly Dictionary<PWR_ResourceType, int> contents = new Dictionary<PWR_ResourceType, int>();
@@ -55,11 +57,12 @@ namespace Deadzone.Power
             contents.Clear();
             if (total == 0)
             {
-                PWR_Feedback.Show(transform.position + Vector3.up * 1.1f, "Bin is empty", PWR_Feedback.Bad);
+                PWR_Feedback.Show(transform.position + Vector3.up * 1.1f, "The bin is empty. Packages land here once they ride the conveyor from the chute.", PWR_Feedback.Bad);
                 return 0;
             }
             stats.Add(stockStat, -total);
             PWR_Feedback.Show(transform.position + Vector3.up * 1.1f, string.Join("  ", parts), PWR_Feedback.Good);
+            Collected?.Invoke(this);
             return total;
         }
     }

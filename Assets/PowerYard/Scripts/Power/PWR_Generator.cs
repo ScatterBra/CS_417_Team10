@@ -46,12 +46,12 @@ namespace Deadzone.Power
             if (res == null) return false;
             if (res.Get(fuelResource) < 1)
             {
-                PWR_Feedback.Show(fbPos, $"Needs {PWR_Names.Of(fuelResource)}", PWR_Feedback.Bad);
+                PWR_Feedback.Show(fbPos, MissingFuelText(res), PWR_Feedback.Bad);
                 return false;
             }
             if (stats.GetSpace(fuelStat) < fuelPerUnit - 0.01f)
             {
-                PWR_Feedback.Show(fbPos, "Tank is full", PWR_Feedback.Info);
+                PWR_Feedback.Show(fbPos, "Tank is full. Let it burn down a little before adding more fuel.", PWR_Feedback.Info);
                 return false;
             }
             res.Add(fuelResource, -1);
@@ -59,6 +59,19 @@ namespace Deadzone.Power
             PWR_Feedback.Show(fbPos, $"+{fuelPerUnit:0} {fuelStat}", PWR_Feedback.Good);
             AnyRefueled?.Invoke(this);
             return true;
+        }
+
+        /// <summary>Why refuelling failed and how to fix it, based on what the player is carrying.</summary>
+        private string MissingFuelText(PWR_PlayerResources res)
+        {
+            string fuel = PWR_Names.Of(fuelResource);
+            if (fuelResource == PWR_ResourceType.RefinedOil && res.Get(PWR_ResourceType.CrudeOil) > 0)
+                return "Crude Oil can't be burned directly. Refine it at the Workbench first.";
+            if (fuelResource == PWR_ResourceType.RefinedOil && res.Get(PWR_ResourceType.Coal) > 0)
+                return $"The {displayName} burns Refined Oil only. Your Coal goes in the Coal Generator.";
+            if (fuelResource == PWR_ResourceType.Coal && res.Get(PWR_ResourceType.RefinedOil) > 0)
+                return $"The {displayName} burns Coal only. Your Refined Oil goes in the Oil Generator.";
+            return $"The {displayName} needs {fuel} to run. {PWR_Names.HowToGet(fuelResource)}";
         }
 
         private void Update()

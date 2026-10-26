@@ -75,12 +75,12 @@ namespace Deadzone.Power
             Vector3 at = transform.position + Vector3.up * 1.4f;
             if (Running)
             {
-                PWR_Feedback.Show(at, "Conveyor already running", PWR_Feedback.Info);
+                PWR_Feedback.Show(at, "The conveyor is already running. Packages come out as each delivery arrives.", PWR_Feedback.Info);
                 return;
             }
             if (BeltAtOutput() == null)
             {
-                PWR_Feedback.Show(at, "Build a conveyor belt at the chute first", PWR_Feedback.Bad);
+                PWR_Feedback.Show(at, "Nothing to carry the supplies yet. Build a Conveyor Belt under the chute first.", PWR_Feedback.Bad);
                 return;
             }
             // A line that ends short of the bin would dump the packages on the floor; warn once, and a
@@ -88,7 +88,7 @@ namespace Deadzone.Power
             if (!RouteReachesBin() && Time.time > forceStartUntil)
             {
                 forceStartUntil = Time.time + forceStartWindow;
-                PWR_Feedback.Show(at, "The belts don't reach the Receiving Bin yet.\nPress again to start anyway.", PWR_Feedback.Bad);
+                PWR_Feedback.Show(at, "The belts don't reach the Receiving Bin yet. Extend the line to the bin, or press again to start anyway.", PWR_Feedback.Bad);
                 return;
             }
             Running = true;
