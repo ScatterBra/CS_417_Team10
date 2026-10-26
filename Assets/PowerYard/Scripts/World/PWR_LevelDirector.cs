@@ -78,6 +78,8 @@ namespace Deadzone.Power
         private void Start()
         {
             buildSystem = PWR_BuildSystem.Instance;
+            if (charger == null || floodlight == null)
+                Debug.LogError("[PWR] Level Director is missing its Cell Charger or Floodlight reference: the station can never be completed.", this);
             originalAmbientMode = RenderSettings.ambientMode;
             originalAmbientLight = RenderSettings.ambientLight;
             foreach (var l in sceneLightsToDim)
@@ -178,12 +180,12 @@ namespace Deadzone.Power
 
         // ---------- completion: bulb replaced + Charged Cell picked up, in either order ----------
 
-        // The bulb normally fails at 80% charge; if that never happened, the original bulb counts.
-        private bool BulbOk => floodlight == null || floodlight.BulbReplaced || (!BulbFailed && floodlight.HasBulb);
+        // Only an actual replacement counts: the original bulb always burns out at 80% charge first.
+        private bool BulbReplaced => floodlight != null && floodlight.BulbReplaced;
 
         private void HandleCellReady(PWR_CellCharger c)
         {
-            if (!BulbOk)
+            if (!BulbReplaced && floodlight != null)
                 Tutorial("cell_ready_no_bulb",
                     "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
                     floodlight.transform, new Vector3(0f, 1.9f, 0f));
@@ -195,7 +197,7 @@ namespace Deadzone.Power
 
         private void HandleCellCollected(PWR_CellCharger c)
         {
-            if (!BulbOk)
+            if (!BulbReplaced && floodlight != null)
                 Tutorial("cell_ready_no_bulb",
                     "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
                     floodlight.transform, new Vector3(0f, 1.9f, 0f));
@@ -212,7 +214,7 @@ namespace Deadzone.Power
 
         private void TryComplete()
         {
-            if (StationComplete || charger == null || !charger.IsCellCollected || !BulbOk) return;
+            if (StationComplete || charger == null || !charger.IsCellCollected || !BulbReplaced) return;
             StationComplete = true;
             var mgr = PWR_TutorialManager.Instance;
             if (mgr != null)

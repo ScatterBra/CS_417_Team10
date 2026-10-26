@@ -74,12 +74,15 @@ namespace Deadzone.Power
             IsComplete = true;
             HasBattery = false;
             if (slottedBatteryVisual != null) slottedBatteryVisual.SetActive(false);
-            if (chargedCellPrefab != null)
+            if (chargedCellPrefab == null)
+                Debug.LogError("[PWR] Cell Charger has no Charged Cell prefab: the station can never be completed.", this);
+            else
             {
                 Transform at = ejectPoint != null ? ejectPoint : transform;
                 var cell = Instantiate(chargedCellPrefab, at.position, at.rotation);
+                // Collection is only ever reported by an actual pick-up, so other areas can rely on it.
                 if (cell.TryGetComponent(out PWR_Grabbable grabbable)) grabbable.Picked += HandleCellPicked;
-                else HandleCellPicked(null); // no way to pick it up: don't block completion
+                else Debug.LogError("[PWR] Charged Cell has no PWR_Grabbable: it can't be picked up, so the station can never be completed.", cell);
             }
             PWR_Feedback.Show(transform.position + Vector3.up * 0.8f, "Charged Cell ready!", PWR_Feedback.Good);
             Completed?.Invoke(this);
@@ -87,7 +90,7 @@ namespace Deadzone.Power
 
         private void HandleCellPicked(PWR_Grabbable grabbable)
         {
-            if (grabbable != null) grabbable.Picked -= HandleCellPicked;
+            grabbable.Picked -= HandleCellPicked;
             if (IsCellCollected) return;
             IsCellCollected = true;
             CellCollected?.Invoke(this);
