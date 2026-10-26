@@ -25,7 +25,10 @@ public class SCV_DamagedPanel : MonoBehaviour
             Debug.Log("Defense panel is already fully repaired.");
 
             if (panelDisplay != null)
-                panelDisplay.ShowFeedback("DEFENSE ALREADY FULL");
+                panelDisplay.ShowFeedback(
+                    "<color=#FF4444>DEFENSE ALREADY FULLY REPAIRED\n" +
+                    "SAVE THE REPAIR KIT FOR DAMAGE</color>"
+                );
 
             return false;
         }
@@ -35,7 +38,11 @@ public class SCV_DamagedPanel : MonoBehaviour
             Debug.Log("No repair kits available.");
 
             if (panelDisplay != null)
-                panelDisplay.ShowFeedback("NO REPAIRS AVAILABLE");
+                panelDisplay.ShowFeedback(
+                    "<color=#FF4444>CANNOT REPAIR DEFENSE\n" +
+                    "NO REPAIR KIT AVAILABLE\n" +
+                    "CRAFT ONE AT THE WORKBENCH</color>"
+                );
 
             return false;
         }
@@ -51,7 +58,10 @@ public class SCV_DamagedPanel : MonoBehaviour
         );
 
         if (panelDisplay != null)
-            panelDisplay.ShowFeedback("PANEL REPAIRED");
+            panelDisplay.ShowFeedback(
+                "<color=#66FF66>REPAIR TEST SUCCESSFUL\n" +
+                "DEFENSE RESTORED</color>"
+            );
 
         return true;
     }

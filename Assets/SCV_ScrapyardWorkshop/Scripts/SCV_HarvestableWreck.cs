@@ -20,6 +20,8 @@ public class SCV_HarvestableWreck : MonoBehaviour
     private Vector3 chunk2FullScale;
     private Vector3 chunk3FullScale;
 
+    private SCV_ProgressionManager progressionManager;
+
     public int ScrapRemaining => scrapRemaining;
 
     private void Awake()
@@ -42,6 +44,9 @@ public class SCV_HarvestableWreck : MonoBehaviour
     {
         resourceManager = manager;
         salvageSpawner = spawner;
+
+        progressionManager =
+            FindFirstObjectByType<SCV_ProgressionManager>();
 
         UpdateVisuals();
     }
@@ -85,6 +90,9 @@ public class SCV_HarvestableWreck : MonoBehaviour
 
             if (harvestCanvas != null)
                 harvestCanvas.SetActive(false);
+
+            if (progressionManager != null)
+                progressionManager.FirstWreckDepleted();
 
             if (salvageSpawner != null)
                 salvageSpawner.NotifyWreckDepleted(this);

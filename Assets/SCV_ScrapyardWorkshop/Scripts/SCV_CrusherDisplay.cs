@@ -24,18 +24,18 @@ public class SCV_CrusherDisplay : MonoBehaviour
         }
         else if (crusher.IsProcessing)
         {
-            stateText = "PROCESSING...";
+            stateText = "<color=#66FF66>PROCESSING...</color>";
         }
         else if (crusher.CrusherCondition <= 0)
         {
-            stateText = "BROKEN\nREPAIR REQUIRED";
+            stateText = "<color=#FF4444>BROKEN\nREPAIR REQUIRED</color>";
         }
         else if (resourceManager.scrap < crusher.ScrapCost)
         {
             stateText =
-                "NEED " +
+                "<color=#FF4444>NEED " +
                 crusher.ScrapCost +
-                " SCRAP";
+                " SCRAP</color>";
         }
         else
         {

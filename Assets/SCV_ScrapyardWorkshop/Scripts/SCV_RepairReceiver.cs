@@ -1,12 +1,9 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 public class SCV_RepairReceiver : MonoBehaviour
 {
     [SerializeField] private SCV_DamagedPanel damagedPanel;
-
-    private HashSet<SCV_CraftedItem> processedItems =
-        new HashSet<SCV_CraftedItem>();
+    [SerializeField] private SCV_ResourceManager resourceManager;
 
     private void OnTriggerEnter(Collider other)
     {
@@ -16,26 +13,41 @@ public class SCV_RepairReceiver : MonoBehaviour
         if (item == null)
             return;
 
-        if (item.Type != SCV_CraftedItem.ItemType.RepairKit)
+        if (item.Type !=
+            SCV_CraftedItem.ItemType.RepairKit)
             return;
 
-        // Prevent multiple colliders on the same toolbox
-        // from repairing more than once.
-        if (processedItems.Contains(item))
+        if (item.SourceInventory != resourceManager)
             return;
 
-        processedItems.Add(item);
+        if (!item.TryReserve())
+            return;
 
         if (damagedPanel.TryRepair())
         {
-            Debug.Log("Physical repair kit accepted.");
-            Destroy(item.gameObject);
+            Debug.Log(
+                "Physical repair kit used on test panel."
+            );
+
+            DestroyPhysicalItem(item);
         }
         else
         {
-            // Repair didn't happen, so allow this item
-            // to be attempted again later.
-            processedItems.Remove(item);
+            item.ReleaseReservation();
         }
+    }
+
+    private void DestroyPhysicalItem(SCV_CraftedItem item)
+    {
+        Rigidbody rb =
+            item.GetComponentInParent<Rigidbody>();
+
+        GameObject physicalObject =
+            rb != null
+                ? rb.gameObject
+                : item.gameObject;
+
+        physicalObject.SetActive(false);
+        Destroy(physicalObject);
     }
 }
