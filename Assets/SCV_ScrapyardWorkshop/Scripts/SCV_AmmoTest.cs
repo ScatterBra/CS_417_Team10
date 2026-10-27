@@ -27,7 +27,7 @@ public class SCV_AmmoTest : MonoBehaviour
             return false;
         }
 
-        if (!resourceManager.SpendAmmo(1))
+        if (resourceManager == null || !resourceManager.TryTransferRemoteAmmo(ref storedAmmo, maxAmmo, 1, out _))
         {
             Debug.Log("No crafted ammo available.");
 
@@ -41,7 +41,7 @@ public class SCV_AmmoTest : MonoBehaviour
             return false;
         }
 
-        storedAmmo++;
+
 
         Debug.Log(
             "Ammo loaded into storage: " +
@@ -57,6 +57,23 @@ public class SCV_AmmoTest : MonoBehaviour
         return true;
     }
 
+    public bool LoadPhysicalAmmo(SCV_CraftedItem item)
+    {
+        string rejection = resourceManager == null ? "Workshop ledger is offline. Restore its connection and retry." :
+            storedAmmo >= maxAmmo ? "Storage is full. Use stored ammo before retrying with this box." :
+            item == null || item.Type != SCV_CraftedItem.ItemType.Ammo ? "Wrong item. Present a crafted Ammo Box." :
+            item.SourceLedger != resourceManager ? "Box belongs to no matching ledger. Craft a box at this Workshop." :
+            resourceManager.ammo < 1 ? "No ledger ammo remains. Craft a new Ammo Box." : null;
+        if (rejection != null)
+        {
+            if (ammoDisplay != null) ammoDisplay.ShowFeedback("Cannot load ammo: " + rejection);
+            return false;
+        }
+        bool accepted = resourceManager.TryConsumePhysicalAmmo(item, ref storedAmmo, maxAmmo, 1, out _);
+        if (ammoDisplay != null) ammoDisplay.ShowFeedback(accepted ? "Ammo loaded: one box and one ledger unit consumed." :
+            "Cannot load ammo: box is busy or consumed. Retry after delivery or bring a new crafted box.");
+        return accepted;
+    }
     [ContextMenu("Load Ammo")]
     private void TestLoadAmmo()
     {

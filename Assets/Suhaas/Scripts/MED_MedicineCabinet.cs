@@ -11,7 +11,15 @@ public class MED_MedicineCabinet : MonoBehaviour
     [SerializeField] Transform messageAnchor;
     [SerializeField] float maxUseDistance = 3.5f;
 
-    MED_PlayerResources player;
+    [SerializeField] MED_PlayerResources player;
+    readonly MED_MedicineStore evidenceStock=new();
+    bool supplyBusy,writingStock;
+    void SetStock(float value)
+    {
+        writingStock=true;
+        try {stock.Set(value);}catch(System.Exception e){Debug.LogException(e);}
+        finally {writingStock=false;evidenceStock.Sync(stock.Value);}
+    }
 
     public MED_Stat Stock => stock;
 
@@ -31,7 +39,6 @@ public class MED_MedicineCabinet : MonoBehaviour
         if (stockButton != null) stockButton.Pressed -= OnStockPressed;
         if (takeButton != null) takeButton.Pressed -= OnTakePressed;
         if (player != null) player.OnResourceChanged -= OnResourceChanged;
-        player = null;
     }
 
     void Start()
@@ -43,9 +50,8 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     void Bind()
     {
-        if (player != null) return;
-        player = FindAnyObjectByType<MED_PlayerResources>();
-        if (player != null) player.OnResourceChanged += OnResourceChanged;
+        if (player == null) player = FindAnyObjectByType<MED_PlayerResources>();
+        if (player != null) {player.OnResourceChanged -= OnResourceChanged;player.OnResourceChanged += OnResourceChanged;}
     }
 
     void OnResourceChanged(MED_ResourceType type, int amount)
@@ -53,12 +59,12 @@ public class MED_MedicineCabinet : MonoBehaviour
         if (type == MED_ResourceType.Medicine) Refresh();
     }
 
-    void OnStockChanged(MED_Stat _) => Refresh();
+    void OnStockChanged(MED_Stat _) {if(!writingStock)evidenceStock.Invalidate(stock.Value);Refresh();}
 
     void Refresh()
     {
         int visible = Mathf.CeilToInt(stock.Value / 2f);
-        for (int i = 0; i < bottles.Length; i++)
+        for (int i = 0; bottles!=null && i < bottles.Length; i++)
             if (bottles[i] != null) bottles[i].SetActive(i < visible);
         if (stockButton != null) stockButton.SetAvailable(player != null && player.Get(MED_ResourceType.Medicine) >= 1 && stock.Value < stock.Max);
         if (takeButton != null) takeButton.SetAvailable(stock.Value >= 1f);
@@ -69,24 +75,30 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     public bool TryStock()
     {
+        if(supplyBusy)return false;
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
-        if (stock.Value >= stock.Max) return Fail("Cabinet full");
+        if (stock.Value + 1f > stock.Max) return Fail("Cabinet full");
         if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
-        player.TrySpend(MED_ResourceType.Medicine, 1);
-        stock.Add(1f);
+        supplyBusy=true;bool accepted;
+        try {evidenceStock.Sync(stock.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(stock.Value+1f);});}
+        finally {supplyBusy=false;}
+        if(!accepted)return Fail("Stock failed: Medicine unavailable. Gather Medicine and retry.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Stocked", new Color(0.6f, 1f, 0.6f));
         return true;
     }
 
     public bool TryTake()
     {
+        if(supplyBusy)return false;
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (stock.Value < 1f) return Fail("Cabinet empty");
         if (player == null) return Fail("No player");
-        stock.Add(-1f);
-        player.Add(MED_ResourceType.Medicine, 1);
+        supplyBusy=true;bool accepted;
+        try {evidenceStock.Sync(stock.Value);accepted=player.ReceiveMedicine(()=>{var unit=evidenceStock.Take();SetStock(stock.Value-1f);return unit;});}
+        finally {supplyBusy=false;}
+        if(!accepted)return Fail("Take failed: inventory busy or full. Retry when available.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Medicine", new Color(0.6f, 1f, 0.6f));
         return true;
     }

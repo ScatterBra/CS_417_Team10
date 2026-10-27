@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
+[RequireComponent(typeof(DEF_ContentGate))]
 public class DEF_Barricade : MonoBehaviour
 {
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); }
     public static int cost = 20;
     public static int repairCost = 10;
 
@@ -15,6 +17,8 @@ public class DEF_Barricade : MonoBehaviour
 
     public static bool TryPlace(int x, int z)
     {
+        if (!DEF_Progression.Allows(DEF_Action.Barricade)) return false;
+        if (DEF_Progression.Current != null && !DEF_Progression.Current.ValidatePlacement(x,z,cost)) return false;
         var s = DEF_GameState.I;
         var pf = DEF_Pathfinder.I;
         var grid = Object.FindFirstObjectByType<DEF_GridManager>();
@@ -34,15 +38,18 @@ public class DEF_Barricade : MonoBehaviour
         go.transform.rotation = Quaternion.Euler(0f, Mathf.Abs(outward.x) > Mathf.Abs(outward.z) ? 90f : 0f, 0f);
         DEF_Barricade b = go.GetComponent<DEF_Barricade>();
         b.cell = new Vector2Int(x, z);
+        foreach(var enemy in DEF_Zombie.all)if(enemy!=null)enemy.CaptureRoute(b);
         pf.SetBlocked(x, z, true);
         pf.Register(new Vector2Int(x, z), go);
-        pf.RepathAll();
+        DEF_Progression.Current?.RegisterAdvanced(b);
+        foreach(var enemy in DEF_Zombie.all)if(enemy!=null)enemy.RepathForBarricade(b,b.cell);
         DEF_Tutorials.Show("barricade", go.transform, "BARRICADE\nBlocks this route. Infected must detour or break it.");
         return true;
     }
 
     public bool TryRepair()
     {
+        if (DEF_Progression.Current != null) { if (!DEF_Progression.Current.Check(DEF_Action.Repair)) return false; return DEF_Progression.Current.Reject("repair using scrap", "physical kit delivery is required", "Release a crafted RepairKit in this defense receiver."); }
         var s = DEF_GameState.I;
         if (s == null || health >= maxHealth || s.scrap < repairCost) return false;
         DEF_HUD.Instance?.RecordRepair();
@@ -72,7 +79,8 @@ public class DEF_Barricade : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    void OnDestroy()
+    void OnDestroy(){ReleaseCell();}
+    internal void ReleaseCell()
     {
         var pf = DEF_Pathfinder.I;
         if (pf == null || pf.OccupantAt(cell.x, cell.y) != gameObject) return;

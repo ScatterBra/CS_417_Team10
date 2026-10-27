@@ -2,51 +2,15 @@ using UnityEngine;
 
 public class SCV_AmmoReceiver : MonoBehaviour
 {
-    [SerializeField] private SCV_AmmoTest ammoTest;
     [SerializeField] private SCV_ResourceManager resourceManager;
-
+    public event System.Action<string> PhysicalAmmoAccepted;
+    [SerializeField] private SCV_AmmoTest ammoTest;
     private void OnTriggerEnter(Collider other)
     {
-        SCV_CraftedItem item =
-            other.GetComponentInParent<SCV_CraftedItem>();
-
-        if (item == null)
-            return;
-
-        if (item.Type != SCV_CraftedItem.ItemType.Ammo)
-            return;
-
-        if (item.SourceInventory != resourceManager)
-            return;
-
-        if (!item.TryReserve())
-            return;
-
-        if (ammoTest.LoadAmmo())
-        {
-            Debug.Log(
-                "Physical ammo box loaded into test storage."
-            );
-
-            DestroyPhysicalItem(item);
-        }
-        else
-        {
-            item.ReleaseReservation();
-        }
-    }
-
-    private void DestroyPhysicalItem(SCV_CraftedItem item)
-    {
-        Rigidbody rb =
-            item.GetComponentInParent<Rigidbody>();
-
-        GameObject physicalObject =
-            rb != null
-                ? rb.gameObject
-                : item.gameObject;
-
-        physicalObject.SetActive(false);
-        Destroy(physicalObject);
+        var item = other.GetComponentInParent<SCV_CraftedItem>();
+        if (item == null || item.Consumed || item.Type != SCV_CraftedItem.ItemType.Ammo || ammoTest == null) return;
+        if (resourceManager != null && item.SourceInventory != resourceManager) return;
+        string identity = (item.SourceLedger != null ? item.SourceLedger.GetEntityId().ToString() : "unbound") + ":" + item.AmmoUnitId;
+        if (ammoTest.LoadPhysicalAmmo(item)) PhysicalAmmoAccepted?.Invoke(identity);
     }
 }

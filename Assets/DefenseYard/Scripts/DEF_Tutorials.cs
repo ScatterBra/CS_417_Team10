@@ -16,9 +16,28 @@ public class DEF_Tutorials : MonoBehaviour
     void OnDestroy() { if (I == this) I = null; }
     public static void Show(string key, Vector3 point, string text) { Queue(key, null, point, text); }
     public static void Show(string key, Transform target, string text) { Queue(key, target, target.position, text); }
+    public static string RepairAdvice => DEF_Progression.Current == null ? "Right grip: repair / 10 scrap" : "Release a crafted Workshop RepairKit inside this defense receiver.";
+    public static bool Allowed(string key)
+    {
+        var p = DEF_Progression.Current;
+        if (p == null) return true;
+        if (p.State.IntroductionActive) return false;
+        return key switch {
+            "repair" or "repair-turret" or "training-repair" => p.IsAllowed(DEF_Action.Repair),
+            "harvest" or "training-crate" => p.IsAllowed(DEF_Action.AmmoCrate),
+            "boom" => p.IsAllowed(DEF_Action.Missile),
+            "shock" => p.IsAllowed(DEF_Action.Shock),
+            "barricade" => p.IsAllowed(DEF_Action.Barricade),
+            "tile" or "turret" => p.IsAllowed(DEF_Action.BasicSentry),
+            "wave" or "reload" or "radio" => p.IsAllowed(DEF_Action.Combat),
+            _ => false
+        };
+    }
     static void Queue(string key, Transform target, Vector3 point, string text)
     {
-        if (I == null || !seen.Add(key)) return;
+        if (I == null || !Allowed(key) || !seen.Add(key)) return;
+        if (DEF_Progression.Current != null && (key == "repair" || key == "repair-turret" || key == "training-repair")) text = "PHYSICAL REPAIR\n" + RepairAdvice;
+        if (DEF_Progression.Current != null && key == "shock") text = "SHOCK TRAP\nStuns nearby live enemies, then recharges.\n" + RepairAdvice;
         I.pending.Enqueue(new Hint { key = key, text = text, anchor = target, point = point, created = Time.unscaledTime, attached = target != null });
     }
     public static void Dismiss(string key)
@@ -30,10 +49,12 @@ public class DEF_Tutorials : MonoBehaviour
     }
     void Update()
     {
+        if (active != null && !Allowed(activeKey)) { Destroy(active.gameObject); active = null; }
         if (DEF_HUD.BlockingWorldInput || active != null || pending.Count == 0) return;
         var prefab = Resources.Load<GameObject>("Prefabs/DEF_SpatialHint");
         if (prefab == null) return;
         var hint = pending.Dequeue();
+        if (!Allowed(hint.key)) { seen.Remove(hint.key); return; }
         if (Time.unscaledTime - hint.created > 15 || (hint.attached && hint.anchor == null)) return;
         var cam = Camera.main;
         if (cam != null)

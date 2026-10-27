@@ -41,6 +41,20 @@ public class MED_WildSpawner : MonoBehaviour
         Spawn(supplyCratePrefab, Random.Range(minCrates, maxCrates + 1), free);
     }
 
+    public bool EnsureLearningSource()
+    {
+        if(grid==null||container==null||herbPatchPrefab==null)return false;
+        foreach(var existing in container.GetComponentsInChildren<MED_Harvestable>())
+            if(existing.isActiveAndEnabled&&!existing.IsEmpty&&existing.GetComponent<DEF_ClinicRandomSource>()!=null&&existing.GetComponent<DEF_ClinicRandomSource>().Owner==this)return true;
+        var free=new List<Vector2Int>();
+        for(int x=0;x<grid.GridSize.x;x++)for(int z=0;z<grid.GridSize.y;z++)
+            if(grid.IsCellFree(new Vector2Int(x,z)))free.Add(new Vector2Int(x,z));
+        if(free.Count==0)return false;
+        Spawn(herbPatchPrefab,1,free);
+        foreach(var existing in container.GetComponentsInChildren<MED_Harvestable>())
+            if(existing.isActiveAndEnabled&&!existing.IsEmpty&&existing.GetComponent<DEF_ClinicRandomSource>()!=null&&existing.GetComponent<DEF_ClinicRandomSource>().Owner==this)return true;
+        return false;
+    }
     void Spawn(GameObject prefab, int count, List<Vector2Int> free)
     {
         for (int i = 0; i < count && free.Count > 0; i++)
@@ -53,6 +67,7 @@ public class MED_WildSpawner : MonoBehaviour
             go.transform.SetPositionAndRotation(grid.CellToWorld(cell),
                 grid.transform.rotation * Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             var h = go.GetComponent<MED_Harvestable>();
+            if(DEF_ClinicTraining.For(this)!=null){var marker=go.GetComponent<DEF_ClinicRandomSource>();if(marker==null)marker=go.AddComponent<DEF_ClinicRandomSource>();marker.Bind(this);}
             h.AssignGrid(grid);
             grid.TryOccupy(new[] { cell }, h);
         }

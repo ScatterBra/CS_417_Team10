@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
+[RequireComponent(typeof(DEF_ContentGate))]
 public class DEF_AmmoCrate : MonoBehaviour
 {
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); }
     [FormerlySerializedAs("supply")] public int ammoRemaining = 40;
     public int supply { get => ammoRemaining; set => ammoRemaining = value; }
     public int maxSupply = 40;
@@ -69,6 +71,7 @@ public class DEF_AmmoCrate : MonoBehaviour
 
     public int Harvest(int amount)
     {
+        if (!DEF_Progression.Allows(DEF_Action.AmmoCrate)) return 0;
         var state = DEF_GameState.I;
         if (supply <= 0)
         {

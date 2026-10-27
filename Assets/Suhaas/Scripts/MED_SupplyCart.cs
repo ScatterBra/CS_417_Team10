@@ -7,6 +7,9 @@ using UnityEngine;
 // the player one unit of cargo per press), Leaving (turn around, then follow the path backward and disappear).
 public class MED_SupplyCart : MonoBehaviour
 {
+    public static event Action<MED_SupplyCart,MED_PlayerResources,MED_ResourceType,bool> UnloadCommitted;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetEvidenceListeners()=>UnloadCommitted=null;
     public enum CartState { Arriving, Waiting, Leaving }
 
     static readonly MED_ResourceType[] CargoTypes =
@@ -123,7 +126,8 @@ public class MED_SupplyCart : MonoBehaviour
                 break;
 
             case CartState.Waiting:
-                waitTimer += dt;
+                var learning=DEF_ClinicTraining.For(this);
+                if(learning==null||!learning.ProtectLearningCart)waitTimer += dt;
                 if (waitTimer >= waitSeconds) BeginLeaving();
                 // Button color depends on the player's distance, so re-check a few times per second (not every frame).
                 nearTimer -= dt;
@@ -210,6 +214,7 @@ public class MED_SupplyCart : MonoBehaviour
 
     public bool TryUnload()
     {
+        if(!DEF_ClinicTraining.Allow(this,8,"Clinic action"))return false;
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         if (State != CartState.Waiting) return Fail(State == CartState.Arriving ? "Cart is still arriving" : "Cart is leaving");
         if (cargo.Count == 0 || cargoRemaining.Value < 0.5f) return Fail("Cart is empty");
@@ -219,6 +224,7 @@ public class MED_SupplyCart : MonoBehaviour
         cargo.RemoveAt(0);
         Player.Add(type, 1);
         cargoRemaining.Add(-1f);
+        if(UnloadCommitted!=null)foreach(Action<MED_SupplyCart,MED_PlayerResources,MED_ResourceType,bool> listener in UnloadCommitted.GetInvocationList())try{listener(this,Player,type,cargo.Count==0);}catch(Exception e){Debug.LogException(e);}
         MED_FloatingText.Spawn(MessagePosition, $"+1 {type}", new Color(0.6f, 1f, 0.6f));
         if (cargo.Count == 0) BeginLeaving();
         return true;

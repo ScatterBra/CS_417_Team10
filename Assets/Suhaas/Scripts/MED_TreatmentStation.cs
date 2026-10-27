@@ -27,7 +27,19 @@ public class MED_TreatmentStation : MonoBehaviour
     [SerializeField] float ivFullHeight = 0.24f;
     [SerializeField] Transform messageAnchor;
 
-    MED_PlayerResources player;
+    [SerializeField] MED_PlayerResources player;
+    readonly MED_MedicineStore evidenceStock=new();
+    bool supplyBusy, writingStock;
+    MED_PlayerResources dosePatient;
+    int doseGeneration;
+    public event System.Action<MED_TreatmentStation,MED_PlayerResources,MED_MedicineUnit,int,int> DoseCommitted;
+
+    void SetStock(float value)
+    {
+        writingStock=true;
+        try {storedMedicine.Set(value);}catch(System.Exception e){Debug.LogException(e);}
+        finally {writingStock=false;evidenceStock.Sync(storedMedicine.Value);}
+    }
     MaterialPropertyBlock padBlock, glowBlock;
     bool playerOnPad;
 
@@ -48,11 +60,11 @@ public class MED_TreatmentStation : MonoBehaviour
 
     void OnDisable()
     {
+        StopTreating(null);
         storedMedicine.OnChanged -= OnStoredChanged;
         if (refillButton != null) refillButton.Pressed -= OnRefillPressed;
         if (treatButton != null) treatButton.Pressed -= OnTreatPressed;
         if (player != null) player.OnResourceChanged -= OnResourceChanged;
-        player = null;
     }
 
     void Start()
@@ -70,9 +82,8 @@ public class MED_TreatmentStation : MonoBehaviour
 
     void Bind()
     {
-        if (player != null) return;
-        player = FindAnyObjectByType<MED_PlayerResources>();
-        if (player != null) player.OnResourceChanged += OnResourceChanged;
+        if (player == null) player = FindAnyObjectByType<MED_PlayerResources>();
+        if (player != null) {player.OnResourceChanged -= OnResourceChanged;player.OnResourceChanged += OnResourceChanged;}
     }
 
     void OnResourceChanged(MED_ResourceType type, int amount)
@@ -82,6 +93,7 @@ public class MED_TreatmentStation : MonoBehaviour
 
     void OnStoredChanged(MED_Stat _)
     {
+        if(!writingStock)evidenceStock.Invalidate(storedMedicine.Value);
         UpdateIvLiquid();
         RefreshButtons();
     }
@@ -122,19 +134,25 @@ public class MED_TreatmentStation : MonoBehaviour
 
     public bool TryRefill()
     {
+        if(!DEF_ClinicTraining.Allow(this,10,"Clinic action"))return false;
+        if(supplyBusy)return false;
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
-        if (storedMedicine.Value >= storedMedicine.Max) return Fail("Station is full");
+        if (storedMedicine.Value + 1f > storedMedicine.Max) return Fail("Station is full");
         if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
-        player.TrySpend(MED_ResourceType.Medicine, 1);
-        storedMedicine.Add(1f);
+        supplyBusy=true;
+        bool accepted;
+        try {evidenceStock.Sync(storedMedicine.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(storedMedicine.Value+1f);});}
+        finally {supplyBusy=false;}
+        if(!accepted)return Fail("Refill failed: Medicine unavailable. Gather Medicine and retry.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Stored", new Color(0.6f, 1f, 0.6f));
         return true;
     }
 
     public bool TryTreat()
     {
-        if (State == StationState.Treating) return false;
+        if(!DEF_ClinicTraining.Allow(this,10,"Treatment"))return false;
+        if (supplyBusy || State == StationState.Treating) return false;
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (!playerOnPad) return Fail("Step onto the green pad");
@@ -146,6 +164,7 @@ public class MED_TreatmentStation : MonoBehaviour
 
     void StartDose()
     {
+        dosePatient=player;doseGeneration=player.EvidenceGeneration;
         State = StationState.Treating;
         treatProgress.Set(0f);
         if (progressBar != null) progressBar.SetAlpha(0.9f);
@@ -155,14 +174,25 @@ public class MED_TreatmentStation : MonoBehaviour
 
     void CompleteDose()
     {
+        if(supplyBusy || State!=StationState.Treating || !isActiveAndEnabled || !playerOnPad || dosePatient!=player)return;
         // Re-check at completion: never spend medicine when health is already full.
         if (player == null || player.IsHealthFull) { StopTreating("Fully healed"); return; }
         if (storedMedicine.Value < 1f) { StopTreating("Station is empty - refill it"); return; }
 
-        int before = player.Health;
-        storedMedicine.Add(-1f);
-        player.Add(MED_ResourceType.Health, healPerDose); // MED_PlayerResources caps Health at max
-        MED_FloatingText.Spawn(MessagePosition, $"+{player.Health - before} HP", new Color(0.6f, 1f, 0.6f));
+        var patient=player;int generation=doseGeneration;MED_MedicineUnit unit=null;int before,after;
+        supplyBusy=true;
+        bool healed;
+        try
+        {
+            evidenceStock.Sync(storedMedicine.Value);
+            healed=patient.ApplyDose(healPerDose,()=>{unit=evidenceStock.Take();SetStock(storedMedicine.Value-1f);},out before,out after);
+        }
+        finally {supplyBusy=false;}
+        if(!healed){StopTreating("Treatment needs positive healing and an available patient.");return;}
+        if(generation==patient.EvidenceGeneration && patient.IsCurrent(unit) && DoseCommitted!=null)
+            foreach(System.Action<MED_TreatmentStation,MED_PlayerResources,MED_MedicineUnit,int,int> listener in DoseCommitted.GetInvocationList())
+                try {listener(this,patient,unit,before,after);}catch(System.Exception e){Debug.LogException(e);}
+        MED_FloatingText.Spawn(MessagePosition, $"+{after - before} HP", new Color(0.6f, 1f, 0.6f));
         treatProgress.Set(0f);
 
         if (!player.IsHealthFull && storedMedicine.Value >= 1f && playerOnPad) return; // next dose starts automatically

@@ -45,7 +45,9 @@ public class DEF_HUD : MonoBehaviour
         cancelBuild.onClick.AddListener(() => DEF_VRInput.Instance?.CancelBuild());
         for (int i = 0; i < buyButtons.Length; i++) { int index = i; buyButtons[i].onClick.AddListener(() => Buy(index)); }
         guideNext.onClick.AddListener(NextGuide); guideSkip.onClick.AddListener(SkipGuide);
-        guideOpen = true; guidePage = 0; SyncModal(); RefreshGuide();
+        guideOpen = true; guidePage = 0;
+        if (DEF_Progression.Current != null) { training = false; welcome = false; guideOpen = false; guideButton.gameObject.SetActive(false); }
+        SyncModal(); RefreshGuide();
     }
     void OnDestroy()
     {
@@ -84,18 +86,36 @@ public class DEF_HUD : MonoBehaviour
         zombieText.text = DEF_Zombie.all.Count + "  ZOMBIES";
         threatText.text = "THREAT LEVEL  " + (wave != null ? Mathf.FloorToInt(wave.threat) : 0);
         startButton.interactable = ready && (!training || ReadyForWave) && !shopOpen && !guideOpen;
-        startText.text = state.playerHealth <= 0 ? "RESTART  [MENU]" : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
+        startText.text = (state.playerHealth <= 0 || (wave != null && wave.AttemptFailed)) ? "RETRY DEFENSE  [MENU]" : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
         shopBalance.text = state.scrap + " SCRAP AVAILABLE";
         for (int i = 0; i < buyButtons.Length; i++)
         {
-            buyButtons[i].interactable = state.scrap >= Prices[i];
+            var progression = DEF_Progression.Current;
+            if (progression != null) buyButtons[i].gameObject.SetActive(progression.IsAllowed(i == 0 ? DEF_Action.BasicSentry : i == 1 ? DEF_Action.Missile : i == 2 ? DEF_Action.Barricade : DEF_Action.Shock));
+            buyButtons[i].interactable = progression != null || state.scrap >= Prices[i];
             buyLabels[i].text = state.scrap >= Prices[i] ? Prices[i] + " SCRAP" : "NEED " + (Prices[i] - state.scrap) + " MORE SCRAP";
+        }
+        var gates = DEF_Progression.Current;
+        if (gates != null)
+        {
+            SetResourceVisibility(ammoText, "Ammo label", gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            ammoText.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            SetResourceVisibility(scrapText, "Scrap label", gates.IsAllowed(DEF_Action.BasicSentry));
+            ammoText.transform.parent.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry));
+            scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
+            startButton.interactable = !shopOpen && !guideOpen;
+            bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
+            waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
+            zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);
+            if(!gates.IsAllowed(DEF_Action.BasicSentry) && shopOpen)CloseMenus();
         }
         var input = DEF_VRInput.Instance;
         bool selected = input != null && input.BuildArmed && !BlockingWorldInput;
         selectedPanel.SetActive(selected);
         if (selected) { int i = (int)input.mode; selectedText.text = Names[i] + "  /  " + Prices[i] + " SCRAP\n<size=17>Right trigger: place  ·  Close button: cancel</size>"; selectedPicture.sprite = itemPictures[i]; }
-        contextText.text = BlockingWorldInput ? "" : TargetReadout();
+        contextText.text = BlockingWorldInput || (gates != null && !gates.IsAllowed(DEF_Action.Repair)) ? "" : TargetReadout();
         objectivePanel.SetActive(training && !guideOpen && !shopOpen);
         objectiveText.text = trainingStep == 0 ? "01 / GET YOUR BEARINGS\n<size=18>" + (moved ? "OK" : "•") + " Left stick: move   " + (looked ? "OK" : "•") + " Turn your head: look</size>" :
             trainingStep == 1 ? "02 / BUILD YOUR FIRST DEFENSE\n<size=18>A: shop → select an item → aim outside → right trigger</size>" :
@@ -106,19 +126,30 @@ public class DEF_HUD : MonoBehaviour
         flash = Mathf.MoveTowards(flash, 0, Time.unscaledDeltaTime * 1.1f);
         foreach (var edge in damageEdges) edge.color = new Color(0.9f,0.07f,0.04f,flash * 0.55f);
     }
+    public static void SetResourceVisibility(Text value, string labelName, bool visible)
+    {
+        if(value==null)return;
+        value.gameObject.SetActive(visible);
+        var label=value.transform.parent.Find(labelName);if(label!=null)label.gameObject.SetActive(visible);
+    }
     public void ToggleShop()
     {
+        if (!DEF_Progression.Allows(DEF_Action.BasicSentry)) return;
         if (welcome || paused) return;
         if (guideOpen && trainingStep == 4) trainingStep = 5;
         shopOpen = !shopOpen; guideOpen = false; DEF_VRInput.Instance?.CancelBuild(); SyncModal();
     }
     public void Buy(int index)
     {
-        if (state == null || state.scrap < Prices[index]) return;
+        if (index < 0 || index >= Prices.Length) return;
+        var action = index == 0 ? DEF_Action.BasicSentry : index == 1 ? DEF_Action.Missile : index == 2 ? DEF_Action.Barricade : DEF_Action.Shock;
+        if (!DEF_Progression.Allows(action)) return;
+        if (state == null) return;
+        if (state.scrap < Prices[index]) { DEF_Progression.Current?.Reject("select defense", "there is not enough scrap", "Transfer Workshop scrap, then select this defense again."); return; }
         CloseMenus(); DEF_VRInput.Instance?.SelectBuild((DEF_VRInput.PlaceMode)index);
         Notify("Aim outside the base. Right trigger places your " + Names[index].ToLowerInvariant() + ".");
     }
-    public void OpenGuide() { welcome = false; guidePage = 1; guideOpen = true; shopOpen = false; SyncModal(); RefreshGuide(); }
+    public void OpenGuide() { if (DEF_Progression.Current != null) return; welcome = false; guidePage = 1; guideOpen = true; shopOpen = false; SyncModal(); RefreshGuide(); }
     void NextGuide()
     {
         if (welcome) { welcome = false; training = true; trainingStep = 0; CloseMenus(); return; }
@@ -139,7 +170,7 @@ public class DEF_HUD : MonoBehaviour
     public void FinishTraining() { if (!training) return; training = false; Notify("Training complete. Defend the outpost."); }
     public void RecordPlacement(GameObject defense)
     {
-        if (!training || trainingStep != 1) return;
+        if (DEF_Progression.Current != null || !training || trainingStep != 1) return;
         trainingStep = 2; state.scrap = Mathf.Min(state.maxScrap, state.scrap + 10);
         var turret = defense.GetComponent<DEF_Turret>(); var bar = defense.GetComponent<DEF_Barricade>();
         if (turret != null) turret.TakeDamage(20); if (bar != null) bar.TakeDamage(20);
@@ -171,14 +202,30 @@ public class DEF_HUD : MonoBehaviour
     static string DamageAdvice(float ratio) => ratio <= .34f ? "  /  CRITICAL" : ratio < .8f ? "  /  DAMAGED" : "";
     string TargetReadout()
     {
+        var gates = DEF_Progression.Current;
+        if (gates != null)
+        {
+            SetResourceVisibility(ammoText, "Ammo label", gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            ammoText.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            SetResourceVisibility(scrapText, "Scrap label", gates.IsAllowed(DEF_Action.BasicSentry));
+            ammoText.transform.parent.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry));
+            scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
+            startButton.interactable = !shopOpen && !guideOpen;
+            bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
+            waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
+            zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);
+            if(!gates.IsAllowed(DEF_Action.BasicSentry) && shopOpen)CloseMenus();
+        }
         var input = DEF_VRInput.Instance;
         if (input == null || !input.TryGetAimHit(out var hit)) return "";
         var turret = hit.collider.GetComponentInParent<DEF_Turret>();
-        if (turret != null) return (turret.explosive ? "MISSILE SENTRY" : "SENTRY") + "  ·  " + Mathf.CeilToInt(turret.health) + "/" + turret.maxHealth + " HP" + DamageAdvice(turret.health / turret.maxHealth) + "  ·  Reload " + turret.ShotCooldownRemaining.ToString("0.0") + "s  ·  Right grip: repair / 10 scrap";
+        if (turret != null) return (turret.explosive ? "MISSILE SENTRY" : "SENTRY") + "  ·  " + Mathf.CeilToInt(turret.health) + "/" + turret.maxHealth + " HP" + DamageAdvice(turret.health / turret.maxHealth) + "  ·  Reload " + turret.ShotCooldownRemaining.ToString("0.0") + "s  ·  " + DEF_Tutorials.RepairAdvice;
         var bar = hit.collider.GetComponentInParent<DEF_Barricade>();
-        if (bar != null) return "BARRICADE  ·  " + Mathf.CeilToInt(bar.health) + "/" + bar.maxHealth + " HP" + DamageAdvice(bar.health / bar.maxHealth) + "  ·  Right grip: repair / 10 scrap";
+        if (bar != null) return "BARRICADE  ·  " + Mathf.CeilToInt(bar.health) + "/" + bar.maxHealth + " HP" + DamageAdvice(bar.health / bar.maxHealth) + "  ·  " + DEF_Tutorials.RepairAdvice;
         var trap = hit.collider.GetComponentInParent<DEF_ShockTrap>();
-        if (trap != null) return "SHOCK TRAP  ·  " + Mathf.CeilToInt(trap.health) + "/" + trap.maxHealth + " HP" + DamageAdvice(trap.health / trap.maxHealth) + "  ·  " + (trap.RechargeRemaining > 0 ? "Recharging " + trap.RechargeRemaining.ToString("0.0") + "s" : "READY") + "  ·  Right grip: repair / 10 scrap";
+        if (trap != null) return "SHOCK TRAP  ·  " + Mathf.CeilToInt(trap.health) + "/" + trap.maxHealth + " HP" + DamageAdvice(trap.health / trap.maxHealth) + "  ·  " + (trap.RechargeRemaining > 0 ? "Recharging " + trap.RechargeRemaining.ToString("0.0") + "s" : "READY") + "  ·  " + DEF_Tutorials.RepairAdvice;
         var crate = hit.collider.GetComponentInParent<DEF_AmmoCrate>();
         if (crate != null) return crate.IsRefilling ? "SUPPLY CRATE  ·  REFILLING IN " + Mathf.CeilToInt(crate.RefillRemaining) + "s" : "SUPPLY CRATE  ·  " + crate.supply + " ammo remaining  ·  Right grip: collect 10";
         var zombie = hit.collider.GetComponentInParent<DEF_Zombie>();

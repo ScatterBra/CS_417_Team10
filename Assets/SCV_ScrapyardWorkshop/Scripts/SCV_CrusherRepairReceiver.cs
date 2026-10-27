@@ -4,50 +4,17 @@ public class SCV_CrusherRepairReceiver : MonoBehaviour
 {
     [SerializeField] private SCV_Crusher crusher;
     [SerializeField] private SCV_ResourceManager resourceManager;
-
-    private void OnTriggerEnter(Collider other)
+    private bool delivering;
+    private void OnTriggerEnter(Collider other) { Receive(other); }
+    private void OnTriggerStay(Collider other) { Receive(other); }
+    private void Receive(Collider other)
     {
-        SCV_CraftedItem item =
-            other.GetComponentInParent<SCV_CraftedItem>();
-
-        if (item == null)
-            return;
-
-        if (item.Type !=
-            SCV_CraftedItem.ItemType.RepairKit)
-            return;
-
-        if (item.SourceInventory != resourceManager)
-            return;
-
-        if (!item.TryReserve())
-            return;
-
-        if (crusher.TryRepair())
-        {
-            Debug.Log(
-                "Physical repair kit used on crusher."
-            );
-
-            DestroyPhysicalItem(item);
-        }
-        else
-        {
-            item.ReleaseReservation();
-        }
-    }
-
-    private void DestroyPhysicalItem(SCV_CraftedItem item)
-    {
-        Rigidbody rb =
-            item.GetComponentInParent<Rigidbody>();
-
-        GameObject physicalObject =
-            rb != null
-                ? rb.gameObject
-                : item.gameObject;
-
-        physicalObject.SetActive(false);
-        Destroy(physicalObject);
+        var item = other != null ? other.GetComponentInParent<SCV_CraftedItem>() : null;
+        if (!isActiveAndEnabled || delivering || crusher == null || item == null ||
+            item.Type != SCV_CraftedItem.ItemType.RepairKit || item.Consumed ||
+            (resourceManager != null && item.SourceInventory != resourceManager)) return;
+        delivering = true;
+        try { crusher.TryRepairPhysical(item); }
+        finally { delivering = false; }
     }
 }

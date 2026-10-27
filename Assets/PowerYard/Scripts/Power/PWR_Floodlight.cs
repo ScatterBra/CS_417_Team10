@@ -75,8 +75,17 @@ namespace Deadzone.Power
             if (bulb != null && !bulbUnbreakable)
                 bulb.SetRate(bulbLifeStat, IsLit ? -bulbWearPerSecond : 0f);
 
-            if (hadBulb && !HasBulb) BulbBroken?.Invoke(this);
+            FlushBulbLoss();
             hadBulb = HasBulb;
+        }
+
+        // A waiting replacement may arrive after destruction but before our next Update.
+        // Publish that real loss before installing it, exactly once.
+        private void FlushBulbLoss()
+        {
+            if (!hadBulb || HasBulb) return;
+            hadBulb = false;
+            BulbBroken?.Invoke(this);
         }
 
         /// <summary>Burns the bulb out now (the level director calls this at 80% charge).</summary>
@@ -90,6 +99,7 @@ namespace Deadzone.Power
 
         public void OnItemAccepted(PWR_ItemObject item)
         {
+            FlushBulbLoss();
             var go = Instantiate(bulbPrefab, bulbMount != null ? bulbMount : transform);
             go.transform.localPosition = Vector3.zero;
             go.transform.localRotation = Quaternion.identity;

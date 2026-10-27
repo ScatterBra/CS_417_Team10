@@ -168,61 +168,20 @@ public class SCV_Crusher : MonoBehaviour
         Debug.Log("Crusher sandbox test completed.");
     }
 
-    public bool TryRepair()
+    public bool TryRepair() => RepairInternal(null, false);
+    public bool TryRepairPhysical(SCV_CraftedItem item) => RepairInternal(item, true);
+    bool RepairInternal(SCV_CraftedItem item, bool physical)
     {
-        if (crusherCondition >= maxCrusherCondition)
+        if (resourceManager == null || !isActiveAndEnabled ||
+            !resourceManager.TryRepairPanel(item, physical, this, ref crusherCondition,
+                maxCrusherCondition, repairAmount, out int restored, allowBroken: true))
         {
-            SetFeedback(
-                "<color=#FF4444>CRUSHER ALREADY FULLY REPAIRED\n" +
-                "NO REPAIR KIT NEEDED</color>"
-            );
-
-            Debug.Log(
-                "Crusher is already fully repaired."
-            );
-
+            SetFeedback("Cannot repair crusher: full, offline, or no available matching kit. Release a newly crafted kit from this Workshop at the damaged crusher.");
             return false;
         }
-
-        if (!resourceManager.SpendRepairKit(1))
-        {
-            SetFeedback(
-                "<color=#FF4444>CANNOT REPAIR CRUSHER\n" +
-                "NO REPAIR KIT AVAILABLE\n" +
-                "CRAFT ONE AT THE WORKBENCH</color>"
-            );
-
-            Debug.Log(
-                "No repair kits available."
-            );
-
-            return false;
-        }
-
-        crusherCondition = Mathf.Min(
-            crusherCondition + repairAmount,
-            maxCrusherCondition
-        );
-
-        if (crusherCondition >= maxCrusherCondition)
-        {
-            SetFeedback("<color=#66FF66>CRUSHER FULLY REPAIRED</color>");
-        }
-        else
-        {
-            SetFeedback("<color=#66FF66>CRUSHER REPAIRED</color>");
-        }
-
-        Debug.Log(
-            "Crusher repaired: " +
-            crusherCondition +
-            "/" +
-            maxCrusherCondition
-        );
-
+        SetFeedback("Crusher repaired: +" + restored + " condition; one Workshop kit consumed.");
         return true;
     }
-
     public bool TryEmergencyRepair()
     {
         if (crusherCondition > 0)

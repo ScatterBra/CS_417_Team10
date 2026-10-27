@@ -29,6 +29,7 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
     public bool DestroyOnEmpty => destroyOnEmpty;
     public bool IsEmpty => stat.Value <= 0f;
 
+    public static event Action<MED_Harvestable, MED_PlayerResources, MED_ToolType, MED_ResourceType, int> HarvestCommitted;
     public event Action<MED_Harvestable> OnDepleted;
     public static event Action<MED_Harvestable> OnAnyDepleted;
 
@@ -48,6 +49,7 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
 
     public bool TryHarvest(MED_HarvestTool tool, MED_PlayerResources player)
     {
+        if(!DEF_ClinicTraining.Allow(this,7,"Harvesting"))return false;
         if (dead) return false;
         if (stat.Value <= 0f)
         {
@@ -62,8 +64,11 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
         if (Time.time < nextHitTime) return false;
         nextHitTime = Time.time + hitCooldown;
 
+        int before=player!=null?player.Get(resource):0;
         stat.Add(-1f);
         if (player != null) player.Add(resource, yieldPerHit);
+        int delivered=player!=null?player.Get(resource)-before:0;
+        if(delivered>0 && HarvestCommitted!=null)foreach(Action<MED_Harvestable,MED_PlayerResources,MED_ToolType,MED_ResourceType,int> listener in HarvestCommitted.GetInvocationList())try{listener(this,player,tool.ToolType,resource,delivered);}catch(Exception e){Debug.LogException(e);}
         MED_FloatingText.Spawn(MessagePosition, $"+{yieldPerHit} {resource}", new Color(0.6f, 1f, 0.6f));
         Feedback();
         tool.SendHaptic(0.5f, 0.1f);
@@ -137,5 +142,5 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
     void OnDestroy() => FreeCells();
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => OnAnyDepleted = null;
+    static void ResetStatics() { OnAnyDepleted = null; HarvestCommitted = null; }
 }

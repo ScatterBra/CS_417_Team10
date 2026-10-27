@@ -58,6 +58,9 @@ public class MED_BuildingPlacer : MonoBehaviour
         grid.SetVisible(false);
         EndGhost();
 
+        var training=DEF_ClinicTraining.For(this);
+        int required=training!=null&&def==training.benchDefinition?9:10;
+        if(!DEF_ClinicTraining.Allow(this,required,"Building placement")){mini.ReturnHome();return;}
         if (p.hasHit && p.valid && TrySpendCosts(def, out _))
         {
             var building = Build(def, p);

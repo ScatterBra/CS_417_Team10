@@ -12,6 +12,7 @@ Shader "DefenseYard/Signal"
         Cull Off ZWrite Off Blend SrcAlpha One
         Pass {
             HLSLPROGRAM
+            #pragma multi_compile_instancing
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -20,10 +21,11 @@ Shader "DefenseYard/Signal"
             CBUFFER_START(UnityPerMaterial)
             float4 _MainTex_ST, _Tint; float _Phase, _Distortion;
             CBUFFER_END
-            struct V { float4 vertex:POSITION; float2 uv:TEXCOORD0; };
-            struct F { float4 position:SV_POSITION; float2 uv:TEXCOORD0; };
-            F vert(V v) { F o; o.position=TransformObjectToHClip(v.vertex.xyz); o.uv=TRANSFORM_TEX(v.uv,_MainTex); return o; }
+            struct V { float4 vertex:POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID float2 uv:TEXCOORD0; };
+            struct F { float4 position:SV_POSITION; UNITY_VERTEX_OUTPUT_STEREO float2 uv:TEXCOORD0; };
+            F vert(V v) { F o; UNITY_SETUP_INSTANCE_ID(v); UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o); o.position=TransformObjectToHClip(v.vertex.xyz); o.uv=TRANSFORM_TEX(v.uv,_MainTex); return o; }
             half4 frag(F i):SV_Target {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float2 noiseUV=i.uv*2+float2(_Phase*0.7,_Phase*0.37);
                 float2 displacement=(SAMPLE_TEXTURE2D(_NoiseTex,sampler_NoiseTex,noiseUV).rg-0.5)*_Distortion;
                 float2 uv=i.uv+float2(_Phase,0)+displacement;
