@@ -117,10 +117,16 @@ public sealed class DEF_Progression : MonoBehaviour
     System.Collections.IEnumerator Start()
     {
         if (!recordingPowerOnly) yield break;
+        var rig = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
+        if (rig != null)
+            foreach (var component in rig.GetComponentsInChildren<MonoBehaviour>(true))
+                if (component != null && component.GetType().Name == "JumpProvider") component.enabled = false;
         yield return null;
         var bench = FindAnyObjectByType<SCV_Workbench>();
         if (bench == null || repairLedger == null) { Debug.LogError("Recording fixture missing Workshop bindings"); yield break; }
         GetComponent<DEF_GameState>().scrap = 400;
+        // Show the real purchase UI immediately; opening UI grants no progression.
+        if (DEF_HUD.Instance != null) DEF_HUD.Instance.shopPanel.SetActive(true);
         repairLedger.AddParts(12 * bench.AmmoPartsCost + 6 * bench.RepairPartsCost);
         int index = 0;
         System.Action<SCV_CraftedItem> locate = item => {
@@ -252,6 +258,8 @@ public sealed class DEF_Progression : MonoBehaviour
     }
 }
 public enum DEF_Action { BasicSentry, Repair, PhysicalAmmo, RemoteAmmo, AmmoCrate, StartWave, Combat, Barricade, Shock, Missile }
+
+
 
 
 
