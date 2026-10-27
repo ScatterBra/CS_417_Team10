@@ -10,14 +10,16 @@ Shader "DefenseYard/NightSky"
         Cull Off ZWrite Off
         Pass {
             HLSLPROGRAM
+            #pragma multi_compile_instancing
             #pragma vertex vert
             #pragma fragment frag
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             float4 _Horizon, _Zenith, _MoonDirection;
-            struct V { float4 vertex:POSITION; };
-            struct F { float4 position:SV_POSITION; float3 direction:TEXCOORD0; };
-            F vert(V v) { F o; o.position=TransformObjectToHClip(v.vertex.xyz); o.direction=v.vertex.xyz; return o; }
+            struct V { float4 vertex:POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
+            struct F { float4 position:SV_POSITION; UNITY_VERTEX_OUTPUT_STEREO float3 direction:TEXCOORD0; };
+            F vert(V v) { F o; UNITY_SETUP_INSTANCE_ID(v); UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o); o.position=TransformObjectToHClip(v.vertex.xyz); o.direction=v.vertex.xyz; return o; }
             half4 frag(F i):SV_Target {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float3 d=normalize(i.direction);
                 float3 col=lerp(_Horizon.rgb,_Zenith.rgb,smoothstep(0,0.8,d.y));
                 float3 cell=floor(d*650);

@@ -1,8 +1,10 @@
 using UnityEngine;
 
 // A grid-mounted electrical unit. Zombies detour around it or attack it like other defenses.
+[RequireComponent(typeof(DEF_ContentGate))]
 public class DEF_ShockTrap : MonoBehaviour
 {
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); }
     public const int Cost = 50;
     public float health = 80, maxHealth = 80;
     public float radius = 3, stunSeconds = 2, rechargeSeconds = 7;
@@ -17,6 +19,8 @@ public class DEF_ShockTrap : MonoBehaviour
 
     public static bool TryPlace(int x, int z)
     {
+        if (!DEF_Progression.Allows(DEF_Action.Shock)) return false;
+        if (DEF_Progression.Current != null && !DEF_Progression.Current.ValidatePlacement(x,z,Cost)) return false;
         var state = DEF_GameState.I; var pf = DEF_Pathfinder.I;
         var grid = FindFirstObjectByType<DEF_GridManager>();
         if (state == null || pf == null || grid == null || x < 0 || z < 0 || x >= grid.width || z >= grid.depth) return false;
@@ -28,12 +32,14 @@ public class DEF_ShockTrap : MonoBehaviour
         var go = Instantiate(prefab, position, Quaternion.identity);
         var trap = go.GetComponent<DEF_ShockTrap>(); trap.cell = new Vector2Int(x,z); trap.placed = true;
         state.scrap -= Cost; pf.SetBlocked(x,z,true); pf.Register(trap.cell,go); pf.RepathAll();
+        DEF_Progression.Current?.RegisterAdvanced(trap);
         DEF_Tutorials.Show("shock", go.transform, "SHOCK TRAP\nStuns nearby zombies for 2s.\n7s recharge. No ammo needed.\nRight grip repairs for 10 scrap.");
         return true;
     }
+    public bool CanDischarge => isActiveAndEnabled && health > 0 && DEF_GameState.I != null && DEF_GameState.I.playerHealth > 0 && (DEF_Progression.Current == null || (DEF_Progression.Current.IsAllowed(DEF_Action.Combat) && DEF_Progression.Current.IsAllowed(DEF_Action.Shock)));
     void Update()
     {
-        if (DEF_GameState.I == null || DEF_GameState.I.playerHealth <= 0 || Time.deltaTime <= 0) return;
+        if (!CanDischarge || Time.deltaTime <= 0 || !float.IsFinite(stunSeconds) || stunSeconds<=0) return;
         rechargeRemaining = Mathf.Max(0, rechargeRemaining - Time.deltaTime);
         if (coil != null)
         {
@@ -49,7 +55,8 @@ public class DEF_ShockTrap : MonoBehaviour
             Vector3 from = emitter != null ? emitter.position : transform.position + Vector3.up * .75f;
             // The electrical discharge cannot reach through the outpost or another defense.
             if (!CanReach(from, zombie.AimPoint)) continue;
-            if (!zombie.Stun(stunSeconds)) continue;
+            if (!zombie.Stun(stunSeconds) || !zombie.IsStunned) continue;
+            DEF_Progression.Current?.Control(this,zombie,true,GetEntityId()+":pulse:"+(PulseCount+1)+":"+zombie.GetEntityId());
             DEF_Effects.SpawnArc(from, zombie.AimPoint);
             fired = true;
         }
@@ -76,6 +83,7 @@ public class DEF_ShockTrap : MonoBehaviour
     }
     public bool TryRepair()
     {
+        if (DEF_Progression.Current != null) { if (!DEF_Progression.Current.Check(DEF_Action.Repair)) return false; return DEF_Progression.Current.Reject("repair using scrap", "physical kit delivery is required", "Release a crafted RepairKit in this defense receiver."); }
         var state = DEF_GameState.I;
         if (state == null || state.scrap < 10 || health >= maxHealth) return false;
         state.scrap -= 10; health = Mathf.Min(maxHealth,health+40);
@@ -87,7 +95,8 @@ public class DEF_ShockTrap : MonoBehaviour
         health = Mathf.Max(0,health-amount); DEF_Effects.ApplyDamage(gameObject,health/maxHealth);
         if (health <= 0) Destroy(gameObject);
     }
-    void OnDestroy()
+    void OnDestroy(){ReleaseCell();}
+    internal void ReleaseCell()
     {
         var pf = DEF_Pathfinder.I;
         if (!placed || pf == null || pf.OccupantAt(cell.x,cell.y) != gameObject) return;

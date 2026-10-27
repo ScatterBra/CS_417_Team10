@@ -61,6 +61,7 @@ public class MED_ActionButton : MonoBehaviour
 
     void OnSelect(SelectEnterEventArgs _)
     {
+        if (MED_AreaGate.Outside) return;   // Clinic controls only work inside the Clinic area
         StopAllCoroutines();
         if (isActiveAndEnabled) StartCoroutine(PressAnimation());
         Pressed?.Invoke();

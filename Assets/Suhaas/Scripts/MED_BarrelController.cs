@@ -64,10 +64,10 @@ public class MED_BarrelController : MonoBehaviour
 
     public bool TryPour()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.PourTooFar);
         Bind();
-        if (Level.Value >= Level.Max) return Fail("Barrel is full");
-        if (player == null || player.Get(MED_ResourceType.Water) < 1) return Fail("No Water");
+        if (Level.Value >= Level.Max) return Fail(MED_Messages.BarrelFull);
+        if (player == null || player.Get(MED_ResourceType.Water) < 1) return Fail(MED_Messages.PourNoWater);
         player.TrySpend(MED_ResourceType.Water, 1);
         Level.Add(1f);
         MED_FloatingText.Spawn(MessagePosition, "+1 Poured", new Color(0.5f, 0.8f, 1f));
@@ -82,7 +82,6 @@ public class MED_BarrelController : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

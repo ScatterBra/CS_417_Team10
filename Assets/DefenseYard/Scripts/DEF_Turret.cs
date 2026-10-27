@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
+[RequireComponent(typeof(DEF_ContentGate))]
 public class DEF_Turret : MonoBehaviour
 {
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); }
     public static int turretCost = 40;
     public static int boomTurretCost = 70;
 
@@ -34,17 +36,19 @@ public class DEF_Turret : MonoBehaviour
 
     public static bool TryPlace(int x, int z, bool boom)
     {
+        if (!DEF_Progression.Allows(boom ? DEF_Action.Missile : DEF_Action.BasicSentry)) return false;
+        if (DEF_Progression.Current != null && !DEF_Progression.Current.ValidatePlacement(x,z,boom ? boomTurretCost : turretCost)) return false;
         var s = DEF_GameState.I;
         var pf = DEF_Pathfinder.I;
         var grid = Object.FindFirstObjectByType<DEF_GridManager>();
         if (s == null || pf == null || grid == null) return false;
         if (DEF_BaseStructure.Instance != null && DEF_BaseStructure.Instance.Contains(grid.TileCenter(x, z), 0.5f)) return false;
         if (x < 0 || z < 0 || x >= grid.width || z >= grid.depth) return false;
-        if (pf.IsBlocked(x, z) || pf.OccupantAt(x, z) != null) return false;
+        if (pf.IsBlocked(x, z) || pf.OccupantAt(x, z) != null) { DEF_Progression.Current?.Reject("place sentry", "the tile is occupied", "Choose an empty valid ground tile."); return false; }
         Vector2Int bc = pf.BaseCell();
         if (x == bc.x && z == bc.y) return false;
         int price = boom ? boomTurretCost : turretCost;
-        if (s.scrap < price) return false;
+        if (s.scrap < price) { DEF_Progression.Current?.Reject("place sentry", "there is not enough scrap", "Transfer Workshop scrap before building."); return false; }
         var prefab = Resources.Load<GameObject>(boom ? "Prefabs/DEF_BlastTurret" : "Prefabs/DEF_Turret");
         if (prefab == null) { Debug.LogError("Defense gameplay prefab is missing."); return false; }
         s.scrap -= price;
@@ -60,6 +64,7 @@ public class DEF_Turret : MonoBehaviour
         pf.RepathAll();
         DEF_Tutorials.Show(boom ? "boom" : "turret", go.transform, boom ? "MISSILE SENTRY\nExplosive missiles damage nearby infected." : "SENTRY\nTracks infected automatically. Each shot uses 1 ammo.");
         DEF_Audio.Play("turret_place", go.transform.position, 0.6f);
+        DEF_Progression.Current?.Placed(t);
         return true;
     }
 
@@ -85,7 +90,7 @@ public class DEF_Turret : MonoBehaviour
     // supplied mechanism animation cannot point the barrel away from the shot.
     void LateUpdate()
     {
-        if (Time.deltaTime <= 0 || DEF_GameState.I == null || DEF_GameState.I.playerHealth <= 0) return;
+        if ((DEF_Progression.Current != null && (!DEF_Progression.Current.IsAllowed(DEF_Action.Combat) || !DEF_Progression.Current.IsAllowed(explosive ? DEF_Action.Missile : DEF_Action.BasicSentry))) || Time.deltaTime <= 0 || DEF_GameState.I == null || DEF_GameState.I.playerHealth <= 0) return;
         shotCooldownRemaining = Mathf.Max(0f, shotCooldownRemaining - Time.deltaTime);
         if (head == null) return;
         if (yawJoint == null)
@@ -144,8 +149,11 @@ public class DEF_Turret : MonoBehaviour
 
     public bool TryRepair()
     {
+        if (DEF_Progression.Current != null) { if (!DEF_Progression.Current.Check(DEF_Action.Repair)) return false; return DEF_Progression.Current.Reject("repair using scrap", "physical kit delivery is required", "Release a crafted RepairKit in this defense receiver."); }
         var state = DEF_GameState.I;
-        if (state == null || health >= maxHealth || state.scrap < 10) return false;
+        if (state == null) return false;
+        if (health >= maxHealth) { DEF_Progression.Current?.Reject("repair sentry", "integrity is already full", "Repair a damaged sentry instead."); return false; }
+        if (state.scrap < 10) { DEF_Progression.Current?.Reject("repair sentry", "ten scrap is required", "Transfer Workshop scrap before repairing."); return false; }
         DEF_HUD.Instance?.RecordRepair();
         state.scrap -= 10; health = Mathf.Min(maxHealth, health + 40);
         UpdateDamageTint(); DEF_Audio.Play("repair", transform.position, 0.6f);
@@ -173,7 +181,8 @@ public class DEF_Turret : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    void OnDestroy()
+    void OnDestroy() { ReleaseCell(); }
+    internal void ReleaseCell()
     {
         var pf = DEF_Pathfinder.I;
         if (!placed || pf == null || pf.OccupantAt(cell.x, cell.y) != gameObject) return;

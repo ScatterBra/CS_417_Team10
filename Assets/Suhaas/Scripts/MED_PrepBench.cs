@@ -14,7 +14,9 @@ public class MED_PrepBench : MonoBehaviour
     [SerializeField] Transform workingProp;   // pestle: bobs and spins while Preparing
     [SerializeField] Transform messageAnchor;
 
-    MED_PlayerResources player;
+    [SerializeField] MED_PlayerResources player;
+    MED_CraftTicket paidCraft;
+    bool starting;
     Vector3 propRestPosition;
     Quaternion propRestRotation;
     bool propCached;
@@ -26,7 +28,13 @@ public class MED_PrepBench : MonoBehaviour
     public bool IsIdle => State == BenchState.Idle;
 
     /// <summary>Raised when the bench switches between Idle and Preparing.</summary>
+    public static event Action<MED_PrepBench,MED_PlayerResources,MED_Recipe> CraftCommitted;
     public event Action StateChanged;
+    /// <summary>Raised on any bench when a recipe finishes (used by the progression thresholds).</summary>
+    public static event Action<MED_Recipe> Crafted;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() { Crafted = null; CraftCommitted = null; }
 
     MED_PlayerResources Player
     {
@@ -58,13 +66,14 @@ public class MED_PrepBench : MonoBehaviour
     public bool CanAfford(MED_Recipe recipe, out string problem)
     {
         problem = null;
+        if(recipe==null || recipe.inputs==null || recipe.inputs.Count==0){problem="Recipe needs valid ingredients";return false;}
         var p = Player;
         foreach (var input in Combine(recipe.inputs))
         {
             int have = p != null ? p.Get(input.Key) : 0;
             if (have < input.Value)
             {
-                problem = $"Need {input.Value} {input.Key} (have {have})";
+                problem = MED_Messages.Missing(input.Key, have, input.Value);
                 return false;
             }
         }
@@ -73,14 +82,17 @@ public class MED_PrepBench : MonoBehaviour
 
     public bool TryStartRecipe(MED_Recipe recipe)
     {
+        if(!DEF_ClinicTraining.Allow(this,9,"Clinic action"))return false;
         if (recipe == null) return false;
-        if (State == BenchState.Preparing) return Fail("Bench is busy");
+        if (MED_ProgressionManager.TryGetFeature(recipe, out var feature) && MED_ProgressionManager.IsLocked(feature)) return Fail(MED_Messages.Locked(feature));
+        if (starting || State == BenchState.Preparing) return Fail("Bench is busy");
+        if (recipes == null || Array.IndexOf(recipes,recipe)<0 || recipe.duration<=0f || float.IsNaN(recipe.duration) || float.IsInfinity(recipe.duration)) return Fail("Recipe unavailable");
         if (!IsPlayerNear()) return Fail("Too far");
         if (!CanAfford(recipe, out var problem)) return Fail(problem);
 
-        // CanAfford checked every input, so none of these can fail halfway.
-        foreach (var input in Combine(recipe.inputs))
-            Player.TrySpend(input.Key, input.Value);
+        starting=true;
+        try { if(Player==null || !Player.TryPayRecipe(this,recipe,out paidCraft))return Fail("Craft failed: inputs unavailable. Gather the recipe ingredients and retry."); }
+        finally {starting=false;}
 
         CurrentRecipe = recipe;
         prepProgress.Set(0f);
@@ -101,18 +113,26 @@ public class MED_PrepBench : MonoBehaviour
 
     void Complete()
     {
+        if(State!=BenchState.Preparing || paidCraft==null)return;
         var recipe = CurrentRecipe;
-        var p = Player;
+        var ticket=paidCraft;
+        var p = ticket.Player;
+        if(p==null || !p.CommitRecipe(ticket)) {
+            if(p!=null && !p.RefundRecipe(ticket))return; // retry after an in-flight inventory transaction
+            paidCraft=null; CurrentRecipe=null; prepProgress.Set(0f); SetState(BenchState.Idle); return;
+        }
+        paidCraft=null;
+        if(CraftCommitted!=null)foreach(Action<MED_PrepBench,MED_PlayerResources,MED_Recipe> listener in CraftCommitted.GetInvocationList())try{listener(this,p,recipe);}catch(Exception e){Debug.LogException(e);}
         float lift = 0f;
         foreach (var output in recipe.outputs)
         {
-            if (p != null) p.Add(output.type, output.amount);
             MED_FloatingText.Spawn(MessagePosition + Vector3.up * lift, $"+{output.amount} {output.type}", new Color(0.6f, 1f, 0.6f));
             lift += 0.2f;
         }
         CurrentRecipe = null;
         prepProgress.Set(0f);
         SetState(BenchState.Idle);
+        Crafted?.Invoke(recipe);
     }
 
     void SetState(BenchState state)
@@ -149,8 +169,7 @@ public class MED_PrepBench : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 
     static Dictionary<MED_ResourceType, int> Combine(List<MED_ResourceCost> costs)

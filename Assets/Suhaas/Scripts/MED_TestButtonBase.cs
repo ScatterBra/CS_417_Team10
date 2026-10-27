@@ -41,6 +41,7 @@ public abstract class MED_TestButtonBase : MonoBehaviour
 
     void Press()
     {
+        if (MED_AreaGate.Outside) return;
         pressTimer = pressTime;
         if (Resources == null) Resources = FindAnyObjectByType<MED_PlayerResources>();
         if (Resources != null) OnPressed(Resources);

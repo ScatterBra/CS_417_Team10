@@ -174,18 +174,26 @@ namespace Deadzone.Power
 
         private void HandleBulbBroken(PWR_Floodlight light)
         {
+            if (light != floodlight) return;
             Tutorial("bulb_out", "The bulb burned out! Craft a Light Bulb (1 Glass + 2 Copper Wire) and drop it into the lamp.",
                 light.transform, new Vector3(0f, 1.9f, 0f));
         }
 
         // ---------- completion: bulb replaced + Charged Cell picked up, in either order ----------
 
-        // Only an actual replacement counts: the original bulb always burns out at 80% charge first.
-        private bool BulbReplaced => floodlight != null && floodlight.BulbReplaced;
+        // Integration completion requires the actual replacement exercise.
+        private bool BulbOk => floodlight != null && floodlight.BulbReplaced;
 
         private void HandleCellReady(PWR_CellCharger c)
         {
-            if (!BulbReplaced && floodlight != null)
+            if (c != charger || floodlight == null) return;
+            // A large final transfer can cross the failure threshold before this director's Update.
+            if (!floodlight.BulbReplaced && floodlight.HasBulb)
+            {
+                BulbFailed = true;
+                floodlight.BreakBulb();
+            }
+            if (!BulbOk)
                 Tutorial("cell_ready_no_bulb",
                     "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
                     floodlight.transform, new Vector3(0f, 1.9f, 0f));
@@ -197,7 +205,8 @@ namespace Deadzone.Power
 
         private void HandleCellCollected(PWR_CellCharger c)
         {
-            if (!BulbReplaced && floodlight != null)
+            if (c != charger || floodlight == null) return;
+            if (!BulbOk)
                 Tutorial("cell_ready_no_bulb",
                     "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
                     floodlight.transform, new Vector3(0f, 1.9f, 0f));
@@ -206,6 +215,7 @@ namespace Deadzone.Power
 
         private void HandleBulbInstalled(PWR_Floodlight light)
         {
+            if (light != floodlight) return;
             if (charger != null && charger.IsComplete && !charger.IsCellCollected)
                 Tutorial("cell_pickup", "Pick up the Charged Cell to bring the station online.",
                     charger.transform, new Vector3(0f, 1.2f, 0f));
@@ -214,11 +224,11 @@ namespace Deadzone.Power
 
         private void TryComplete()
         {
-            if (StationComplete || charger == null || !charger.IsCellCollected || !BulbReplaced) return;
+            if (StationComplete || charger == null || !charger.IsCellCollected || !BulbOk) return;
             StationComplete = true;
             var mgr = PWR_TutorialManager.Instance;
             if (mgr != null)
-                mgr.ShowMessage("STATION ONLINE\nPower is restored. Level complete!\nNext: take the Charged Cell to the Defense Yard.",
+                mgr.ShowMessage("STATION ONLINE\nPower is restored. Level complete!\nNext: complete Clinic and Workshop to unlock Defense training.",
                     charger.transform, new Vector3(0f, 1.2f, 0f), 0f);
             StationCompleted?.Invoke();
         }

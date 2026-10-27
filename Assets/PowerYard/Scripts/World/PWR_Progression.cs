@@ -42,7 +42,7 @@ namespace Deadzone.Power
                 case PWR_Stage.SupplyLine: return "Lay belts from the Delivery Chute to the Receiving Bin and collect the supplies.";
                 case PWR_Stage.CraftBattery: return "Craft a Battery (Fuse + Electrolyte) at the Workbench.";
                 case PWR_Stage.ChargeCell: return "Charge the Battery in the Cell Charger. Keep the generators fuelled.";
-                default: return "Take the Charged Cell to the Defense Yard.";
+                default: return "Complete Clinic and Workshop to unlock Defense training.";
             }
         }
 

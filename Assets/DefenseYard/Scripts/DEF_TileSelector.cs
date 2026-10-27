@@ -33,7 +33,8 @@ public class DEF_TileSelector : MonoBehaviour
                     return;
                 }
             }
-            Deselect();
+            if (!DEF_Progression.Allows(DEF_Action.BasicSentry)) { Deselect(); return; }
+        Deselect();
         }
 
         var kb = Keyboard.current;
@@ -61,6 +62,7 @@ public class DEF_TileSelector : MonoBehaviour
 
     void Select(int x, int z)
     {
+        if (!DEF_Progression.Allows(DEF_Action.BasicSentry)) { Deselect(); return; }
         Deselect();
         Preview(grid.TileCenter(x, z), true);
         var s = DEF_GameState.I;
@@ -82,7 +84,7 @@ public class DEF_TileSelector : MonoBehaviour
     public void Preview(Vector3 point, bool hasGroundHit)
     {
         if (grid == null || footprint == null) return;
-        if (!hasGroundHit || !grid.WorldToTile(point, out int x, out int z))
+        if ((DEF_Progression.Current != null && !DEF_Progression.Current.IsAllowed(DEF_Action.BasicSentry)) || !hasGroundHit || !grid.WorldToTile(point, out int x, out int z))
         {
             footprint.enabled = false;
             return;

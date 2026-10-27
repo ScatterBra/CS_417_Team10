@@ -39,6 +39,59 @@ public class DEF_Zombie : MonoBehaviour
 
     List<Vector2Int> path = new List<Vector2Int>();
     int pathIndex = 0;
+    DEF_Barricade detourCause;
+    HashSet<Vector2Int> oldRoute;
+    HashSet<Vector2Int> detourRoute;
+    DEF_Progression detourOwner;
+    int detourSession, detourAttempt, detourWave;
+    Vector2Int detourCell;
+    float detourTravel;
+
+    // Called immediately before this particular barricade changes the grid.
+    internal void CaptureRoute(DEF_Barricade cause)
+    {
+        detourCause=null;oldRoute=null;detourRoute=null;detourTravel=0;
+        if(pf==null)pf=DEF_Pathfinder.I;
+        if(grid==null)grid=FindFirstObjectByType<DEF_GridManager>();
+        var owner=DEF_Progression.Current;
+        if(pf==null || grid==null || owner==null || !owner.ValidEnemy(this) || health<=0)return;
+        var points=new List<Vector3>();
+        if(trail!=null)for(int i=trailIndex;i<trail.Count;i++)points.Add(trail[i]);
+        else for(int i=pathIndex;i<path.Count;i++)points.Add(pf.CellCenter(path[i]));
+        if(points.Count==0)return;
+        oldRoute=new HashSet<Vector2Int>();var from=transform.position;
+        foreach(var to in points) {
+            int steps=Mathf.Max(1,Mathf.CeilToInt(Vector3.Distance(from,to)/(grid.tileSize*.2f)));
+            for(int i=0;i<=steps;i++)oldRoute.Add(CellOf(Vector3.Lerp(from,to,(float)i/steps)));
+            from=to;
+        }
+        detourCause=cause;detourOwner=owner;detourSession=owner.State.Session;
+        detourAttempt=owner.State.Attempt;detourWave=DEF_GameState.I.waveNumber;
+    }
+    internal void RepathForBarricade(DEF_Barricade cause,Vector2Int blockedCell)
+    {
+        if(detourCause!=cause || oldRoute==null || !oldRoute.Contains(blockedCell)) { detourCause=null;Repath();return; }
+        // Recompute against the newly blocked grid, rather than retaining a smoothed trail.
+        trail=null;Repath();
+        if(path.Count==0 || path.Contains(blockedCell)){detourCause=null;return;}
+        detourRoute=new HashSet<Vector2Int>(path);
+        detourCell=blockedCell;
+    }
+    void RecordDetourMovement(Vector3 from,Vector3 to)
+    {
+        if(detourCause==null || detourRoute==null)return;
+        var owner=DEF_Progression.Current;
+        if(owner==null || owner!=detourOwner || owner.State.Session!=detourSession || owner.State.Attempt!=detourAttempt ||
+           DEF_GameState.I==null || DEF_GameState.I.waveNumber!=detourWave || health<=0 || detourCause.health<=0 ||
+           pf==null || !pf.IsBlocked(detourCell.x,detourCell.y) || pf.OccupantAt(detourCell.x,detourCell.y)!=detourCause.gameObject ||
+           !owner.ValidEnemy(this)){detourCause=null;return;}
+        var cell=CellOf(to);
+        if(!detourRoute.Contains(cell) || oldRoute.Contains(cell))return;
+        detourTravel+=Vector3.Distance(from,to);
+        if(detourTravel<.5f)return;
+        var cause=detourCause;detourCause=null;
+        owner.Control(cause,this,false,cause.GetEntityId()+":detour:"+GetEntityId());
+    }
     List<Vector3> trail;
     int trailIndex = 0;
     [SerializeField] float attackCooldownRemaining;
@@ -64,17 +117,18 @@ public class DEF_Zombie : MonoBehaviour
         all.Remove(this);
     }
 
-    public static void Spawn(Vector3 pos, float hpScale, List<Vector3> walkTrail, Kind kind = Kind.Walker)
+    public static DEF_Zombie Spawn(Vector3 pos, float hpScale, List<Vector3> walkTrail, Kind kind = Kind.Walker)
     {
+        if (!DEF_Progression.Allows(DEF_Action.Combat)) return null;
         var prefab = Resources.Load<GameObject>(kind == Kind.Walker ? "Prefabs/Zombie" : "Prefabs/Zombie_" + kind);
-        if (prefab == null) { Debug.LogError("Animated zombie prefab is missing."); return; }
+        if (prefab == null || prefab.GetComponent<DEF_Zombie>() == null) { Debug.LogError("Animated zombie prefab is missing or invalid."); return null; }
         GameObject go = Instantiate(prefab, pos, Quaternion.identity);
         go.transform.position = pos;
         DEF_Zombie z = go.GetComponent<DEF_Zombie>();
         z.maxHealth *= hpScale;
         z.health = z.maxHealth;
         z.trail = walkTrail;
-        z.trailIndex = 0;
+        z.trailIndex = 0; return z;
     }
 
     void Start()
@@ -181,7 +235,9 @@ public class DEF_Zombie : MonoBehaviour
             candidate = transform.position + forward*step;
             if (!pf.CorridorClear(transform.position,candidate,navigationRadius)) { repathTimer=0; return distance; }
         }
+        var beforeMove=transform.position;
         transform.position = candidate;
+        RecordDetourMovement(beforeMove,candidate);
         transform.rotation = Quaternion.LookRotation(forward);
         return distance;
     }
@@ -217,6 +273,7 @@ public class DEF_Zombie : MonoBehaviour
 
     void Update()
     {
+        if(DEF_Progression.Current!=null && !DEF_Progression.Current.IsAllowed(DEF_Action.Combat))return;
         var s = DEF_GameState.I;
         if (pf == null || s == null || s.playerHealth <= 0f) return;
         float dt = Time.deltaTime;
@@ -316,7 +373,7 @@ public class DEF_Zombie : MonoBehaviour
 
     void Attack(GameObject occ)
     {
-        if (IsStunned || Time.deltaTime <= 0 || DEF_GameState.I == null || DEF_GameState.I.playerHealth <= 0) return;
+        if ((DEF_Progression.Current!=null && !DEF_Progression.Current.IsAllowed(DEF_Action.Combat)) || IsStunned || Time.deltaTime <= 0 || DEF_GameState.I == null || DEF_GameState.I.playerHealth <= 0) return;
         Vector3 to = occ.transform.position - transform.position;
         to.y = 0f;
         if (to.magnitude > attackRange) return;
@@ -327,7 +384,9 @@ public class DEF_Zombie : MonoBehaviour
         var bar = occ.GetComponent<DEF_Barricade>();
         if (bar != null)
         {
+            float before=bar.health;
             bar.TakeDamage(damage);
+            if(before>bar.health && before>0)DEF_Progression.Current?.BarricadeIntercept(bar,this);
             DEF_Audio.Play("zombie_growl2", transform.position, 0.4f);
             return;
         }

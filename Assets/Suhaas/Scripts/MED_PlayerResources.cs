@@ -1,9 +1,8 @@
 using System;
 using UnityEngine;
 
-// INTEGRATION NOTE: at integration, this component's Health is to be replaced by the
-// Defense Yard's player health component (one health value in the combined game).
-public class MED_PlayerResources : MonoBehaviour
+// Clinic patient health. DEF_GameState.playerHealth is base health, not this patient's health.
+public partial class MED_PlayerResources : MonoBehaviour
 {
     public const int DefaultStartingHealth = 50;
 
@@ -37,18 +36,20 @@ public class MED_PlayerResources : MonoBehaviour
 
     public void Add(MED_ResourceType type, int amount)
     {
+        if (evidenceTransaction) return;
         Set(type, Get(type) + amount);
     }
 
     public bool TrySpend(MED_ResourceType type, int amount)
     {
-        if (amount < 0 || Get(type) < amount) return false;
+        if (evidenceTransaction || amount < 0 || Get(type) < amount) return false;
         Set(type, Get(type) - amount);
         return true;
     }
 
     public void SetHealth(int value)
     {
+        if (evidenceTransaction) return;
         Set(MED_ResourceType.Health, value);
     }
 
@@ -63,8 +64,9 @@ public class MED_PlayerResources : MonoBehaviour
         value = Mathf.Max(0, value);
         if (type == MED_ResourceType.Health) value = Mathf.Min(value, maxHealth);
         if (amounts[(int)type] == value) return;
+        if (type == MED_ResourceType.Medicine) AdjustUnprovenMedicine(value);
         amounts[(int)type] = value;
-        OnResourceChanged?.Invoke(type, value);
+        NotifyResource(type, value);
     }
 
     [ContextMenu("Debug: Health -10")]

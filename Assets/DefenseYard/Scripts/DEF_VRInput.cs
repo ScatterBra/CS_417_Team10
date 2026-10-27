@@ -13,6 +13,9 @@ public class DEF_VRInput : MonoBehaviour
     public bool simulateInEditor;
     public Transform rayOrigin;
     public XRRayInteractor rayInteractor;
+    public NearFarInteractor nearFarInteractor;
+    readonly System.Collections.Generic.List<Collider> aimColliders = new();
+    readonly System.Collections.Generic.List<RaycastHit> aimHits = new();
     public Camera xrCamera;
     public GameObject desktopRig;
     public float rayLength = 100f;
@@ -25,6 +28,7 @@ public class DEF_VRInput : MonoBehaviour
     Material ghostMaterial;
     public void SelectBuild(PlaceMode selected)
     {
+        if (!DEF_Progression.Allows(selected == PlaceMode.Turret ? DEF_Action.BasicSentry : selected == PlaceMode.BoomTurret ? DEF_Action.Missile : selected == PlaceMode.Barricade ? DEF_Action.Barricade : DEF_Action.Shock)) return;
         CancelBuild(); mode = selected; BuildArmed = true;
         // The shop returns the PC simulator to the right hand that places defenses.
         // Advanced simulator shortcuts can otherwise leave that hand's pose frozen.
@@ -123,7 +127,8 @@ public class DEF_VRInput : MonoBehaviour
     {
         grid = FindFirstObjectByType<DEF_GridManager>();
         selector = FindFirstObjectByType<DEF_TileSelector>();
-        if (rayOrigin != null) rayLine = rayOrigin.GetComponent<LineRenderer>();
+        // Near/Far owns its visual curve; never manipulate the teleport line.
+        if (nearFarInteractor == null && rayOrigin != null) rayLine = rayOrigin.GetComponent<LineRenderer>();
         if (desktopRig != null) desktopCamera = desktopRig.GetComponentInChildren<Camera>(true);
         if (xrCamera != null) xrListener = xrCamera.GetComponent<AudioListener>();
         SetCameraMode();
@@ -146,6 +151,7 @@ public class DEF_VRInput : MonoBehaviour
     {
         bool active = (Application.isEditor && simulateInEditor) || XRSettings.isDeviceActive;
         if (active != Active) { Active = active; SetCameraMode(); }
+        if (BuildArmed && DEF_Progression.Current != null && !DEF_Progression.Current.IsAllowed(mode == PlaceMode.Turret ? DEF_Action.BasicSentry : mode == PlaceMode.BoomTurret ? DEF_Action.Missile : mode == PlaceMode.Barricade ? DEF_Action.Barricade : DEF_Action.Shock)) CancelBuild();
         if (!Active) return;
 
         if (DEF_HUD.BlockingWorldInput)
@@ -187,7 +193,7 @@ public class DEF_VRInput : MonoBehaviour
             if (selector != null) selector.SelectTile(x, z);
             bool placed = mode == PlaceMode.ShockTrap ? DEF_ShockTrap.TryPlace(x,z) : mode == PlaceMode.Barricade ? DEF_Barricade.TryPlace(x,z) : DEF_Turret.TryPlace(x,z,mode == PlaceMode.BoomTurret);
             if (placed) { DEF_HUD.Instance?.RecordPlacement(DEF_Pathfinder.I.OccupantAt(x,z)); CancelBuild(); }
-            else DEF_HUD.Instance?.Notify("Cannot build here. Aim at clear ground outside the base and check your scrap.");
+            else DEF_HUD.Instance?.Notify(DEF_Progression.Current != null ? DEF_Progression.Current.LastFailure : "Cannot build here. Aim at clear ground outside the base and check your scrap.");
         }
         if (!DEF_HUD.BlockingWorldInput && pressedGrip && !previousGrip && hasHit)
         {
@@ -199,9 +205,7 @@ public class DEF_VRInput : MonoBehaviour
             else { var turret = hit.collider.GetComponentInParent<DEF_Turret>(); if (turret != null) turret.TryRepair(); }
         }
         var waves = DEF_WaveManager.I;
-        if (pressedMenu && !previousMenu && waves != null &&
-            (waves.phase == DEF_WaveManager.Phase.Idle || waves.phase == DEF_WaveManager.Phase.Cleared ||
-             (DEF_GameState.I != null && DEF_GameState.I.playerHealth <= 0f)))
+        if (pressedMenu && !previousMenu && waves != null)
             waves.StartWave();
 
         previousTrigger = pressedTrigger;
@@ -213,6 +217,16 @@ public class DEF_VRInput : MonoBehaviour
     public bool TryGetAimHit(out RaycastHit hit)
     {
         hit = default;
+        if (nearFarInteractor != null)
+        {
+            if (!nearFarInteractor.isActiveAndEnabled || !nearFarInteractor.enableFarCasting ||
+                nearFarInteractor.hasSelection || nearFarInteractor.farInteractionCaster == null ||
+                nearFarInteractor.TryGetCurrentUIRaycastResult(out _)) return false;
+            aimColliders.Clear(); aimHits.Clear();
+            if (!nearFarInteractor.farInteractionCaster.TryGetColliderTargets(
+                nearFarInteractor.interactionManager, aimColliders, aimHits) || aimHits.Count == 0) return false;
+            hit = aimHits[0]; return hit.collider != null;
+        }
         // XRI caches its hit until the next interaction update. A harvested crate or
         // defeated enemy may already be destroyed when the HUD reads that cached hit.
         return rayInteractor != null && rayInteractor.TryGetCurrent3DRaycastHit(out hit) && hit.collider != null;

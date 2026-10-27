@@ -19,9 +19,11 @@ public class DEF_Projectile : MonoBehaviour
 
 
     bool spent = false;
+    internal void Disarm(){spent=true;enabled=false;}
 
     public static void Fire(Vector3 from, Vector3 target, float dmg, bool boom)
     {
+        if (!DEF_Progression.Allows(DEF_Action.Combat) || !DEF_Progression.Allows(boom ? DEF_Action.Missile : DEF_Action.BasicSentry)) return;
         var prefab = Resources.Load<GameObject>("Prefabs/DEF_Projectile");
         if (prefab == null) { Debug.LogError("Projectile gameplay prefab is missing."); return; }
         GameObject go = Instantiate(prefab);
@@ -31,6 +33,7 @@ public class DEF_Projectile : MonoBehaviour
             ? new Color(1f, 0.3f, 0.1f)
             : new Color(1f, 0.7f, 0.2f);
         DEF_Projectile p = go.GetComponent<DEF_Projectile>();
+        if (DEF_Progression.Current != null) DEF_WaveManager.I?.TrackProjectile(p);
         Vector3 dir = target - from;
         if (dir.sqrMagnitude < 0.0001f) dir = Vector3.forward;
         p.velocity = dir.normalized * p.speed;
@@ -42,6 +45,7 @@ public class DEF_Projectile : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        if(spent || !isActiveAndEnabled || (DEF_Progression.Current!=null && (!DEF_Progression.Current.IsAllowed(DEF_Action.Combat) || !DEF_Progression.Current.IsAllowed(explosive ? DEF_Action.Missile : DEF_Action.BasicSentry))))return;
         if (other.gameObject.name == "Melee") return;
         var z = other.GetComponentInParent<DEF_Zombie>();
         if (z != null && !spent) { TriggerHitCount++; Hit(z); }
@@ -49,6 +53,7 @@ public class DEF_Projectile : MonoBehaviour
 
     void Update()
     {
+        if(spent || !isActiveAndEnabled || (DEF_Progression.Current!=null && (!DEF_Progression.Current.IsAllowed(DEF_Action.Combat) || !DEF_Progression.Current.IsAllowed(explosive ? DEF_Action.Missile : DEF_Action.BasicSentry))))return;
         float dt = Time.deltaTime;
         Vector3 prev = transform.position;
         transform.position += velocity * dt;
@@ -94,19 +99,29 @@ public class DEF_Projectile : MonoBehaviour
         if (spent) return;
         spent = true;
         if (explosive) Explode();
-        else z.TakeDamage(damage);
+        else {float before=z.health;z.TakeDamage(damage);DEF_Progression.Current?.ProjectileDamage(this,z,before-z.health);}
         Destroy(gameObject);
     }
 
     void Explode()
     {
+        var victims=new System.Collections.Generic.HashSet<string>();
         for (int i = DEF_Zombie.all.Count - 1; i >= 0; i--)
         {
             var z = DEF_Zombie.all[i];
             if (z == null) continue;
             float dist = Vector3.Distance(z.transform.position, transform.position);
-            if (dist < blastRadius) z.TakeDamage(damage * (1f - dist / blastRadius * 0.5f));
+            if(dist<blastRadius)
+            {
+                float before=z.health;
+                bool valid=DEF_Progression.Current!=null && DEF_Progression.Current.ValidEnemy(z);
+                z.TakeDamage(damage*(1f-dist/blastRadius*.5f));
+                float delta=before-z.health;
+                if(delta>0 && valid)victims.Add(z.GetEntityId().ToString());
+                DEF_Progression.Current?.ProjectileDamage(this,z,delta);
+            }
         }
+        DEF_Progression.Current?.Splash(this,victims.Count);
         DEF_Effects.SpawnRing(transform.position, blastRadius);
         DEF_Audio.Play("explosion", transform.position, 0.8f);
     }

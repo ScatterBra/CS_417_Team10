@@ -1,0 +1,21 @@
+{
+  "status": "PACKAGED_INCOMPLETE_DEMO_NOT_RUNTIME_VERIFIED",
+  "scene": "Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity",
+  "target": "Android",
+  "architecture": "ARM64",
+  "backend": "IL2CPP",
+  "applicationIdentifier": "com.darylokeke.cs417.mp2btest",
+  "output": "Builds/DefensePackagingTest/20261025-204348/INCOMPLETE-MP2B-DEMO.apk",
+  "buildResult": "Succeeded",
+  "buildErrors": 0,
+  "buildWarnings": 982,
+  "apkBytes": 156807294,
+  "autoRunPlayer": false,
+  "installed": false,
+  "globalSettingsRestored": true,
+  "missingReadiness": [
+    "Power",
+    "Clinic"
+  ],
+  "details": "MP2B_ANDROID_PREFLIGHT.md"
+}

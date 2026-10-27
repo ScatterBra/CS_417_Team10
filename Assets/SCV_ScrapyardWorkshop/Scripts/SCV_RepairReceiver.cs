@@ -1,53 +1,27 @@
+using System;
 using UnityEngine;
 
 public class SCV_RepairReceiver : MonoBehaviour
 {
-    [SerializeField] private SCV_DamagedPanel damagedPanel;
     [SerializeField] private SCV_ResourceManager resourceManager;
-
-    private void OnTriggerEnter(Collider other)
+    [SerializeField] private SCV_DamagedPanel damagedPanel;
+    public event Action<string> PhysicalRepairAccepted;
+    bool delivering;
+    private void OnTriggerEnter(Collider other){if(other!=null)TryReceive(other.GetComponentInParent<SCV_CraftedItem>());}
+    private void OnTriggerStay(Collider other){if(other!=null)TryReceive(other.GetComponentInParent<SCV_CraftedItem>());}
+    public bool TryReceive(SCV_CraftedItem item)
     {
-        SCV_CraftedItem item =
-            other.GetComponentInParent<SCV_CraftedItem>();
-
-        if (item == null)
-            return;
-
-        if (item.Type !=
-            SCV_CraftedItem.ItemType.RepairKit)
-            return;
-
-        if (item.SourceInventory != resourceManager)
-            return;
-
-        if (!item.TryReserve())
-            return;
-
-        if (damagedPanel.TryRepair())
+        if(!isActiveAndEnabled || delivering || item==null || item.Consumed || item.Type!=SCV_CraftedItem.ItemType.RepairKit || damagedPanel==null)return false;
+        if(resourceManager!=null && item.SourceInventory!=resourceManager)return false;
+        string identity=(item.SourceLedger!=null ? item.SourceLedger.GetEntityId().ToString():"unbound")+":repair:"+item.UnitId;
+        delivering=true;
+        try
         {
-            Debug.Log(
-                "Physical repair kit used on test panel."
-            );
-
-            DestroyPhysicalItem(item);
+            if(!damagedPanel.TryRepairPhysical(item))return false;
+            if(PhysicalRepairAccepted!=null)foreach(Action<string> listener in PhysicalRepairAccepted.GetInvocationList())
+                try{listener(identity);}catch(Exception error){Debug.LogWarning("Physical repair receipt listener failed: "+error.Message);}
+            return true;
         }
-        else
-        {
-            item.ReleaseReservation();
-        }
-    }
-
-    private void DestroyPhysicalItem(SCV_CraftedItem item)
-    {
-        Rigidbody rb =
-            item.GetComponentInParent<Rigidbody>();
-
-        GameObject physicalObject =
-            rb != null
-                ? rb.gameObject
-                : item.gameObject;
-
-        physicalObject.SetActive(false);
-        Destroy(physicalObject);
+        finally{delivering=false;}
     }
 }
