@@ -31,9 +31,10 @@ public class MED_BuildingMini : MonoBehaviour
     void Start() => ApplyLock();
 
     /// <summary>Locked models are invisible and cannot be grabbed until their threshold is cleared.</summary>
-    void ApplyLock()
+    public void ApplyLock()
     {
-        bool locked = MED_ProgressionManager.TryGetFeature(definition, out var f) && MED_ProgressionManager.IsLocked(f);
+        var training=DEF_ClinicTraining.For(this);
+        bool locked = training!=null ? !training.CanReveal(definition) : MED_ProgressionManager.TryGetFeature(definition, out var f) && MED_ProgressionManager.IsLocked(f);
         if (locked == IsLocked && grab.enabled == !locked) return;
         IsLocked = locked;
         UpdatePlate();
@@ -67,6 +68,8 @@ public class MED_BuildingMini : MonoBehaviour
     void PokePlate()
     {
         if (!IsLocked || MED_AreaGate.Outside) return;
+        var training=DEF_ClinicTraining.For(this);
+        if(training!=null){MED_PlayerHUD.ShowMessage("Finish Clinic Step "+training.Step+" and read the next introduction to unlock this slot.");return;}
         if (MED_ProgressionManager.TryGetFeature(definition, out var f))
             MED_Messages.Fail(transform.parent.position + Vector3.up * 0.4f, MED_Messages.Locked(f));
     }

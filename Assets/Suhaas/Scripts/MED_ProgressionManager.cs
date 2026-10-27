@@ -67,6 +67,7 @@ public class MED_ProgressionManager : MonoBehaviour
     bool signVisible = true;
     bool revealing;
     bool completeRaised;
+    bool observedBelowFull;
     int stocked, dosed, crafted, sterilized;
 
     /// <summary>Number of thresholds cleared so far: 0 at the start, 4 when the Clinic is complete.</summary>
@@ -231,6 +232,7 @@ public class MED_ProgressionManager : MonoBehaviour
 
     void OnDoseGiven()
     {
+        if(CurrentThreshold==4 && observedBelowFull && player!=null && player.IsHealthFull){ClearThreshold(5);return;}
         if (CurrentThreshold != 2) return;
         dosed = 1;
         ClearThreshold(3);
@@ -246,7 +248,7 @@ public class MED_ProgressionManager : MonoBehaviour
     void OnResourceChanged(MED_ResourceType type, int amount)
     {
         if (type != MED_ResourceType.Health) return;
-        if (CurrentThreshold == 4 && player.Health >= player.MaxHealth) ClearThreshold(5);
+        if(player.Health<player.MaxHealth)observedBelowFull=true;
         else if (CurrentThreshold == 4) RefreshSign();
     }
 
@@ -286,7 +288,7 @@ public class MED_ProgressionManager : MonoBehaviour
         ApplySandboxes();
         RefreshSign();
         // "Heal to 100" already holds (healed earlier): do not leave the player stuck at 100/100.
-        if (n == 4 && player != null && player.Health >= player.MaxHealth) ClearThreshold(5);
+        if(n==4)observedBelowFull=player!=null&&!player.IsHealthFull;
         if (n == ThresholdCount && !completeRaised)
         {
             completeRaised = true;

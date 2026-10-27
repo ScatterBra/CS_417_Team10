@@ -217,6 +217,8 @@ public sealed class DEF_Progression : MonoBehaviour
     public void BeginNewSession()
     {
         if(DeferReset(true))return;
+        var training=DEF_ClinicTraining.For(this);
+        if(Application.isPlaying && training!=null){training.RestartFullRun();return;}
         DEF_WaveManager.I?.ResetOwnedWave();ResetOwnedDefenses();retryScrap=null;
         State.NewSession();power?.BeginSession(State.Session);clinic?.BeginSession(State.Session);workshop?.BeginSession(State.Session);Refresh();
     }

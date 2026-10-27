@@ -16,6 +16,7 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     float revealUntil;
     int pendingStep=7;
     void Start(){Reveal(7,"CLINIC: Sickle harvests Herbs; Bucket collects Water; Crowbar opens supplies. Read this introduction before using tools.");}
+    public bool CanReveal(MED_BuildingDefinition definition)=>pendingStep==0&&Step>=(definition==benchDefinition?9:10);
     public bool ProtectLearningCart=>!unloaded;
     public bool ReadyForTreatment=>Step>=10 && pendingStep==0;
     public static DEF_ClinicTraining For(Component source)
@@ -47,7 +48,8 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
         if(pendingStep!=0&&Time.unscaledTime>=revealUntil){
             if(pendingStep==8&&(wildSpawner==null||!wildSpawner.EnsureLearningSource())){if(directions)directions.text="Random resource unavailable. Free a Clinic grid cell or restart the full run; Step8 remains locked.";revealUntil=Time.unscaledTime+1;return;}
             Step=pendingStep;pendingStep=0;}
-        foreach(var mini in FindObjectsByType<MED_BuildingMini>(FindObjectsInactive.Include,FindObjectsSortMode.None))if(mini.gameObject.scene==gameObject.scene){int needed=mini.Definition==benchDefinition?9:10;bool visible=Step>=needed&&pendingStep==0;if(mini.gameObject.activeSelf!=visible)mini.gameObject.SetActive(visible);}
+        foreach(var mini in FindObjectsByType<MED_BuildingMini>(FindObjectsInactive.Include,FindObjectsSortMode.None))if(mini.gameObject.scene==gameObject.scene){if(!mini.gameObject.activeSelf)mini.gameObject.SetActive(true);mini.ApplyLock();}
+        if(directions&&Step==10&&pendingStep==0){var readiness=GetComponent<DEF_ClinicReadiness>();if(readiness!=null)directions.text=readiness.PendingReason;}
         if(directions&&Step==7&&pendingStep==0)directions.text="CLINIC: Harvest Herbs with Sickle, Water with Bucket, and supplies with Crowbar.";
     }
     public void RestartFullRun(){Time.timeScale=1;SceneManager.LoadScene(gameObject.scene.path);}

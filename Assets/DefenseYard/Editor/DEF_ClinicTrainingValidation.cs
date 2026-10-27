@@ -17,6 +17,7 @@ public static class DEF_ClinicTrainingValidation
         {
             var t=new GameObject("Clinic fixture").AddComponent<DEF_ClinicTraining>();SceneManager.MoveGameObjectToScene(t.gameObject,scene);
             Check(t.Step==7&&!t.ReadyForTreatment,"fresh run begins at harvest, treatment locked");
+            Check(!t.CanReveal(null),"fresh introduction keeps model content hidden while slot can remain active");
             Check(t.ProtectLearningCart,"first delivery cannot time out before learning unload");
             var owner=t.gameObject.AddComponent<MED_ProgressionManager>();
             Check(owner.IntegrationMode,"owner manager detects ordered integrated training");
