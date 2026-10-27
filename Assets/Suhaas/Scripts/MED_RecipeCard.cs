@@ -37,6 +37,7 @@ public class MED_RecipeCard : MonoBehaviour
         interactable.hoverExited.AddListener(OnHoverExit);
         interactable.selectEntered.AddListener(OnSelect);
         if (bench != null) bench.StateChanged += Refresh;
+        MED_ProgressionManager.Changed += OnProgressionChanged;
         Bind();
     }
 
@@ -46,8 +47,7 @@ public class MED_RecipeCard : MonoBehaviour
         {
             setUp = true;
             block = new MaterialPropertyBlock();
-            if (label != null && recipe != null)
-                label.text = $"<b>{recipe.displayName}</b>\n{recipe.Description().Replace(" + ", "\n+ ").Replace(" -> ", "\n-> ")}";
+            UpdateLabel();
         }
         Bind();
         Refresh();
@@ -59,6 +59,7 @@ public class MED_RecipeCard : MonoBehaviour
         interactable.hoverExited.RemoveListener(OnHoverExit);
         interactable.selectEntered.RemoveListener(OnSelect);
         if (bench != null) bench.StateChanged -= Refresh;
+        MED_ProgressionManager.Changed -= OnProgressionChanged;
         if (player != null) player.OnResourceChanged -= OnResourceChanged;
         player = null;
     }
@@ -71,21 +72,38 @@ public class MED_RecipeCard : MonoBehaviour
     }
 
     void OnResourceChanged(MED_ResourceType type, int amount) => Refresh();
+
+    bool IsLocked => MED_ProgressionManager.TryGetFeature(recipe, out var f) && MED_ProgressionManager.IsLocked(f);
+
+    void OnProgressionChanged()
+    {
+        UpdateLabel();
+        Refresh();
+    }
+
+    void UpdateLabel()
+    {
+        if (label == null || recipe == null) return;
+        label.text = IsLocked
+            ? $"<b>{recipe.displayName}</b>\n<color=#B0B4B8>LOCKED</color>"
+            : $"<b>{recipe.displayName}</b>\n{recipe.Description().Replace(" + ", "\n+ ").Replace(" -> ", "\n-> ")}";
+    }
     void OnHoverEnter(UnityEngine.XR.Interaction.Toolkit.HoverEnterEventArgs _) { hovered = true; Refresh(); }
     void OnHoverExit(UnityEngine.XR.Interaction.Toolkit.HoverExitEventArgs _) { hovered = false; Refresh(); }
 
     void OnSelect(UnityEngine.XR.Interaction.Toolkit.SelectEnterEventArgs _)
     {
+        if (MED_AreaGate.Outside) return;
         StopAllCoroutines();
         StartCoroutine(PressAnimation());
-        if (bench != null) bench.TryStartRecipe(recipe);
+        if (bench != null) bench.TryStartRecipe(recipe);   // explains why when the recipe is still locked
     }
 
     void Refresh()
     {
         if (cardRenderer == null || recipe == null || bench == null) return;
         if (block == null) block = new MaterialPropertyBlock();
-        available = bench.IsIdle && bench.CanAfford(recipe, out _);
+        available = !IsLocked && bench.IsIdle && bench.CanAfford(recipe, out _);
         var c = available ? availableColor : unavailableColor;
         if (hovered) c = Color.Lerp(c, Color.white, 0.35f);
         cardRenderer.GetPropertyBlock(block);

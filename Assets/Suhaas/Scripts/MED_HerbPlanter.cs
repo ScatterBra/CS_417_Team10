@@ -43,6 +43,11 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
     public MED_Stat Growth => growth;
     public MED_Stat Moisture => moisture;
     public event Action StateChanged;
+    /// <summary>Raised when a ripe planter is harvested (used by the Green Thumb achievement).</summary>
+    public static event Action Harvested;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Harvested = null;
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 1.2f;
 
@@ -127,10 +132,10 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
 
     public bool TryPlant()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.PlantTooFar);
         Bind();
-        if (State != PlanterState.Empty) return Fail("Already planted");
-        if (player == null || player.Get(MED_ResourceType.Herbs) < 1) return Fail("Need 1 Herbs");
+        if (State != PlanterState.Empty) return Fail(MED_Messages.AlreadyPlanted);
+        if (player == null || player.Get(MED_ResourceType.Herbs) < 1) return Fail(MED_Messages.PlantNoHerbs);
         player.TrySpend(MED_ResourceType.Herbs, 1);
         growth.Set(0f);
         SetState(PlanterState.Growing);
@@ -140,10 +145,10 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
 
     public bool TryWater()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.PlanterWaterTooFar);
         Bind();
-        if (moisture.Value >= 0.95f) return Fail("Soil is wet");
-        if (player == null || player.Get(MED_ResourceType.Water) < 1) return Fail("No Water");
+        if (moisture.Value >= 0.95f) return Fail(MED_Messages.SoilWet);
+        if (player == null || player.Get(MED_ResourceType.Water) < 1) return Fail(MED_Messages.PlanterNoWater);
         player.TrySpend(MED_ResourceType.Water, 1);
         moisture.Add(waterAmount);
         MED_FloatingText.Spawn(MessagePosition, "Watered", new Color(0.5f, 0.8f, 1f));
@@ -155,17 +160,17 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
     {
         if (tool == null || tool.ToolType != requiredTool)
         {
-            Message($"Use the {requiredTool}", new Color(1f, 0.85f, 0.4f));
+            Message(MED_Messages.PlanterWrongTool, new Color(1f, 0.85f, 0.4f));
             return false;
         }
         if (State == PlanterState.Empty)
         {
-            Message("Plant something first", new Color(1f, 0.85f, 0.4f));
+            Message(MED_Messages.NothingPlanted, new Color(1f, 0.85f, 0.4f));
             return false;
         }
         if (State != PlanterState.Ripe)
         {
-            Message("Not ripe yet", new Color(1f, 0.85f, 0.4f));
+            Message(MED_Messages.NotRipe, new Color(1f, 0.85f, 0.4f));
             return false;
         }
         if (Time.time < nextHitTime) return false;
@@ -176,6 +181,7 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
         tool.SendHaptic(0.5f, 0.1f);
         growth.Set(0f);
         SetState(PlanterState.Empty);
+        Harvested?.Invoke();
         return true;
     }
 
@@ -254,12 +260,11 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
     {
         if (Time.time < nextMessageTime) return;
         nextMessageTime = Time.time + 1.5f;
-        MED_FloatingText.Spawn(MessagePosition, text, c, 0.5f);
+        MED_Messages.Fail(MessagePosition, text);
     }
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

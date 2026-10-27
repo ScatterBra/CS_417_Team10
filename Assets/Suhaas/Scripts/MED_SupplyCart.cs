@@ -49,6 +49,11 @@ public class MED_SupplyCart : MonoBehaviour
     public MED_Stat CargoRemaining => cargoRemaining;
     public event Action StateChanged;
     public event Action<MED_SupplyCart> Finished;
+    /// <summary>Raised when the player unloads the last unit of a cart (used by the Supply Runner achievement).</summary>
+    public static event Action CartEmptied;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => CartEmptied = null;
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 1.5f;
 
@@ -226,7 +231,11 @@ public class MED_SupplyCart : MonoBehaviour
         cargoRemaining.Add(-1f);
         if(UnloadCommitted!=null)foreach(Action<MED_SupplyCart,MED_PlayerResources,MED_ResourceType,bool> listener in UnloadCommitted.GetInvocationList())try{listener(this,Player,type,cargo.Count==0);}catch(Exception e){Debug.LogException(e);}
         MED_FloatingText.Spawn(MessagePosition, $"+1 {type}", new Color(0.6f, 1f, 0.6f));
-        if (cargo.Count == 0) BeginLeaving();
+        if (cargo.Count == 0)
+        {
+            CartEmptied?.Invoke();
+            BeginLeaving();
+        }
         return true;
     }
 
@@ -252,7 +261,6 @@ public class MED_SupplyCart : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

@@ -30,6 +30,11 @@ public class MED_PrepBench : MonoBehaviour
     /// <summary>Raised when the bench switches between Idle and Preparing.</summary>
     public static event Action<MED_PrepBench,MED_PlayerResources,MED_Recipe> CraftCommitted;
     public event Action StateChanged;
+    /// <summary>Raised on any bench when a recipe finishes (used by the progression thresholds).</summary>
+    public static event Action<MED_Recipe> Crafted;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() { Crafted = null; CraftCommitted = null; }
 
     MED_PlayerResources Player
     {
@@ -68,7 +73,7 @@ public class MED_PrepBench : MonoBehaviour
             int have = p != null ? p.Get(input.Key) : 0;
             if (have < input.Value)
             {
-                problem = $"Need {input.Value} {input.Key} (have {have})";
+                problem = MED_Messages.Missing(input.Key, have, input.Value);
                 return false;
             }
         }
@@ -79,6 +84,7 @@ public class MED_PrepBench : MonoBehaviour
     {
         if(!DEF_ClinicTraining.Allow(this,9,"Clinic action"))return false;
         if (recipe == null) return false;
+        if (MED_ProgressionManager.TryGetFeature(recipe, out var feature) && MED_ProgressionManager.IsLocked(feature)) return Fail(MED_Messages.Locked(feature));
         if (starting || State == BenchState.Preparing) return Fail("Bench is busy");
         if (recipes == null || Array.IndexOf(recipes,recipe)<0 || recipe.duration<=0f || float.IsNaN(recipe.duration) || float.IsInfinity(recipe.duration)) return Fail("Recipe unavailable");
         if (!IsPlayerNear()) return Fail("Too far");
@@ -123,6 +129,7 @@ public class MED_PrepBench : MonoBehaviour
         CurrentRecipe = null;
         prepProgress.Set(0f);
         SetState(BenchState.Idle);
+        Crafted?.Invoke(recipe);
     }
 
     void SetState(BenchState state)
@@ -159,8 +166,7 @@ public class MED_PrepBench : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 
     static Dictionary<MED_ResourceType, int> Combine(List<MED_ResourceCost> costs)

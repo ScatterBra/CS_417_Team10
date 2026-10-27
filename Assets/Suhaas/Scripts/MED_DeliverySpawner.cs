@@ -41,7 +41,7 @@ public class MED_DeliverySpawner : MonoBehaviour
     {
         if (cartActive)
         {
-            MED_FloatingText.Spawn(DoorwayPosition, "Cart already here", new Color(1f, 0.6f, 0.4f), 0.5f);
+            MED_Messages.Fail(DoorwayPosition, MED_Messages.CartAlreadyHere);
             return false;
         }
         Spawn();

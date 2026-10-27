@@ -10,6 +10,22 @@ using Unity.XR.CoreUtils;
 
 public static class DEF_ClinicStaging
 {
+    [MenuItem("Defense Yard/MP2B/Bind Owner Clinic Managers In Active Integrated Scene")]
+    public static void BindOwnerManagers()
+    {
+        if (Application.isPlaying) throw new Exception("Edit Mode only");
+        var scene=SceneManager.GetActiveScene();
+        var training=All<DEF_ClinicTraining>(scene).Single();
+        if (All<MED_ProgressionManager>(scene).Length==0) training.gameObject.AddComponent<MED_ProgressionManager>();
+        if (All<MED_AreaGate>(scene).Length==0) training.gameObject.AddComponent<MED_AreaGate>();
+        var achievement=All<MED_AchievementManager>(scene).SingleOrDefault();
+        if (achievement==null) achievement=training.gameObject.AddComponent<MED_AchievementManager>();
+        var so=new SerializedObject(achievement);
+        so.FindProperty("trophyPrefab").objectReferenceValue=AssetDatabase.LoadAssetAtPath<MED_Trophy>("Assets/Suhaas/Prefabs/MED_Trophy.prefab");
+        so.FindProperty("shelfPosition").vector3Value=training.buildingsRoot.position+new Vector3(7.2f,0,3.5f);
+        so.ApplyModifiedPropertiesWithoutUndo();
+        EditorSceneManager.MarkSceneDirty(scene);
+    }
     const string Output="Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity";
     const string Temporary="Assets/DefenseYard/Scenes/DEF_Clinic_Source_Temporary.unity";
     static T[] All<T>(Scene s)where T:Component=>s.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<T>(true)).ToArray();

@@ -47,6 +47,7 @@ public class MED_TutorialManager : MonoBehaviour
 
     public static bool IsShown(string id) => shown.Contains(id);
     public bool IsBusy => active;
+    public Material PanelMaterial => panelMaterial;
 
     public static MED_TutorialManager Instance
     {
@@ -107,6 +108,7 @@ public class MED_TutorialManager : MonoBehaviour
     {
         if (!active)
         {
+            if (MED_AreaGate.Outside) return;   // the player is in another area: hold the queue
             TryStartNext();
             return;
         }
@@ -304,7 +306,7 @@ public class MED_TutorialManager : MonoBehaviour
         return t;
     }
 
-    static Texture2D MakeRoundedTexture(int w, int h, float radius)
+    public static Texture2D MakeRoundedTexture(int w, int h, float radius)
     {
         var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "MED_TutorialRounded" };
         var px = new Color32[w * h];

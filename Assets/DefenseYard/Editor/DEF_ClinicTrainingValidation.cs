@@ -18,6 +18,10 @@ public static class DEF_ClinicTrainingValidation
             var t=new GameObject("Clinic fixture").AddComponent<DEF_ClinicTraining>();SceneManager.MoveGameObjectToScene(t.gameObject,scene);
             Check(t.Step==7&&!t.ReadyForTreatment,"fresh run begins at harvest, treatment locked");
             Check(t.ProtectLearningCart,"first delivery cannot time out before learning unload");
+            var owner=t.gameObject.AddComponent<MED_ProgressionManager>();
+            Check(owner.IntegrationMode,"owner manager detects ordered integrated training");
+            owner.SkipToNext();
+            Check(owner.CurrentThreshold==0 && t.Step==7,"owner debug skip cannot advance integrated training");
             var flags=BindingFlags.Instance|BindingFlags.NonPublic;
             // Non-ExecuteAlways behaviours do not reliably run runtime lifecycle in Edit Mode.
             typeof(DEF_ClinicTraining).GetMethod("OnEnable",flags).Invoke(t,null);

@@ -14,6 +14,7 @@ public class MED_MedicineCabinet : MonoBehaviour
     [SerializeField] MED_PlayerResources player;
     readonly MED_MedicineStore evidenceStock=new();
     bool supplyBusy,writingStock;
+    bool wasFull;
     void SetStock(float value)
     {
         writingStock=true;
@@ -22,6 +23,12 @@ public class MED_MedicineCabinet : MonoBehaviour
     }
 
     public MED_Stat Stock => stock;
+
+    /// <summary>Raised when stocking fills a cabinet to its maximum (used by the Stocked Up achievement).</summary>
+    public static event System.Action Filled;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Filled = null;
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 2f;
 
@@ -61,13 +68,43 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     void OnStockChanged(MED_Stat _) {if(!writingStock)evidenceStock.Invalidate(stock.Value);Refresh();}
 
+    // T5 sandbox: once the Clinic is complete, packing the cabinet full makes the bottles gleam ("Fully stocked!").
     void Refresh()
     {
+        bool full = stock.Value >= stock.Max;
+        if (full && !wasFull && MED_ProgressionManager.SandboxActive(5)) StartCoroutine(Gleam());
+        wasFull = full;
         int visible = Mathf.CeilToInt(stock.Value / 2f);
         for (int i = 0; bottles!=null && i < bottles.Length; i++)
             if (bottles[i] != null) bottles[i].SetActive(i < visible);
         if (stockButton != null) stockButton.SetAvailable(player != null && player.Get(MED_ResourceType.Medicine) >= 1 && stock.Value < stock.Max);
         if (takeButton != null) takeButton.SetAvailable(stock.Value >= 1f);
+    }
+
+    System.Collections.IEnumerator Gleam()
+    {
+        MED_FloatingText.Spawn(MessagePosition, "Fully stocked!", new Color(1f, 0.9f, 0.4f));
+        var block = new MaterialPropertyBlock();
+        var gold = new Color(1f, 0.85f, 0.3f);
+        const float duration = 1.2f;
+        for (float t = 0f; t < duration; t += Time.deltaTime)
+        {
+            float k = Mathf.Sin(t / duration * Mathf.PI);
+            foreach (var b in bottles)
+            {
+                if (b == null) continue;
+                foreach (var r in b.GetComponentsInChildren<Renderer>())
+                {
+                    r.GetPropertyBlock(block);
+                    block.SetColor("_EmissionColor", gold * (2f * k));
+                    block.SetColor("_BaseColor", Color.Lerp(new Color(0.8f, 0.9f, 0.9f), gold, k));
+                    r.SetPropertyBlock(block);
+                }
+            }
+            yield return null;
+        }
+        foreach (var b in bottles)
+            if (b != null) foreach (var r in b.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(null);
     }
 
     void OnStockPressed() => TryStock();
@@ -85,6 +122,7 @@ public class MED_MedicineCabinet : MonoBehaviour
         finally {supplyBusy=false;}
         if(!accepted)return Fail("Stock failed: Medicine unavailable. Gather Medicine and retry.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Stocked", new Color(0.6f, 1f, 0.6f));
+        if (stock.Value >= stock.Max) Filled?.Invoke();
         return true;
     }
 
@@ -105,7 +143,6 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

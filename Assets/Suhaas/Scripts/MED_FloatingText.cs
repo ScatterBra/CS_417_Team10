@@ -18,12 +18,23 @@ public class MED_FloatingText : MonoBehaviour
         t.text = text;
         t.fontSize = fontSize;
         t.alignment = TextAlignmentOptions.Center;
-        t.textWrappingMode = TextWrappingModes.NoWrap;
         t.fontStyle = FontStyles.Bold;
         t.color = color;
-        t.rectTransform.sizeDelta = new Vector2(2f, 0.3f);
         go.AddComponent<MED_Billboard>();
         var f = go.AddComponent<MED_FloatingText>();
+        if (text.Length > 22)
+        {
+            // Explanatory messages (why it failed + how to fix it): smaller, wrapped, and on screen longer.
+            t.fontSize = fontSize * 0.55f;
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.rectTransform.sizeDelta = new Vector2(2.6f, 0.5f);
+            f.lifetime = 3.2f;
+        }
+        else
+        {
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.rectTransform.sizeDelta = new Vector2(2f, 0.3f);
+        }
         f.label = t;
         f.baseColor = color;
     }

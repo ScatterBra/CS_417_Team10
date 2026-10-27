@@ -57,6 +57,7 @@ public class MED_HarvestTool : MonoBehaviour
         SwingSpeed = (transform.position - lastPos).magnitude / dt;
         lastPos = transform.position;
         if (Time.time - grabTime < ignoreAfterGrab) return;
+        if (MED_AreaGate.Outside) return;
 
         bool swinging = SwingSpeed > swingSpeedThreshold;
         if (!swinging && !activateHeld) return;
