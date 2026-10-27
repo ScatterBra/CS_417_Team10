@@ -156,9 +156,9 @@ public class MED_TreatmentStation : MonoBehaviour
         if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
         supplyBusy=true;
         bool accepted;
-        try {evidenceStock.Sync(storedMedicine.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(storedMedicine.Value+1f);});}
+        try {evidenceStock.Sync(storedMedicine.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(storedMedicine.Value+1f);}, DEF_ClinicTraining.For(this)!=null);}
         finally {supplyBusy=false;}
-        if(!accepted)return Fail("Refill failed: Medicine unavailable. Gather Medicine and retry.");
+        if(!accepted)return Fail("Refill requires fresh Medicine crafted this run. Craft another Medicine; stale inventory is skipped.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Stored", new Color(0.6f, 1f, 0.6f));
         Stocked?.Invoke();
         return true;
@@ -210,7 +210,7 @@ public class MED_TreatmentStation : MonoBehaviour
                 try {listener(this,patient,unit,before,after);}catch(System.Exception e){Debug.LogException(e);}
         MED_FloatingText.Spawn(MessagePosition, $"+{after - before} HP", new Color(0.6f, 1f, 0.6f));
         treatProgress.Set(0f);
-        DoseGiven?.Invoke();
+        if(generation==patient.EvidenceGeneration && patient.IsCurrent(unit)) DoseGiven?.Invoke();
 
         if (!player.IsHealthFull && storedMedicine.Value >= 1f && playerOnPad) return; // next dose starts automatically
 

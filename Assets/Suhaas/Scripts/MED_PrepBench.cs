@@ -117,7 +117,10 @@ public class MED_PrepBench : MonoBehaviour
         var recipe = CurrentRecipe;
         var ticket=paidCraft;
         var p = ticket.Player;
-        if(p==null || !p.CommitRecipe(ticket))return;
+        if(p==null || !p.CommitRecipe(ticket)) {
+            if(p!=null && !p.RefundRecipe(ticket))return; // retry after an in-flight inventory transaction
+            paidCraft=null; CurrentRecipe=null; prepProgress.Set(0f); SetState(BenchState.Idle); return;
+        }
         paidCraft=null;
         if(CraftCommitted!=null)foreach(Action<MED_PrepBench,MED_PlayerResources,MED_Recipe> listener in CraftCommitted.GetInvocationList())try{listener(this,p,recipe);}catch(Exception e){Debug.LogException(e);}
         float lift = 0f;

@@ -20,6 +20,9 @@ public static class DEF_ClinicTrainingValidation
             Check(t.ProtectLearningCart,"first delivery cannot time out before learning unload");
             var owner=t.gameObject.AddComponent<MED_ProgressionManager>();
             Check(owner.IntegrationMode,"owner manager detects ordered integrated training");
+            typeof(MED_ProgressionManager).GetProperty("ClinicComplete").GetSetMethod(true).Invoke(null,new object[]{true});
+            typeof(MED_ProgressionManager).GetMethod("Awake",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(owner,null);
+            Check(!MED_ProgressionManager.ClinicComplete,"scene manager awakening resets previous completion");
             owner.SkipToNext();
             Check(owner.CurrentThreshold==0 && t.Step==7,"owner debug skip cannot advance integrated training");
             var flags=BindingFlags.Instance|BindingFlags.NonPublic;

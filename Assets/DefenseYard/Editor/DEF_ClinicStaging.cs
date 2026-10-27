@@ -22,8 +22,14 @@ public static class DEF_ClinicStaging
         if (achievement==null) achievement=training.gameObject.AddComponent<MED_AchievementManager>();
         var so=new SerializedObject(achievement);
         so.FindProperty("trophyPrefab").objectReferenceValue=AssetDatabase.LoadAssetAtPath<MED_Trophy>("Assets/Suhaas/Prefabs/MED_Trophy.prefab");
-        so.FindProperty("shelfPosition").vector3Value=training.buildingsRoot.position+new Vector3(7.2f,0,3.5f);
+        so.FindProperty("shelfPosition").vector3Value=training.buildingsRoot.TransformPoint(new Vector3(7.2f,0,3.5f));
         so.ApplyModifiedPropertiesWithoutUndo();
+        if(so.FindProperty("trophyPrefab").objectReferenceValue==null)throw new Exception("Owner trophy prefab missing");
+        var spawner=new SerializedObject(training.wildSpawner);
+        var patches=spawner.FindProperty("patches"); patches.arraySize=5;
+        var names=new[]{"CrateWall","HerbCluster","HerbTrail","ScatteredMix","SupplyCache"};
+        for(int i=0;i<names.Length;i++) { var patch=AssetDatabase.LoadAssetAtPath<MED_WildPatch>("Assets/Suhaas/Data/Patches/MED_Patch_"+names[i]+".asset"); if(patch==null)throw new Exception("Missing owner patch "+names[i]); patches.GetArrayElementAtIndex(i).objectReferenceValue=patch; }
+        spawner.ApplyModifiedPropertiesWithoutUndo();
         EditorSceneManager.MarkSceneDirty(scene);
     }
     const string Output="Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity";

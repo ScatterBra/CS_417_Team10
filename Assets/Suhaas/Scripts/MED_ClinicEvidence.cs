@@ -22,6 +22,7 @@ internal sealed class MED_CraftTicket
     internal int Generation;
     internal bool Consumed;
     internal Dictionary<MED_ResourceType,int> Outputs;
+    internal Dictionary<MED_ResourceType,int> Inputs;
 }
 
 // FIFO representation, including unproven units. External stat edits invalidate proof conservatively.
@@ -74,7 +75,7 @@ public partial class MED_PlayerResources
         ticket=null;EnsureInitialized();
         if(evidenceTransaction||bench==null||recipe==null||!Costs(recipe.inputs,out var costs)||!Costs(recipe.outputs,out var outputs))return false;
         foreach(var cost in costs)if(Get(cost.Key)<cost.Value)return false;
-        ticket=new MED_CraftTicket{Player=this,Bench=bench,Recipe=recipe,Generation=EvidenceGeneration,Outputs=outputs};
+        ticket=new MED_CraftTicket{Player=this,Bench=bench,Recipe=recipe,Generation=EvidenceGeneration,Outputs=outputs,Inputs=costs};
         evidenceTransaction=true;
         try
         {
@@ -103,14 +104,24 @@ public partial class MED_PlayerResources
         finally {evidenceTransaction=false;}
         return true;
     }
-    internal bool TransferMedicine(Action<MED_MedicineUnit> commit)
+    internal bool RefundRecipe(MED_CraftTicket ticket)
+    {
+        if(evidenceTransaction||ticket==null||ticket.Player!=this||ticket.Consumed)return false;
+        ticket.Consumed=true; evidenceTransaction=true;
+        try {foreach(var input in ticket.Inputs){amounts[(int)input.Key]=(int)Math.Min(int.MaxValue,(long)Get(input.Key)+input.Value);if(input.Key==MED_ResourceType.Medicine)AdjustUnprovenMedicine(Get(input.Key));}
+        foreach(var input in ticket.Inputs)NotifyResource(input.Key,Get(input.Key));}
+        finally{evidenceTransaction=false;} return true;
+    }
+    internal bool TransferMedicine(Action<MED_MedicineUnit> commit, bool requireCurrent=false)
     {
         EnsureInitialized();if(evidenceTransaction||Get(MED_ResourceType.Medicine)<1)return false;
         evidenceTransaction=true;
         try
         {
             AdjustUnprovenMedicine(Get(MED_ResourceType.Medicine));
-            var unit=medicineUnits[0];medicineUnits.RemoveAt(0);amounts[(int)MED_ResourceType.Medicine]--;
+            int index=requireCurrent?medicineUnits.FindIndex(IsCurrent):0;
+            if(index<0)return false;
+            var unit=medicineUnits[index];medicineUnits.RemoveAt(index);amounts[(int)MED_ResourceType.Medicine]--;
             commit(unit);NotifyResource(MED_ResourceType.Medicine,Get(MED_ResourceType.Medicine));
         }
         finally {evidenceTransaction=false;}

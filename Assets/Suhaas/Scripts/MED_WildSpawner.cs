@@ -42,12 +42,20 @@ public class MED_WildSpawner : MonoBehaviour
     void Start()
     {
         // New seed every run.
-        Random.InitState((int)(System.DateTime.Now.Ticks & 0x7FFFFFFF) ^ System.Guid.NewGuid().GetHashCode());
+
         Respawn();
     }
 
     /// <summary>Destroys all wild instances and stamps a new random set of patches.</summary>
     public void Respawn()
+    {
+        if(grid==null||container==null||patches==null||patches.Length==0) { Debug.LogError("Wild patch configuration missing; existing resources preserved",this); return; }
+        foreach(var patch in patches)if(patch==null){Debug.LogError("Null wild patch; existing resources preserved",this);return;}
+        var state=Random.state;
+        try { Random.InitState(System.Guid.NewGuid().GetHashCode()); RespawnCore(); }
+        finally { Random.state=state; }
+    }
+    void RespawnCore()
     {
         foreach (var h in container.GetComponentsInChildren<MED_Harvestable>())
         {
@@ -163,7 +171,8 @@ public class MED_WildSpawner : MonoBehaviour
         if (cells.Count > 0) UnityEditor.Handles.Label(grid.CellToWorld(min) + Vector3.up * 0.6f, label);
 #endif
     }
-    public bool EnsureLearningSource()
+    public bool EnsureLearningSource() { var state=Random.state; try{return EnsureLearningSourceCore();} finally{Random.state=state;} }
+    bool EnsureLearningSourceCore()
     {
         if(grid==null||container==null||herbPatchPrefab==null)return false;
         foreach(var existing in container.GetComponentsInChildren<MED_Harvestable>())

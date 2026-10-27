@@ -139,7 +139,7 @@ public class MED_ProgressionManager : MonoBehaviour
 
     void Awake()
     {
-        Instance = this;
+        ClinicComplete=false; shownReveals.Clear(); Instance = this;
         if (GetComponent<MED_AreaGate>() == null) gameObject.AddComponent<MED_AreaGate>();
     }
 

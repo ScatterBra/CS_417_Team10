@@ -62,6 +62,7 @@ public class MED_BuildingPlacer : MonoBehaviour
         var training=DEF_ClinicTraining.For(this);
         int required=training!=null&&def==training.benchDefinition?9:10;
         if(!DEF_ClinicTraining.Allow(this,required,"Building placement")){mini.ReturnHome();return;}
+        if (MED_AreaGate.Outside || (MED_ProgressionManager.TryGetFeature(def,out var feature) && MED_ProgressionManager.IsLocked(feature))) { mini.ReturnHome(); return; }
         if (p.hasHit && p.valid && TrySpendCosts(def, out _))
         {
             var building = Build(def, p);
@@ -81,6 +82,7 @@ public class MED_BuildingPlacer : MonoBehaviour
     /// <summary>Destroys every placed building, frees all cells and restocks the shelf. No refunds.</summary>
     public void ClearAll()
     {
+        var old=carried; carried=null; interactor=null; grid.SetVisible(false); EndGhost(); if(old!=null)old.ReturnHome();
         foreach (var b in buildingsContainer.GetComponentsInChildren<MED_Building>())
         {
             grid.Free(b);
