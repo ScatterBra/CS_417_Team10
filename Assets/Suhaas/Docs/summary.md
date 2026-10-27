@@ -362,16 +362,35 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 | 13 | statbars | Any stat bar | STAT BARS / Bars show how much is left or how far along something is. | Proximity (2.5 m, view cone), anchored to that bar |
 | 14 | cart | Supply Cart | SUPPLY CART / Press UNLOAD to take supplies before it leaves. | Proximity (3.5 m, view cone), anchored to the cart |
 
+## Texture Animation
+Audit date 2026-10-15, matched by GUID (not name) over every prefab, scene, material, asset and script in `Assets/`.
+
+**Result: the UV-scroll animation is not used anywhere yet.**
+
+| Asset | GUID | References found |
+|---|---|---|
+| `MED_UVAnimator` (script) | `fcdbeabe4565e644d858013703f48317` | 0 (no prefab, scene or asset has the component; no script calls `SetSpeedMultiplier`) |
+| `MED_UVScroll_Chevrons.mat` | `ab3ab4462013fe34f89458ceba86fd35` | 0 |
+| `MED_UVScroll_Ripples.mat` | `a3854a1b003dd8b4b8e9cf1b2aa99b2c` | 0 |
+| `MED_UVScroll_Stripes.mat` | `c0a170c5f50442e42ace2015c28eb5e0` | 0 |
+| `MED_UVScroll.shader` | `63bd0c2883ded6e4cb7413ef07392885` | 3 (only the three unused materials above) |
+
+So there is no object, prefab or player signal to report. Nothing was added. (The teammate `PWR_UVScroll` shader and `PWR_ConveyorBelt` / `PWR_BlastEffect` in `Assets/PowerYard` are a separate system and are not part of this station.)
+
+Code check of `MED_UVAnimator.Update` (read, not run): the offset is integrated every frame by Euler integration, `offset += uvSpeed * (currentMultiplier * dt)`, wrapped to [0,1). `currentMultiplier` eases toward the requested `SetSpeedMultiplier` value, and the result goes to `_UVOffset` through a `MaterialPropertyBlock`. This has **not been confirmed in Play mode**, because no object uses it and adding one was out of scope for this audit.
+
+To earn the Texture Animation Signifiers story, planned uses: chevrons on the delivery route line (which way the cart goes, speed 0 when no cart is coming), ripples on the Water Barrel / Herb Planter while moisture is rising, stripes on the Sterilizer or Treatment Station while working.
+
 ## (h) Rubric story tracker
 | Story | Target pts | Status |
 |---|---|---|
 | Statted Instances (prerequisite) | 0 | In progress (HerbPatch, SupplyCrate, WaterBarrel carry stats) |
-| Player Resource (prerequisite) | 0 | Not started - framework ready |
+| Player Resource (prerequisite) | 0 | Done (Step 2: `MED_PlayerResources` on the XR Origin, Health 0-100, Get/Add/TrySpend, `OnResourceChanged`, floating HUD) |
 | Gridded Building (prerequisite) | 0 | Done (Step 3) |
 | Prefab Content (8 prefabs) | 3 | Done (9 with >= 3 affordances/dynamics: HerbPatch, SupplyCrate, PrepBench, MedicineCabinet, TreatmentStation, Sterilizer, HerbPlanter, WaterBarrel, SupplyCart) |
 | Stat Content (8 stats) | 4 | Done (13: HerbsRemaining, SuppliesRemaining, WaterLevel, PrepProgress, CabinetStock, StoredMedicine, TreatProgress, Heat, SterilizeProgress, Growth, Moisture, RouteProgress, CargoRemaining) |
 | Passive Stat Gain | 2 | Done (PrepProgress, TreatProgress, Growth, Moisture, Heat, SterilizeProgress, barrel rain; Euler integration) |
-| Resource Content (8+ resources) | 3 | Not started |
+| Resource Content (8+ resources) | 3 | Done (10 `MED_ResourceType` values: Health; harvested Herbs, Water, Alcohol, Gauze; crafted Medicine, Antiseptic, BandageKit, Painkiller, Tonic; all shown on the HUD) |
 | Wild Instances | 2 | Done (Step 4) |
 | Interface Metaphor (0-4, target 3) | 3 | Write-up drafted (Step 8, "Interface Metaphor" section, 8 gaps listed for review) |
 | Building Content (5) | 4 | Done (5 buildings, Step 3) |
@@ -385,7 +404,7 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 | Death | 2 | Done (herb patch and crate: shrink, puff, cell release; Step 4) |
 | Intermittent Instances | 2 | Done (Step 9: random supply-cart deliveries, 15-25 s then 40-70 s) |
 | Path Following | 2 | Done (Step 9: cart follows the curved `MED_DeliveryPath`, constant speed via arc-length table) |
-| Texture Animation Signifiers | 3 | Not started |
+| Texture Animation Signifiers | 3 | Not started - `MED_UVAnimator`, `MED_UVScroll` shader and 3 materials exist but are used by no object (audit 2026-10-15, see Texture Animation section) |
 
 ## (i) Notes and known issues
 - XR rig and Device Simulator are in the scene only, not in the station prefab.
