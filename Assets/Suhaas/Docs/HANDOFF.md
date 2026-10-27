@@ -10,28 +10,29 @@ Owner prefix: `MED_` - No namespace (the Clinic code is global, unlike `Deadzone
   There is no physical item to carry between rooms yet.
 
 ## Completion check (for other areas)
-The Clinic is complete once the player has been healed to full (100) after clearing the three earlier thresholds.
+The Clinic is complete once the player has been healed to full (100) after clearing the four earlier thresholds.
 - `MED_ProgressionManager.ClinicComplete` - static bool, check it any time.
 - `MED_ProgressionManager.ClinicCompleted` - static event, fired once when it becomes true (RESET PROGRESSION
   clears the flag, so it can fire again after a reset).
 - `MED_ProgressionManager.Instance.NextGoal` - string for the current goal with its progress,
   e.g. `Heal to 100: 60/100`. `"Clinic complete - every station is unlocked"` at the end.
-- `MED_ProgressionManager.Instance.CurrentThreshold` - number of thresholds cleared, 0 to 4.
+- `MED_ProgressionManager.Instance.CurrentThreshold` - number of thresholds cleared, 0 to 5.
 - `MED_ProgressionManager.GoalChanged` / `Changed` - static events for goal text / unlock changes.
 
 ## Progression (MP2B)
-`MED_ProgressionManager` (a scene object, `MED_Progression`) gates the Clinic in four thresholds:
+`MED_ProgressionManager` (a scene object, `MED_Progression`) gates the Clinic in five thresholds:
 
 | # | Requirement | Unlocks |
 |---|---|---|
 | T1 | Craft the first Medicine | Medicine Cabinet + Treatment Station models |
 | T2 | Stock a Treatment Station once | TREAT button + Sterilizer model |
 | T3 | First treatment dose given | BandageKit / Tonic / Painkiller recipes |
-| T4 | Heal to 100 | Herb Planter model, `ClinicComplete` |
+| T4 | Sterilize a batch (use the Sterilizer once) | Herb Planter model |
+| T5 | Heal to 100 | Nothing new; sets `ClinicComplete` |
 
 Start state: only the Prep Bench model, the three tools, herb patches/crates, water barrel and supply cart; the
-Medicine / Antiseptic / Sterile Bandages recipes. Each unlock shows a world-space reveal card (name plus
-interface metaphor) first, then releases the content so its existing pop-up tutorial follows. The NEXT GOAL sign
+Medicine / Antiseptic / Sterile Bandages recipes. Every threshold shows one world-space reveal card (name plus
+interface metaphor; T5 shows a "Clinic Complete" card) first, then releases the content so its existing pop-up tutorial follows. The NEXT GOAL sign
 floats over the room and the goal also shows in the player HUD.
 
 ## Shared scene
@@ -47,7 +48,9 @@ Nothing from other stations yet (MP2A standalone rule). Everything is gathered i
 
 ## Test buttons (MED_TestTools, removable at integration)
 `RESET PROGRESSION` (back to the start state, clears placed buildings, resets health and the reveal-once memory)
-and `SKIP TO NEXT THRESHOLD` (clears the next threshold; its reveal card and unlock follow as normal).
+and `SKIP TO NEXT THRESHOLD` (clears the next of the five thresholds; its reveal card and unlock follow as normal).
+
+If the player is already at 100 HP when T5 begins, T5 clears at once (nothing left to heal), so nobody gets stuck at 100/100.
 
 ## Folder layout
 `Scripts/`, `Prefabs/` (+ `Buildings/`, `Harvestables/`, `Tools/`, `Delivery/`), `Data/` (building definitions,

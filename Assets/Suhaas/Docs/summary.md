@@ -428,7 +428,7 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 New scripts: `MED_ProgressionManager`, `MED_AreaGate`, `MED_Messages`, `MED_WorldPanel`, `MED_Sandbox` (tray, sterilizer showcase, planter demo), `MED_ResetProgressionButton`, `MED_SkipThresholdButton`. A `MED_Progression` object in `MED_Clinic.unity` holds the manager. The Clinic has no namespaces, so none was added. See `HANDOFF.md` for the integration API.
 
 ### 1. Mastery Thresholding
-`MED_ProgressionManager` (`CurrentThreshold` = thresholds cleared, 0-4; `NextGoal`; static `ClinicComplete`; static `ClinicCompleted`, fired once). Locked content is hidden (shelf models: renderers and colliders off, grab off) or greyed (TREAT button, recipe cards, which read "LOCKED").
+`MED_ProgressionManager` (`CurrentThreshold` = thresholds cleared, 0-5; `NextGoal`; static `ClinicComplete`; static `ClinicCompleted`, fired once). Locked content is hidden (shelf models: renderers and colliders off, grab off) or greyed (TREAT button, recipe cards, which read "LOCKED").
 
 | Threshold | Requirement | Unlocks |
 |---|---|---|
@@ -436,13 +436,14 @@ New scripts: `MED_ProgressionManager`, `MED_AreaGate`, `MED_Messages`, `MED_Worl
 | T1 | Craft the first Medicine | Medicine Cabinet + Treatment Station models |
 | T2 | Stock a Treatment Station once | TREAT button + Sterilizer model |
 | T3 | First treatment dose given | BandageKit, Tonic, Painkiller recipes |
-| T4 | Heal to 100 | Herb Planter model, `ClinicComplete` |
+| T4 | Sterilize a batch (Sterilizer delivers once) | Herb Planter model |
+| T5 | Heal to 100 | Nothing new; sets `ClinicComplete` |
 
 ### 2. Unlock Reveal
-Before each unlock the manager shows a world-space card 1.5 m in front of the player (name + one-line interface metaphor, 6 s, fades in/out). The content is released only after the card, so each existing pop-up tutorial fires afterwards. Shown once per run (RESET PROGRESSION clears the memory). Cards: Medicine Cabinet ("a pharmacy shelf"), Treatment Station ("an IV stand: refill it with Medicine, stand on the pad, heal"), TREAT button ("a nurse's call button"), Sterilizer ("a pressure cooker"), the three recipes ("more pages in the recipe book"), Herb Planter ("a window box").
+Each of the five thresholds shows exactly one reveal card (5 reveals) 1.5 m in front of the player (name + one-line interface metaphor per item, 6 s, fades in/out). The content is released only after the card, so each existing pop-up tutorial fires afterwards. Shown once per run (RESET PROGRESSION clears the memory). Cards: Medicine Cabinet ("a pharmacy shelf"), Treatment Station ("an IV stand: refill it with Medicine, stand on the pad, heal"), TREAT button ("a nurse's call button"), Sterilizer ("a pressure cooker"), the three recipes ("more pages in the recipe book"), Herb Planter ("a window box"; now at T4), and at T5 a "Clinic Complete" card ("a ward at full strength") that unlocks nothing.
 
 ### 3. Thresholds on the Horizon
-A NEXT GOAL sign floats at (0, 2.4, -0.5) and the player HUD shows `Goal: ...` under the message line. Only the current requirement is shown, never later ones: T1 from the start, and each later one only after the previous threshold is cleared. Progress is live, e.g. `Heal to 100: 60/100`. After T4 it reads `CLINIC COMPLETE`.
+A NEXT GOAL sign floats at (0, 2.4, -0.5) and the player HUD shows `Goal: ...` under the message line. Only the current requirement is shown, never later ones: T1 from the start, and each later one only after the previous threshold is cleared. Progress is live, e.g. `Heal to 100: 60/100`. After T5 it reads `CLINIC COMPLETE`. The entry for each threshold appears only after the previous one is cleared.
 
 ### 4. Sandboxes
 | After | Showcase | Feedback (only at its target state) |
@@ -450,7 +451,10 @@ A NEXT GOAL sign floats at (0, 2.4, -0.5) and the player HUD shows `Goal: ...` u
 | T1 | Spare tray beside the shelf (-6.3, -2.6). Poke it holding at least 1 Medicine; nothing is spent | Tray pulses green, bottle appears, "Well made!" |
 | T2 | The Treatment Station pad | Pad pulses bright only while the player stands on it with stock present |
 | T3 | Instrument hanging on every Sterilizer | Heat 0.55-0.85: instrument turns cyan, "Perfectly sterile" (once per cycle) |
-| T4 | Demo plant on a stand above every Herb Planter, ripens in 6 s | Ripe plant pulses; Sickle harvest says "Fresh herbs!", regrows after 4 s |
+| T4 | Demo plant on a stand above every Herb Planter, ripens in 6 s (does not reuse "sterilize a batch") | Ripe plant pulses; Sickle harvest says "Fresh herbs!", regrows after 4 s |
+| T5 | The Medicine Cabinet: fill it to its maximum | Bottles gleam gold, "Fully stocked!" (does not reuse "heal to 100") |
+
+Five thresholds, five reveals, five sandboxes.
 
 Feedback is text plus a colour pulse/glow. No particle systems were used (a colour pulse is simpler and reads the same in VR); say so if the rubric needs particles.
 
@@ -512,18 +516,19 @@ All failed-action text now lives in `MED_Messages.cs`; every message names the r
 | Build: occupied cell | Cell already taken - choose an empty cell or Clear All |
 | Build: can't afford | Can't afford it, need N Type - (how to get it) |
 | Tray: no Medicine | Nothing to place - craft a Medicine, then try again |
+| Planter slot poked while locked | Planter locked - sterilize a batch first |
 | Locked item (see 6) | Locked - craft your first Medicine at the Prep Bench (and the three other requirements) |
 
 That is well past the 8+ target, and every row has a different text (the missing-input, wrong-tool and can't-afford rows vary by resource). The wrong-tool, not-ripe and empty-barrel messages keep a 1.5 s cooldown so a swinging tool does not spam them.
 
 ### 6. Locked-use feedback
-Using a locked recipe card or the TREAT button, or grabbing a locked shelf model (normally unreachable because locked models are hidden and ungrabbable), shows `Locked - <requirement>` as floating text and counts as a catch. Requirements: models T1 "craft your first Medicine at the Prep Bench"; TREAT and Sterilizer "stock the Treatment Station with Medicine once"; recipes "give one treatment dose with the TREAT button"; Planter "heal yourself to 100 HP".
+Using a locked recipe card or the TREAT button, or poking the LOCKED plate on a hidden shelf model's slot, shows `Locked - <requirement>` as floating text and counts as a catch. Requirements: models T1 "craft your first Medicine at the Prep Bench"; TREAT and Sterilizer "stock the Treatment Station with Medicine once"; recipes "give one treatment dose with the TREAT button"; Planter "Planter locked - sterilize a batch first" (its own distinct message). Locked models leave a small LOCKED plate on their shelf slot; poking the plate shows the message, so the catch is reachable even though the model is hidden.
 
 ### 7. Area gate
 `MED_AreaGate` (added at runtime by the manager) treats the build grid + 3 m (+1 m hysteresis leaving) as the Clinic. `MED_AreaGate.PlayerInside` / `Outside` / `Changed`. Outside it, these ignore input: action buttons, recipe cards, test buttons, shelf-model grabs, harvest tools, the sandboxes; pop-up tutorials are held; the NEXT GOAL sign is hidden and the HUD is scaled to zero.
 
 ### 8. Test buttons
-Two new buttons in `MED_TestTools`: "TEST: RESET PROGRESSION" (thresholds, unlocks, placed buildings, health, reveal memory; `ClinicCompleted` can fire again afterwards) and "TEST: SKIP TO NEXT THRESHOLD" (clears the next threshold, with its reveal card and unlock).
+Two new buttons in `MED_TestTools`: "TEST: RESET PROGRESSION" (thresholds, unlocks, placed buildings, health, reveal memory; `ClinicCompleted` can fire again afterwards) and "TEST: SKIP TO NEXT THRESHOLD" (clears the next of the five thresholds, with its reveal card and unlock).
 
 ### 9. Handoff
 `Docs/HANDOFF.md` written in the PowerYard style.
@@ -535,3 +540,11 @@ Two new buttons in `MED_TestTools`: "TEST: RESET PROGRESSION" (thresholds, unloc
 - The demo plant's trigger sits inside the planter's own hit area, so a swing near it can also hit the planter and show that planter's own hint.
 - Skipping a threshold does not give resources, so a skipped T2 still needs Medicine to try the station.
 - Verified in Play mode by script (start state, T1 to T4 chain, locks, reveal timing, reset); not yet by hand with the XR Device Simulator.
+
+### Step 11 - 2026-10-27 - Fifth threshold ("Sterilize a batch")
+- New T4 "Sterilize a batch" (a Sterilizer batch delivered; `MED_Sterilizer.Sterilized` static event) now unlocks the Herb Planter model. Heal to 100 moved to T5: it unlocks nothing and sets `ClinicComplete` / fires `ClinicCompleted` once.
+- Reveals are now one card per threshold (the two-item T1 and T2 cards were merged into a single card each), plus a "Clinic Complete" card at T5: 5 reveals.
+- Sandboxes: tray (T1), pad glow (T2), sterilizer instrument (T3), demo plant (T4), cabinet "Fully stocked!" (T5): 5 sandboxes.
+- New catch "Planter locked - sterilize a batch first", reachable through a LOCKED plate that now marks every hidden shelf slot.
+- `MED_ProgressionManager.ThresholdCount` = 5; RESET PROGRESSION and SKIP TO NEXT THRESHOLD were checked through all five steps (6th skip does nothing; `ClinicCompleted` fired once).
+- If the player is already at 100 HP when T5 begins, T5 clears immediately.

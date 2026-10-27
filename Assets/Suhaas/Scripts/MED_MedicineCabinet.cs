@@ -12,6 +12,7 @@ public class MED_MedicineCabinet : MonoBehaviour
     [SerializeField] float maxUseDistance = 3.5f;
 
     MED_PlayerResources player;
+    bool wasFull;
 
     public MED_Stat Stock => stock;
 
@@ -55,13 +56,43 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     void OnStockChanged(MED_Stat _) => Refresh();
 
+    // T5 sandbox: once the Clinic is complete, packing the cabinet full makes the bottles gleam ("Fully stocked!").
     void Refresh()
     {
+        bool full = stock.Value >= stock.Max;
+        if (full && !wasFull && MED_ProgressionManager.SandboxActive(5)) StartCoroutine(Gleam());
+        wasFull = full;
         int visible = Mathf.CeilToInt(stock.Value / 2f);
         for (int i = 0; i < bottles.Length; i++)
             if (bottles[i] != null) bottles[i].SetActive(i < visible);
         if (stockButton != null) stockButton.SetAvailable(player != null && player.Get(MED_ResourceType.Medicine) >= 1 && stock.Value < stock.Max);
         if (takeButton != null) takeButton.SetAvailable(stock.Value >= 1f);
+    }
+
+    System.Collections.IEnumerator Gleam()
+    {
+        MED_FloatingText.Spawn(MessagePosition, "Fully stocked!", new Color(1f, 0.9f, 0.4f));
+        var block = new MaterialPropertyBlock();
+        var gold = new Color(1f, 0.85f, 0.3f);
+        const float duration = 1.2f;
+        for (float t = 0f; t < duration; t += Time.deltaTime)
+        {
+            float k = Mathf.Sin(t / duration * Mathf.PI);
+            foreach (var b in bottles)
+            {
+                if (b == null) continue;
+                foreach (var r in b.GetComponentsInChildren<Renderer>())
+                {
+                    r.GetPropertyBlock(block);
+                    block.SetColor("_EmissionColor", gold * (2f * k));
+                    block.SetColor("_BaseColor", Color.Lerp(new Color(0.8f, 0.9f, 0.9f), gold, k));
+                    r.SetPropertyBlock(block);
+                }
+            }
+            yield return null;
+        }
+        foreach (var b in bottles)
+            if (b != null) foreach (var r in b.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(null);
     }
 
     void OnStockPressed() => TryStock();

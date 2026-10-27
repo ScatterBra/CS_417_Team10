@@ -18,16 +18,17 @@ public enum MED_Feature
 /// <summary>
 /// Rubric: Mastery Thresholding, Unlock Reveal, Thresholds on the Horizon, Error Tolerant Lessons (locked use).
 /// The Clinic starts with only the Prep Bench model, the tools, herb patches/crates, the barrel and the cart.
-/// Four thresholds release the rest, each behind a reveal card:
+/// Five thresholds release the rest, each behind one reveal card and each followed by a sandbox:
 ///   T1 craft the first Medicine         -> Medicine Cabinet + Treatment Station models
 ///   T2 stock the Treatment Station once -> TREAT button + Sterilizer model
 ///   T3 give the first treatment dose    -> BandageKit / Tonic / Painkiller recipes
-///   T4 heal the player to 100           -> Herb Planter model, ClinicComplete
+///   T4 sterilize a batch                -> Herb Planter model
+///   T5 heal the player to 100           -> nothing new; sets ClinicComplete
 /// Same shape as PWR_Progression (Deadzone.Power). The Clinic project has no namespaces, so none is used here.
 /// </summary>
 public class MED_ProgressionManager : MonoBehaviour
 {
-    public const int ThresholdCount = 4;
+    public const int ThresholdCount = 5;
 
     public static MED_ProgressionManager Instance { get; private set; }
 
@@ -45,17 +46,10 @@ public class MED_ProgressionManager : MonoBehaviour
     [SerializeField] Vector3 signPosition = new Vector3(0f, 2.4f, -0.5f);
     [SerializeField] Vector3 trayPosition = new Vector3(-6.3f, 0f, -2.6f);
 
-    struct RevealItem
-    {
-        public string name;
-        public string metaphor;
-        public RevealItem(string n, string m) { name = n; metaphor = m; }
-    }
-
     struct Unlock
     {
-        public int threshold;
-        public RevealItem[] items;
+        public string title;
+        public string body;
         public MED_Feature[] features;
     }
 
@@ -70,7 +64,7 @@ public class MED_ProgressionManager : MonoBehaviour
     bool signVisible = true;
     bool revealing;
     bool completeRaised;
-    int stocked, dosed, crafted;
+    int stocked, dosed, crafted, sterilized;
 
     /// <summary>Number of thresholds cleared so far: 0 at the start, 4 when the Clinic is complete.</summary>
     public int CurrentThreshold { get; private set; }
@@ -135,7 +129,7 @@ public class MED_ProgressionManager : MonoBehaviour
             case MED_Feature.RecipeBandageKit:
             case MED_Feature.RecipeTonic:
             case MED_Feature.RecipePainkiller: return "give one treatment dose with the TREAT button";
-            default: return "heal yourself to 100 HP";
+            default: return "sterilize a batch at the Sterilizer";
         }
     }
 
@@ -162,6 +156,7 @@ public class MED_ProgressionManager : MonoBehaviour
         MED_PrepBench.Crafted += OnCrafted;
         MED_TreatmentStation.Stocked += OnStocked;
         MED_TreatmentStation.DoseGiven += OnDoseGiven;
+        MED_Sterilizer.Sterilized += OnSterilized;
         MED_Building.OnBuilt += AttachSandbox;
         MED_AreaGate.Changed += OnAreaChanged;
     }
@@ -171,6 +166,7 @@ public class MED_ProgressionManager : MonoBehaviour
         MED_PrepBench.Crafted -= OnCrafted;
         MED_TreatmentStation.Stocked -= OnStocked;
         MED_TreatmentStation.DoseGiven -= OnDoseGiven;
+        MED_Sterilizer.Sterilized -= OnSterilized;
         MED_Building.OnBuilt -= AttachSandbox;
         MED_AreaGate.Changed -= OnAreaChanged;
     }
@@ -233,11 +229,18 @@ public class MED_ProgressionManager : MonoBehaviour
         ClearThreshold(3);
     }
 
+    void OnSterilized()
+    {
+        if (CurrentThreshold != 3) return;
+        sterilized = 1;
+        ClearThreshold(4);
+    }
+
     void OnResourceChanged(MED_ResourceType type, int amount)
     {
         if (type != MED_ResourceType.Health) return;
-        if (CurrentThreshold == 3 && player.Health >= player.MaxHealth) ClearThreshold(4);
-        else if (CurrentThreshold == 3) RefreshSign();
+        if (CurrentThreshold == 4 && player.Health >= player.MaxHealth) ClearThreshold(5);
+        else if (CurrentThreshold == 4) RefreshSign();
     }
 
     string Progress(int threshold)
@@ -247,6 +250,7 @@ public class MED_ProgressionManager : MonoBehaviour
             case 0: return crafted + "/1";
             case 1: return stocked + "/1";
             case 2: return dosed + "/1";
+            case 3: return sterilized + "/1";
             default: return player != null ? player.Health + "/" + player.MaxHealth : "0/100";
         }
     }
@@ -258,6 +262,7 @@ public class MED_ProgressionManager : MonoBehaviour
             case 0: return "Craft your first Medicine";
             case 1: return "Stock the Treatment Station";
             case 2: return "Give a treatment dose";
+            case 3: return "Sterilize a batch";
             default: return "Heal to 100";
         }
     }
@@ -273,6 +278,8 @@ public class MED_ProgressionManager : MonoBehaviour
         if (!revealing) StartCoroutine(RunReveals());
         ApplySandboxes();
         RefreshSign();
+        // "Heal to 100" already holds (healed earlier): do not leave the player stuck at 100/100.
+        if (n == 4 && player != null && player.Health >= player.MaxHealth) ClearThreshold(5);
         if (n == ThresholdCount && !completeRaised)
         {
             completeRaised = true;
@@ -290,6 +297,7 @@ public class MED_ProgressionManager : MonoBehaviour
         if (next == 1) crafted = 1;
         else if (next == 2) stocked = 1;
         else if (next == 3) dosed = 1;
+        else if (next == 4) sterilized = 1;
         ClearThreshold(next);
     }
 
@@ -304,7 +312,7 @@ public class MED_ProgressionManager : MonoBehaviour
         unlocked.Clear();
         shownReveals.Clear();
         CurrentThreshold = 0;
-        crafted = stocked = dosed = 0;
+        crafted = stocked = dosed = sterilized = 0;
         ClinicComplete = false;
         completeRaised = false;
 
@@ -322,44 +330,37 @@ public class MED_ProgressionManager : MonoBehaviour
             case 1:
                 return new Unlock
                 {
-                    threshold = 1,
+                    title = "Medicine Cabinet + Treatment Station",
+                    body = "Cabinet - a pharmacy shelf: STOCK puts Medicine in, TAKE hands it back.\nStation - an IV stand: refill it with Medicine, stand on the pad, heal.",
                     features = new[] { MED_Feature.CabinetModel, MED_Feature.TreatmentModel },
-                    items = new[]
-                    {
-                        new RevealItem("Medicine Cabinet", "a pharmacy shelf: STOCK puts Medicine in, TAKE hands it back."),
-                        new RevealItem("Treatment Station", "an IV stand: refill it with Medicine, stand on the pad, heal."),
-                    },
                 };
             case 2:
                 return new Unlock
                 {
-                    threshold = 2,
+                    title = "TREAT button + Sterilizer",
+                    body = "TREAT - a nurse's call button: stand on the green pad and press to start a dose.\nSterilizer - a pressure cooker: add gauze and water, press START, let the glow fade.",
                     features = new[] { MED_Feature.TreatButton, MED_Feature.SterilizerModel },
-                    items = new[]
-                    {
-                        new RevealItem("TREAT button", "a nurse's call button: stand on the green pad and press to start a dose."),
-                        new RevealItem("Sterilizer", "a pressure cooker: add gauze and water, press START, let the glow fade."),
-                    },
                 };
             case 3:
                 return new Unlock
                 {
-                    threshold = 3,
+                    title = "BandageKit, Tonic, Painkiller recipes",
+                    body = "More pages in the recipe book: grey cards turn green when you can afford them.",
                     features = new[] { MED_Feature.RecipeBandageKit, MED_Feature.RecipeTonic, MED_Feature.RecipePainkiller },
-                    items = new[]
-                    {
-                        new RevealItem("BandageKit, Tonic, Painkiller recipes", "more pages in the recipe book: grey cards turn green when you can afford them."),
-                    },
+                };
+            case 4:
+                return new Unlock
+                {
+                    title = "Herb Planter",
+                    body = "A window box: plant, water, wait, then cut the ripe herbs.",
+                    features = new[] { MED_Feature.PlanterModel },
                 };
             default:
                 return new Unlock
                 {
-                    threshold = 4,
-                    features = new[] { MED_Feature.PlanterModel },
-                    items = new[]
-                    {
-                        new RevealItem("Herb Planter", "a window box: plant, water, wait, then cut the ripe herbs."),
-                    },
+                    title = "Clinic Complete",
+                    body = "A ward at full strength: every station is open. Treat, craft and grow as you like.",
+                    features = new MED_Feature[0],
                 };
         }
     }
@@ -372,11 +373,7 @@ public class MED_ProgressionManager : MonoBehaviour
         while (pending.Count > 0)
         {
             var u = pending.Dequeue();
-            var fresh = new List<RevealItem>();
-            foreach (var item in u.items)
-                if (shownReveals.Add(item.name)) fresh.Add(item);   // shown once per run
-
-            if (fresh.Count > 0) yield return ShowCards(fresh);
+            if (shownReveals.Add(u.title)) yield return ShowCard(u);   // shown once per run
 
             // The reveal comes first; the content (and with it its existing pop-up) is released afterwards.
             foreach (var f in u.features) unlocked.Add(f);
@@ -385,42 +382,30 @@ public class MED_ProgressionManager : MonoBehaviour
         revealing = false;
     }
 
-    IEnumerator ShowCards(List<RevealItem> items)
+    IEnumerator ShowCard(Unlock u)
     {
         var cam = Camera.main;
         if (cam == null) yield break;
         // A fixed spot in front of the player (not following the head) so it can be read calmly.
         Vector3 forward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
         if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
-        Vector3 center = cam.transform.position + forward * 1.5f;
-        float spacing = 0.5f;
 
-        var shown = new List<MED_WorldPanel>();
-        for (int i = 0; i < items.Count; i++)
-        {
-            var card = MED_WorldPanel.Create("MED_RevealCard", new Vector2(0.9f, 0.42f), 0.5f, 0.34f,
-                new Color(0.65f, 0.95f, 0.7f), new Color(0.35f, 0.75f, 1f));
-            card.SetText("NEW: " + items[i].name, items[i].metaphor);
-            float y = (items.Count - 1) * 0.5f * spacing - i * spacing;
-            card.Root.transform.position = center + Vector3.up * (y - 0.1f);
-            card.Root.AddComponent<MED_Billboard>();
-            card.SetAlpha(0f);
-            cards.Add(card);
-            shown.Add(card);
-        }
+        var card = MED_WorldPanel.Create("MED_RevealCard", new Vector2(1.0f, 0.62f), 0.5f, 0.3f,
+            new Color(0.65f, 0.95f, 0.7f), new Color(0.35f, 0.75f, 1f));
+        card.SetText("NEW: " + u.title, u.body);
+        card.Root.transform.position = cam.transform.position + forward * 1.5f + Vector3.down * 0.1f;
+        card.Root.AddComponent<MED_Billboard>();
+        card.SetAlpha(0f);
+        cards.Add(card);
 
         const float fade = 0.4f;
-        for (float t = 0f; t < fade; t += Time.deltaTime) { SetAlpha(shown, t / fade); yield return null; }
-        SetAlpha(shown, 1f);
+        for (float t = 0f; t < fade; t += Time.deltaTime) { card.SetAlpha(t / fade); yield return null; }
+        card.SetAlpha(1f);
         yield return new WaitForSeconds(revealSeconds);
-        for (float t = 0f; t < fade; t += Time.deltaTime) { SetAlpha(shown, 1f - t / fade); yield return null; }
+        for (float t = 0f; t < fade; t += Time.deltaTime) { card.SetAlpha(1f - t / fade); yield return null; }
 
-        foreach (var c in shown) { cards.Remove(c); c.Destroy(); }
-    }
-
-    static void SetAlpha(List<MED_WorldPanel> panels, float a)
-    {
-        foreach (var p in panels) if (p.Root != null) p.SetAlpha(Mathf.Clamp01(a));
+        cards.Remove(card);
+        card.Destroy();
     }
 
     // ---------- NEXT GOAL sign ----------

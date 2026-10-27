@@ -40,6 +40,11 @@ public class MED_Sterilizer : MonoBehaviour
     public MED_Stat SterilizeProgress => sterilizeProgress;
     public MED_Recipe Recipe => recipe;
     public event Action StateChanged;
+    /// <summary>Raised on any Sterilizer when a batch is delivered (used by the progression thresholds).</summary>
+    public static event Action Sterilized;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Sterilized = null;
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 1.5f;
 
@@ -129,6 +134,7 @@ public class MED_Sterilizer : MonoBehaviour
         }
         sterilizeProgress.Set(0f);
         SetState(SterilizerState.Idle);
+        Sterilized?.Invoke();
     }
 
     // ---------- Actions ----------

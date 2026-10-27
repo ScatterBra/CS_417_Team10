@@ -57,7 +57,10 @@ public static class MED_Messages
     public static string Missing(MED_ResourceType type, int have, int need)
         => $"Not enough {type} ({have}/{need}) - {HowToGet(type)}";
 
-    public static string Locked(MED_Feature feature) => "Locked - " + MED_ProgressionManager.RequirementFor(feature);
+    public const string PlanterLocked = "Planter locked - sterilize a batch first";
+
+    public static string Locked(MED_Feature feature)
+        => feature == MED_Feature.PlanterModel ? PlanterLocked : "Locked - " + MED_ProgressionManager.RequirementFor(feature);
 
     // ---------- Prep Bench ----------
     public const string BenchBusy = "Bench is busy preparing - wait for the bar to fill";
