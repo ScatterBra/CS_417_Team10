@@ -57,7 +57,7 @@ public static class DEF_QuestPackaging
             DEF_ReleasePreparation.Prepare();
             DEF_ClinicStaging.BindOwnerManagers();
             var scene=SceneManager.GetActiveScene();
-            if(path.EndsWith("_Quest.unity")) {
+            if(!path.EndsWith("DEF_Full_Desktop_Demo.unity")) {
                 foreach(var c in scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MonoBehaviour>(true)).Where(c=>c!=null).ToArray())
                     if(c.GetType().Name=="XRDeviceSimulator"||c.GetType().Name=="XRInteractionSimulator") {
                         if(c.GetComponentsInChildren<MonoBehaviour>(true).Any(x=>x!=null&&x.GetType().Name=="XROrigin"))throw new Exception("Simulator contains real rig");
