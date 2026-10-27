@@ -52,6 +52,13 @@ saved after Play stops. None of the five repeats a progression threshold.
 API: `MED_AchievementManager.Instance`, `IsEarned(MED_Achievement)`, `EarnedCount`, static event `Earned`. Other areas
 need not use it. Test buttons: `RESET ACHIEVEMENTS` and `GRANT NEXT ACHIEVEMENT`.
 
+## Wild items (procedural generation)
+`MED_WildSpawner` stamps hand-designed patches instead of scattering single items. On Play (new seed) and on
+RE-ROLL WILD ITEMS it picks 2-3 of the 5 `MED_WildPatch` assets (`Data/Patches/`), rotates each by 0/90/180/270 and
+stamps it on a random spot of the 15x15 grid, only where all its cells are free and clear of the other patches. The
+spawned herb patches and crates are normal `MED_Harvestable` objects and free their cells when depleted. Nothing here is
+read by other areas. Each stamp is logged: `[MED_WildSpawner] Stamped <patch> at (x,z) rot R`.
+
 ## Shared scene
 `MED_AreaGate` (added at runtime by `MED_ProgressionManager`) treats the build grid + 3 m as the Clinic area
 (+1 m hysteresis on the way out). Outside it, the Clinic ignores action buttons, recipe cards, test buttons,

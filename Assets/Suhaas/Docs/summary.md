@@ -61,7 +61,7 @@ Created:
 - Base: `MED_Harvestable` (holds a `MED_Stat` "remaining", resource, yield per hit, required tool, 0.4 s cooldown, destroyOnEmpty). `TryHarvest(tool, player)`: wrong tool shows a floating "Use the <tool>"; right tool reduces the stat by 1, adds the resource, shows a rising "+1 Herbs" text, squashes the visual, spawns a small particle puff and sends a haptic pulse. On depletion (if destroyOnEmpty): shrink-and-puff, frees its grid cells, raises `OnDepleted`, destroys itself. A `MED_StatBar` (Step 2 prefab) floats above every harvestable. Supporting scripts: `MED_ToolType`, `MED_FloatingText`, `MED_HerbPatchVisual`, `MED_CrateVisual`, `MED_BarrelVisual`.
 - Tools (supporting props, not content prefabs): `MED_HarvestTool` + `MED_Sickle`, `MED_Crowbar`, `MED_Bucket` prefabs in `Assets/Suhaas/Prefabs/Tools/` (kinematic Rigidbody, box collider, `XRGrabInteractable`, name label). Harvest triggers when the tool's hit point overlaps a harvestable AND (swing speed > 0.5 m/s OR the activate/trigger button is held). `MED_ToolRack` (east wall, sign "TOOLS") holds the three tools; a tool left alone for 3 s eases back to its slot.
 - Harvestables (`Assets/Suhaas/Prefabs/Harvestables/`): `MED_HerbPatch`, `MED_SupplyCrate`, `MED_WaterBarrel`, plus the shared `MED_HarvestPuff` particle prefab.
-- Wild instances: `MED_WildSpawner` on `MED_Wild` in the station. On Play (new random seed every run) it places 5-8 herb patches and 3-4 supply crates on random free grid cells (never on reserved or occupied cells) under `MED_WildInstances`, with random yaw. `Respawn()` destroys them and rolls a new set. The fixed water barrel (`MED_WaterBarrel`, east wall, x=7, z=-1) is not part of the wild set; its cells and the rack's cells are reserved.
+- Wild instances: `MED_WildSpawner` on `MED_Wild` in the station. (Superseded by the patch stamping in Step 13: it now stamps 2-3 hand-designed patches.) On Play (new random seed every run) it placed 5-8 herb patches and 3-4 supply crates on random free grid cells under `MED_WildInstances`, with random yaw. `Respawn()` destroys them and rolls a new set. The fixed water barrel (`MED_WaterBarrel`, east wall, x=7, z=-1) is not part of the wild set; its cells and the rack's cells are reserved.
 - Test tools in `MED_TestTools`: `MED_RerollWildButton` ("RE-ROLL WILD ITEMS" calls `Respawn()`) and `MED_RefillBarrelButton` ("REFILL BARREL"). "CLEAR ALL BUILDINGS" only removes buildings (fixed: it no longer frees every grid cell, so wild cells stay occupied).
 
 Files affected:
@@ -566,3 +566,31 @@ New scripts: `MED_AchievementManager`, `MED_Trophy`, `MED_ResetAchievementsButto
 - Existing scripts touched: only static events added to `MED_SupplyCart`, `MED_HerbPlanter` and `MED_MedicineCabinet`.
 - Verified in Play mode by script: all five earned through the real code paths (5 benches, 3 carts, cabinet, planter, health), duplicates ignored, the same 100 health twice in a row does not count, reset and grant-next work. Not yet checked by hand in the XR simulator.
 - Known issue: the first 100 health counts even if it happened before the Clinic's thresholds were reached, since achievements are independent of progression.
+
+### Step 13 - 2026-10-27 - Procedural Generation: semi-random patch stamping
+New: `MED_WildPatch` (ScriptableObject) and five patch assets in `Data/Patches/`. Rewritten: `MED_WildSpawner`. `MED_RerollWildButton` is unchanged: it still calls `Respawn()`.
+
+**Patch library.** A patch is typed as rows of characters (top row first): `H` herb patch, `C` supply crate, `.` empty. Every cell of the rectangle, empty ones included, must be free for it to be stamped.
+
+| Patch | Layout | Contents |
+|---|---|---|
+| Herb Cluster | `.H.` / `HHH` / `.H.` (3x3) | 5 herbs |
+| Supply Cache | `CC.` / `.H.` / `...` (3x3) | 2 crates + 1 herb |
+| Scattered Mix | `H.C` / `.H.` / `C.H` (3x3) | 3 herbs + 2 crates |
+| Herb Trail | `HH.H` / `.H..` (4x2) | 4 herbs |
+| Crate Wall | `CCC` / `H.H` (3x2) | 3 crates + 2 herbs |
+
+**Algorithm (`MED_WildSpawner.Respawn`).**
+1. Destroy the old wild items (their grid cells are freed).
+2. Pick 2 to 3 distinct patches from a shuffled copy of the library (`minPatches`, `maxPatches`).
+3. For each patch try up to `attemptsPerPatch` (100) random placements: random rotation of 0/90/180/270 (`MED_WildPatch.GetCells` rotates the layout), random min-corner cell so the rectangle stays inside the 15x15 grid.
+4. A placement is accepted only if every cell of the rotated rectangle passes `MED_GridManager.IsCellFree` (so not wall margin, doorway, spawn, shelf, delivery route/bay, test tools, other wild items or built buildings) and none was claimed by a patch stamped earlier in the same roll, so patches never overlap.
+5. Accepted: instantiate an herb patch / crate on each H / C cell (random yaw) and occupy the cell. Not accepted after all tries: skip the patch and log it.
+
+**Debug log and gizmo.** Each stamp logs `[MED_WildSpawner] Stamped <patch> at (x,z) rot R` (x,z = min-corner cell of the rotated rectangle); a skipped patch logs `Skipped <patch>: no free spot after N tries`. With the spawner selected, the Scene view draws the latest stamps in Play (green = herb, orange = crate, faint = empty), or, in edit mode, the `previewPatch` at `previewCell` with `previewQuarterTurns`.
+
+**Unchanged rules.** The items are still `MED_Harvestable` objects: Death on depletion, `AssignGrid` / `Free`, tool requirements and messages. The fixed water barrel is not part of the set.
+
+**Checked in Play mode (script).** Rotations of an asymmetric patch are correct at 0/90/180/270. Over 15 consecutive re-rolls: 15 of 15 layouts were different, 0 items on reserved cells or on the same cell, and 1 to 3 patches per roll. At 40 tries a few patches were skipped (about 3 of 65 stamps), so the default was raised to 100 tries. Not looked at by eye in the Game view yet.
+
+**Known limits.** Because the library is small, a roll can contain only 3 herbs or 7 crates; with fewer patches the supply is lower than the old 5-8 herb patches. A 1-patch roll is possible only when a stamp is skipped.

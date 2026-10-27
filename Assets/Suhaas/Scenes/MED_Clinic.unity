@@ -2987,6 +2987,38 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: previewPatch
+      value: 
+      objectReference: {fileID: 11400000, guid: a853cce4d5ff2f14ab07486e76ebab73, type: 2}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: attemptsPerPatch
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: patches.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: 'patches.Array.data[0]'
+      value: 
+      objectReference: {fileID: 11400000, guid: a853cce4d5ff2f14ab07486e76ebab73, type: 2}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: 'patches.Array.data[1]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 95325ad20c171ab43b06457cfcf80169, type: 2}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: 'patches.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: e5ef39dbddfa41c4c84f320732527f20, type: 2}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: 'patches.Array.data[3]'
+      value: 
+      objectReference: {fileID: 11400000, guid: c16364f651f126448a8abcee8bcad4a9, type: 2}
+    - target: {fileID: 8616005852323763688, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: 'patches.Array.data[4]'
+      value: 
+      objectReference: {fileID: 11400000, guid: ee91c393ace4ea4478ab9e5a0df30fb6, type: 2}
     - target: {fileID: 8678777069359905838, guid: 1262203c5976df64387c23820c563d9f, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
