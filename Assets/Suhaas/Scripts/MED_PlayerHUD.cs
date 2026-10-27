@@ -19,6 +19,7 @@ public class MED_PlayerHUD : MonoBehaviour
     [SerializeField, Range(0f, 1f)] float panelBackdropAlpha = 0.55f;
 
     MED_PlayerResources resources;
+    TextMeshPro goalLabel;
     MaterialPropertyBlock backdropBlock;
     float lastVisibility = -1f;
     float messageTimer;
@@ -50,10 +51,39 @@ public class MED_PlayerHUD : MonoBehaviour
         if (messageLabel != null) { messageLabel.text = ""; messageLabel.alpha = 0f; }
         TryBind();
         SetPanelVisibility(0f);
+        BuildGoalLabel();
+        MED_ProgressionManager.GoalChanged += RefreshGoal;
+        MED_AreaGate.Changed += OnAreaChanged;
+        RefreshGoal();
     }
+
+    // NEXT GOAL line (Thresholds on the Horizon), shown under the health bar next to the in-world sign.
+    void BuildGoalLabel()
+    {
+        var go = new GameObject("MED_GoalLabel");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = new Vector3(0f, -0.1f, 0f);
+        goalLabel = go.AddComponent<TextMeshPro>();
+        goalLabel.fontSize = 0.2f;
+        goalLabel.alignment = TextAlignmentOptions.Center;
+        goalLabel.textWrappingMode = TextWrappingModes.NoWrap;
+        goalLabel.color = new Color(0.6f, 0.85f, 1f);
+        goalLabel.rectTransform.sizeDelta = new Vector2(0.7f, 0.05f);
+    }
+
+    void RefreshGoal()
+    {
+        var m = MED_ProgressionManager.Instance;
+        if (goalLabel != null && m != null) goalLabel.text = "Goal: " + m.NextGoal;
+    }
+
+    // The whole HUD disappears while the player is in another area.
+    void OnAreaChanged(bool inside) => transform.localScale = inside ? Vector3.one : Vector3.zero;
 
     void OnDestroy()
     {
+        MED_ProgressionManager.GoalChanged -= RefreshGoal;
+        MED_AreaGate.Changed -= OnAreaChanged;
         if (instance == this) instance = null;
         if (resources != null) resources.OnResourceChanged -= OnResourceChanged;
     }

@@ -69,10 +69,10 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     public bool TryStock()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.StockTooFar);
         Bind();
-        if (stock.Value >= stock.Max) return Fail("Cabinet full");
-        if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
+        if (stock.Value >= stock.Max) return Fail(MED_Messages.CabinetFull);
+        if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail(MED_Messages.StockNoMedicine);
         player.TrySpend(MED_ResourceType.Medicine, 1);
         stock.Add(1f);
         MED_FloatingText.Spawn(MessagePosition, "+1 Stocked", new Color(0.6f, 1f, 0.6f));
@@ -81,10 +81,10 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     public bool TryTake()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.TakeTooFar);
         Bind();
-        if (stock.Value < 1f) return Fail("Cabinet empty");
-        if (player == null) return Fail("No player");
+        if (stock.Value < 1f) return Fail(MED_Messages.CabinetEmpty);
+        if (player == null) return Fail(MED_Messages.CabinetEmpty);
         stock.Add(-1f);
         player.Add(MED_ResourceType.Medicine, 1);
         MED_FloatingText.Spawn(MessagePosition, "+1 Medicine", new Color(0.6f, 1f, 0.6f));
@@ -93,7 +93,6 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

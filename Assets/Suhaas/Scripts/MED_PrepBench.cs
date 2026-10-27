@@ -27,6 +27,11 @@ public class MED_PrepBench : MonoBehaviour
 
     /// <summary>Raised when the bench switches between Idle and Preparing.</summary>
     public event Action StateChanged;
+    /// <summary>Raised on any bench when a recipe finishes (used by the progression thresholds).</summary>
+    public static event Action<MED_Recipe> Crafted;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Crafted = null;
 
     MED_PlayerResources Player
     {
@@ -64,7 +69,7 @@ public class MED_PrepBench : MonoBehaviour
             int have = p != null ? p.Get(input.Key) : 0;
             if (have < input.Value)
             {
-                problem = $"Need {input.Value} {input.Key} (have {have})";
+                problem = MED_Messages.Missing(input.Key, have, input.Value);
                 return false;
             }
         }
@@ -74,8 +79,10 @@ public class MED_PrepBench : MonoBehaviour
     public bool TryStartRecipe(MED_Recipe recipe)
     {
         if (recipe == null) return false;
-        if (State == BenchState.Preparing) return Fail("Bench is busy");
-        if (!IsPlayerNear()) return Fail("Too far");
+        if (MED_ProgressionManager.TryGetFeature(recipe, out var feature) && MED_ProgressionManager.IsLocked(feature))
+            return Fail(MED_Messages.Locked(feature));
+        if (State == BenchState.Preparing) return Fail(MED_Messages.BenchBusy);
+        if (!IsPlayerNear()) return Fail(MED_Messages.BenchTooFar);
         if (!CanAfford(recipe, out var problem)) return Fail(problem);
 
         // CanAfford checked every input, so none of these can fail halfway.
@@ -113,6 +120,7 @@ public class MED_PrepBench : MonoBehaviour
         CurrentRecipe = null;
         prepProgress.Set(0f);
         SetState(BenchState.Idle);
+        Crafted?.Invoke(recipe);
     }
 
     void SetState(BenchState state)
@@ -149,8 +157,7 @@ public class MED_PrepBench : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 
     static Dictionary<MED_ResourceType, int> Combine(List<MED_ResourceCost> costs)

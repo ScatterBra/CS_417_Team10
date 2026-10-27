@@ -420,3 +420,118 @@ Pop-ups appear once per run next to the mechanic, one at a time (`MED_TutorialMa
 - The delivery path starts 4 m outside the north wall, where there is no floor; the cart appears over the void and drives in through the doorway. The delivery area is reserved on the build grid (0.75 m around the curve plus the 2x2 bay), so it is always clear of buildings and wild items; moving the station moves the path with it (local space).
 - A cart only gives the player supplies while waiting; it is not refunded or saved. Cargo is random per cart (4-6 units of Herbs, Water, Alcohol, Gauze).
 - XRI version change (2026-10-15): after merging main, the project was on XRI 3.6.1 with both `3.5.1` and `3.6.1` sample folders, giving duplicate-assembly errors. Standardised on XRI 3.5.1 (matches main): `Packages/manifest.json` and `packages-lock.json` set to 3.5.1, `Assets/Samples/XR Interaction Toolkit/3.6.1` deleted. Both versions share the same asset GUIDs, so no scene or prefab references were changed.
+
+---
+
+## (k) MP2B progression (Step 10 - 2026-10-27)
+
+New scripts: `MED_ProgressionManager`, `MED_AreaGate`, `MED_Messages`, `MED_WorldPanel`, `MED_Sandbox` (tray, sterilizer showcase, planter demo), `MED_ResetProgressionButton`, `MED_SkipThresholdButton`. A `MED_Progression` object in `MED_Clinic.unity` holds the manager. The Clinic has no namespaces, so none was added. See `HANDOFF.md` for the integration API.
+
+### 1. Mastery Thresholding
+`MED_ProgressionManager` (`CurrentThreshold` = thresholds cleared, 0-4; `NextGoal`; static `ClinicComplete`; static `ClinicCompleted`, fired once). Locked content is hidden (shelf models: renderers and colliders off, grab off) or greyed (TREAT button, recipe cards, which read "LOCKED").
+
+| Threshold | Requirement | Unlocks |
+|---|---|---|
+| Start | - | Prep Bench model, tools, herb patches, crates, barrel, cart, Medicine / Antiseptic / Sterile Bandages recipes |
+| T1 | Craft the first Medicine | Medicine Cabinet + Treatment Station models |
+| T2 | Stock a Treatment Station once | TREAT button + Sterilizer model |
+| T3 | First treatment dose given | BandageKit, Tonic, Painkiller recipes |
+| T4 | Heal to 100 | Herb Planter model, `ClinicComplete` |
+
+### 2. Unlock Reveal
+Before each unlock the manager shows a world-space card 1.5 m in front of the player (name + one-line interface metaphor, 6 s, fades in/out). The content is released only after the card, so each existing pop-up tutorial fires afterwards. Shown once per run (RESET PROGRESSION clears the memory). Cards: Medicine Cabinet ("a pharmacy shelf"), Treatment Station ("an IV stand: refill it with Medicine, stand on the pad, heal"), TREAT button ("a nurse's call button"), Sterilizer ("a pressure cooker"), the three recipes ("more pages in the recipe book"), Herb Planter ("a window box").
+
+### 3. Thresholds on the Horizon
+A NEXT GOAL sign floats at (0, 2.4, -0.5) and the player HUD shows `Goal: ...` under the message line. Only the current requirement is shown, never later ones: T1 from the start, and each later one only after the previous threshold is cleared. Progress is live, e.g. `Heal to 100: 60/100`. After T4 it reads `CLINIC COMPLETE`.
+
+### 4. Sandboxes
+| After | Showcase | Feedback (only at its target state) |
+|---|---|---|
+| T1 | Spare tray beside the shelf (-6.3, -2.6). Poke it holding at least 1 Medicine; nothing is spent | Tray pulses green, bottle appears, "Well made!" |
+| T2 | The Treatment Station pad | Pad pulses bright only while the player stands on it with stock present |
+| T3 | Instrument hanging on every Sterilizer | Heat 0.55-0.85: instrument turns cyan, "Perfectly sterile" (once per cycle) |
+| T4 | Demo plant on a stand above every Herb Planter, ripens in 6 s | Ripe plant pulses; Sickle harvest says "Fresh herbs!", regrows after 4 s |
+
+Feedback is text plus a colour pulse/glow. No particle systems were used (a colour pulse is simpler and reads the same in VR); say so if the rubric needs particles.
+
+### 5. Error Tolerant Lessons
+All failed-action text now lives in `MED_Messages.cs`; every message names the reason and the fix, and all are distinct (previously "Too far" appeared in eight places). `MED_Messages.CatchCount` / `DistinctCatchCount` count catches.
+
+| Action | Message |
+|---|---|
+| Craft: bench busy | Bench is busy preparing - wait for the bar to fill |
+| Craft: too far | Too far from the Prep Bench - step within 3 m to craft |
+| Craft: missing input | Not enough Herbs (0/2) - cut herb patches with the Sickle (resource and fix vary: Water / Alcohol / Gauze / Medicine ...) |
+| Refill station: too far | Too far from the Treatment Station - step closer to REFILL |
+| Refill station: full | Station is full - treat yourself on the pad to use some up |
+| Refill station: no Medicine | No Medicine to refill with - craft some at the Prep Bench |
+| Treat: too far | Too far to treat - walk up to the Treatment Station |
+| Treat: not on pad | Not on the pad - step onto the green pad, then press TREAT |
+| Treat: health full | Health is already full - come back after taking damage |
+| Treat: station empty | Station is empty - press REFILL with Medicine first |
+| Treat: left the pad | Treatment cancelled, you left the pad - step back on and press TREAT |
+| Treat: ran out mid-dose | Out of Medicine mid-treatment - press REFILL to continue |
+| Cabinet stock: too far | Too far from the Cabinet - step closer to STOCK |
+| Cabinet stock: full | Cabinet is full - TAKE a bottle out first |
+| Cabinet stock: no Medicine | No Medicine to stock - craft some at the Prep Bench |
+| Cabinet take: too far | Too far from the Cabinet - step closer to TAKE |
+| Cabinet take: empty | Cabinet is empty - STOCK some Medicine first |
+| Sterilizer: too far | Too far from the Sterilizer - step closer to START |
+| Sterilizer: running | Sterilizer is running - wait for the cycle to end |
+| Sterilizer: still hot | Sterilizer is still hot - wait for the glow to fade |
+| Sterilizer: missing input | Can't start, short of Gauze (0/2) - crack supply crates with the Crowbar |
+| Sterilizer instrument: too cold | Instrument too cold - press START and wait for the glow |
+| Sterilizer instrument: too hot | Instrument too hot - let the Sterilizer cool a little |
+| Plant: too far | Too far from the Planter - step closer to PLANT |
+| Plant: already planted | Already planted - wait for it to ripen, then use the Sickle |
+| Plant: no Herbs | No Herbs to plant - cut a herb patch with the Sickle |
+| Water planter: too far | Too far from the Planter - step closer to WATER |
+| Water planter: soil wet | Soil is already wet - wait until it dries out |
+| Water planter: no Water | No Water to pour - dip the Bucket in the Water Barrel |
+| Harvest planter: wrong tool | Wrong tool - the Sickle cuts the plant |
+| Harvest planter: empty | Nothing planted yet - press PLANT first |
+| Harvest planter: not ripe | Not ripe yet - keep the soil damp and wait for the glow |
+| Demo plant: wrong tool | Wrong tool - cut the demo plant with the Sickle |
+| Demo plant: growing | Demo plant is still growing - wait for it to glow |
+| Barrel pour: too far | Too far from the Barrel - step closer to POUR |
+| Barrel pour: full | Barrel is full - take some Water out with the Bucket |
+| Barrel pour: no Water | No Water to pour - dip the Bucket in the barrel first |
+| Barrel dip: empty | Barrel is empty - wait for rain or POUR some Water in |
+| Gather: nothing left | Nothing left here - find another one |
+| Gather: wrong tool | Wrong tool - Herbs needs the Sickle (Gauze/Alcohol: Crowbar, Water: Bucket) |
+| Cart unload: too far | Too far from the Cart - walk up to UNLOAD |
+| Cart unload: arriving | Cart is still arriving - wait until it stops at the bay |
+| Cart unload: leaving | Cart is leaving - catch the next delivery |
+| Cart unload: empty | Cart is empty - wait for the next delivery |
+| Call delivery: cart here | Cart already here - go UNLOAD it first |
+| Build: aiming up | Aiming too high - tilt the ray down at the floor |
+| Build: floor too far | Floor too far from your hand - walk closer to where you want to build |
+| Build: outside grid | Outside the clinic grid - aim inside the walls |
+| Build: partly off grid | Doesn't fit - part of it hangs off the grid, move inward |
+| Build: reserved cell | Reserved spot (wall, door, shelf, path) - pick a free cell |
+| Build: occupied cell | Cell already taken - choose an empty cell or Clear All |
+| Build: can't afford | Can't afford it, need N Type - (how to get it) |
+| Tray: no Medicine | Nothing to place - craft a Medicine, then try again |
+| Locked item (see 6) | Locked - craft your first Medicine at the Prep Bench (and the three other requirements) |
+
+That is well past the 8+ target, and every row has a different text (the missing-input, wrong-tool and can't-afford rows vary by resource). The wrong-tool, not-ripe and empty-barrel messages keep a 1.5 s cooldown so a swinging tool does not spam them.
+
+### 6. Locked-use feedback
+Using a locked recipe card or the TREAT button, or grabbing a locked shelf model (normally unreachable because locked models are hidden and ungrabbable), shows `Locked - <requirement>` as floating text and counts as a catch. Requirements: models T1 "craft your first Medicine at the Prep Bench"; TREAT and Sterilizer "stock the Treatment Station with Medicine once"; recipes "give one treatment dose with the TREAT button"; Planter "heal yourself to 100 HP".
+
+### 7. Area gate
+`MED_AreaGate` (added at runtime by the manager) treats the build grid + 3 m (+1 m hysteresis leaving) as the Clinic. `MED_AreaGate.PlayerInside` / `Outside` / `Changed`. Outside it, these ignore input: action buttons, recipe cards, test buttons, shelf-model grabs, harvest tools, the sandboxes; pop-up tutorials are held; the NEXT GOAL sign is hidden and the HUD is scaled to zero.
+
+### 8. Test buttons
+Two new buttons in `MED_TestTools`: "TEST: RESET PROGRESSION" (thresholds, unlocks, placed buildings, health, reveal memory; `ClinicCompleted` can fire again afterwards) and "TEST: SKIP TO NEXT THRESHOLD" (clears the next threshold, with its reveal card and unlock).
+
+### 9. Handoff
+`Docs/HANDOFF.md` written in the PowerYard style.
+
+### Changes to existing scripts
+`MED_PrepBench` (static `Crafted` event, locked check), `MED_TreatmentStation` (static `Stocked` / `DoseGiven` events, TREAT locked, pad glow sandbox), `MED_BuildingMini` (lock/hide), `MED_RecipeCard` (LOCKED label and grey), `MED_PlayerHUD` (goal line, hide outside), `MED_TutorialManager` (exposes panel material, holds queue outside), `MED_FloatingText` (wraps long messages, 3.2 s lifetime), `MED_BuildingPlacer` (distinct placement reasons), plus message swaps in the Cabinet, Sterilizer, Planter, Barrel, Harvestable, Supply Cart and Delivery Spawner.
+
+### Known issues
+- The demo plant's trigger sits inside the planter's own hit area, so a swing near it can also hit the planter and show that planter's own hint.
+- Skipping a threshold does not give resources, so a skipped T2 still needs Medicine to try the station.
+- Verified in Play mode by script (start state, T1 to T4 chain, locks, reveal timing, reset); not yet by hand with the XR Device Simulator.

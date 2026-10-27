@@ -51,12 +51,12 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
         if (dead) return false;
         if (stat.Value <= 0f)
         {
-            Message("EMPTY", new Color(1f, 0.5f, 0.4f));
+            Message(resource == MED_ResourceType.Water ? MED_Messages.BarrelEmpty : MED_Messages.NothingLeft, new Color(1f, 0.5f, 0.4f));
             return false;
         }
         if (tool == null || tool.ToolType != requiredTool)
         {
-            Message($"Use the {requiredTool}", new Color(1f, 0.85f, 0.4f));
+            Message(MED_Messages.HarvestWrongTool(resource, requiredTool), new Color(1f, 0.85f, 0.4f));
             return false;
         }
         if (Time.time < nextHitTime) return false;
@@ -76,7 +76,7 @@ public class MED_Harvestable : MonoBehaviour, MED_IToolTarget
     {
         if (Time.time < nextMessageTime) return;
         nextMessageTime = Time.time + 1.5f;
-        MED_FloatingText.Spawn(MessagePosition, text, c, 0.5f);
+        MED_Messages.Fail(MessagePosition, text);
     }
 
     void Feedback()

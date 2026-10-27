@@ -21,6 +21,7 @@ public class MED_BuildingPlacer : MonoBehaviour
         public int turns;
         public bool valid;
         public string reason;
+        public string missReason;   // why nothing was hit at all
     }
 
     MED_BuildingMini carried;
@@ -68,7 +69,8 @@ public class MED_BuildingPlacer : MonoBehaviour
             return;
         }
 
-        string msg = !p.hasHit ? "Point at the floor inside the clinic" : (p.reason ?? "Can't build there");
+        string msg = !p.hasHit ? (p.missReason ?? MED_Messages.OffGrid) : (p.reason ?? MED_Messages.CellTaken);
+        MED_Messages.Record(msg);
         MED_PlayerHUD.ShowMessage(msg);
         mini.ReturnHome();
     }
@@ -109,12 +111,12 @@ public class MED_BuildingPlacer : MonoBehaviour
         if (carried == null || !TryGetRay(out var origin, out var dir)) return p;
 
         float planeY = grid.transform.position.y;
-        if (dir.y > -0.02f) return p;
+        if (dir.y > -0.02f) { p.missReason = MED_Messages.AimTooHigh; return p; }
         float t = (planeY - origin.y) / dir.y;
-        if (t < 0f || t > maxRayDistance) return p;
+        if (t < 0f || t > maxRayDistance) { p.missReason = MED_Messages.FloorTooFar; return p; }
 
         var anchor = grid.WorldToCell(origin + dir * t);
-        if (!grid.IsInBounds(anchor)) return p;
+        if (!grid.IsInBounds(anchor)) { p.missReason = MED_Messages.OffGrid; return p; }
 
         var def = carried.Definition;
         p.hasHit = true;
@@ -123,7 +125,11 @@ public class MED_BuildingPlacer : MonoBehaviour
         p.center = grid.GetFootprintCenter(p.cells);
 
         foreach (var c in p.cells)
-            if (!grid.IsCellFree(c)) { p.reason = "Can't build there"; break; }
+        {
+            if (grid.IsCellFree(c)) continue;
+            p.reason = !grid.IsInBounds(c) ? MED_Messages.FootprintOffGrid : grid.IsReserved(c) ? MED_Messages.CellReserved : MED_Messages.CellTaken;
+            break;
+        }
         if (p.reason == null && !CanAfford(def, out var why)) p.reason = why;
         p.valid = p.reason == null;
         return p;
@@ -168,7 +174,7 @@ public class MED_BuildingPlacer : MonoBehaviour
         foreach (var cost in def.costs)
             if (r == null || r.Get(cost.type) < cost.amount)
             {
-                reason = $"Need {cost.amount} {cost.type}";
+                reason = MED_Messages.CantAfford(cost.type, cost.amount);
                 return false;
             }
         return true;

@@ -210,10 +210,10 @@ public class MED_SupplyCart : MonoBehaviour
 
     public bool TryUnload()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
-        if (State != CartState.Waiting) return Fail(State == CartState.Arriving ? "Cart is still arriving" : "Cart is leaving");
-        if (cargo.Count == 0 || cargoRemaining.Value < 0.5f) return Fail("Cart is empty");
-        if (Player == null) return Fail("No player");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.CartTooFar);
+        if (State != CartState.Waiting) return Fail(State == CartState.Arriving ? MED_Messages.CartArriving : MED_Messages.CartLeaving);
+        if (cargo.Count == 0 || cargoRemaining.Value < 0.5f) return Fail(MED_Messages.CartEmpty);
+        if (Player == null) return Fail(MED_Messages.CartEmpty);
 
         var type = cargo[0];
         cargo.RemoveAt(0);
@@ -246,7 +246,6 @@ public class MED_SupplyCart : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }

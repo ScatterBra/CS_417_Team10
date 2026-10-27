@@ -137,10 +137,10 @@ public class MED_Sterilizer : MonoBehaviour
 
     public bool TryStart()
     {
-        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
+        if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail(MED_Messages.SterilizerTooFar);
         Bind();
-        if (State != SterilizerState.Idle) return Fail("Sterilizer is busy");
-        if (heat.Value >= startMaxHeat) return Fail("Still hot - wait");
+        if (State != SterilizerState.Idle) return Fail(MED_Messages.SterilizerBusy);
+        if (heat.Value >= startMaxHeat) return Fail(MED_Messages.SterilizerHot);
         if (!HasInputs(out var missing)) return Fail(missing);
 
         // HasInputs checked every input, so none of these can fail halfway: spend atomically.
@@ -153,15 +153,14 @@ public class MED_Sterilizer : MonoBehaviour
     bool HasInputs(out string problem)
     {
         problem = null;
-        var parts = new List<string>();
         foreach (var cost in recipe.inputs)
         {
             int have = player != null ? player.Get(cost.type) : 0;
-            if (have < cost.amount) parts.Add($"{cost.amount - have} {cost.type}");
+            if (have >= cost.amount) continue;
+            problem = MED_Messages.SterilizerMissing(cost.type, have, cost.amount);
+            return false;
         }
-        if (parts.Count == 0) return true;
-        problem = "Need " + string.Join(" + ", parts);
-        return false;
+        return true;
     }
 
     void SetState(SterilizerState state)
@@ -226,7 +225,6 @@ public class MED_Sterilizer : MonoBehaviour
 
     bool Fail(string message)
     {
-        MED_FloatingText.Spawn(MessagePosition, message, new Color(1f, 0.6f, 0.4f), 0.5f);
-        return false;
+        return MED_Messages.Fail(MessagePosition, message);
     }
 }
