@@ -1,0 +1,7 @@
+# Recording/test branch — not main release evidence
+Open Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity.
+This branch explicitly requires only real Power completion as the external Defense prerequisite. Clinic and Workshop gates are NOT REQUIRED, not completed. A persistent Defense next-goal label discloses this setup. Do not claim footage validates the full integrated prerequisite chain. Other scenes retain default three-prerequisite behavior.
+Power UI now migrates from desktop to headset when XR becomes active late. Progress/resources are not reset by UI migration. Runtime Roslyn compilation passed; 16 pure state checks passed. Unity/headset migration has not been exercised here.
+Stop Play before switching branches/importing scripts; domain reload can lose runtime-only state. Previous clips are separate sessions. No main merge is intended.
+Defense still requires actual Workshop crafted RepairKit and Ammo Box delivery and sufficient scrap. This branch does not grant items, resource balances, mastery or receipts. Harvest/process/craft supplies again in the new session as needed; teaching depot completion is not required.
+Clinic guidance: read the intro, grab Sickle/Bucket/Crowbar, hold trigger while the tool touches Herbs/Water/supplies respectively. Then follow the wild-source/cart, PrepBench/Medicine, and TreatmentStation instructions. Station order is independent.

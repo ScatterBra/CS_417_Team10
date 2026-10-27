@@ -46,6 +46,8 @@ namespace Deadzone.Power
         private Canvas canvas;
         private Transform hand;
         private bool xr;
+        private GameObject uiRoot;
+        private PWR_BuildSystem subscribedBuildSystem;
         private float refresh;
         private InputAction toggle;
         private Canvas statusLabel;
@@ -64,17 +66,19 @@ namespace Deadzone.Power
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
-            if (PWR_BuildSystem.Instance != null)
-            {
-                PWR_BuildSystem.Instance.OnSelectionChanged -= HandleSelectionChanged;
-                PWR_BuildSystem.Instance.OnDemolishModeChanged -= HandleDemolishModeChanged;
-            }
+            DestroyMenu();
         }
 
         private IEnumerator Start()
         {
             yield return PWR_PlayerRig.WaitForXRStartup();
+            CreateMenu();
+        }
+
+        private void CreateMenu()
+        {
             var rig = PWR_PlayerRig.Instance;
+            if (rig != null) rig.ResolveControllers();
             var bs = PWR_BuildSystem.Instance;
             int buttonCount = (bs != null ? bs.buildables.Count : 0) + 2; // + Demolish, Cancel
             xr = rig != null && rig.XRActive && rig.rightController != null;
@@ -86,6 +90,7 @@ namespace Deadzone.Power
                 float unitsHigh = 2 * Padding + 40 + GoalHeight + 5 * 30 + gridHeight + 50 + 4 * 6;
                 canvas = PWR_UIFactory.CreateWorldCanvas("PWR_BuildMenu", null, new Vector2(UnitsWide, unitsHigh),
                     worldWidth / UnitsWide, true);
+                uiRoot = canvas.gameObject;
                 // PWR_BuildInput checks for this collider so a trigger pull on the menu doesn't also place.
                 var box = canvas.gameObject.AddComponent<BoxCollider>();
                 box.isTrigger = true;
@@ -100,6 +105,7 @@ namespace Deadzone.Power
             {
                 float unitsHigh = 70 + GoalHeight + 10 * 30 + buttonCount * 58 + 90;
                 canvas = PWR_UIFactory.CreateOverlayCanvas("PWR_DesktopHUD");
+                uiRoot = canvas.gameObject;
                 var holder = new GameObject("Panel", typeof(RectTransform));
                 holder.transform.SetParent(canvas.transform, false);
                 var rt = (RectTransform)holder.transform;
@@ -117,6 +123,7 @@ namespace Deadzone.Power
 
             if (bs != null)
             {
+                subscribedBuildSystem = bs;
                 bs.OnSelectionChanged += HandleSelectionChanged;
                 bs.OnDemolishModeChanged += HandleDemolishModeChanged;
             }
@@ -228,8 +235,32 @@ namespace Deadzone.Power
                     Anchor, new Vector3(0f, xr ? 0.3f : 0f, 0f));
         }
 
+        private void DestroyMenu()
+        {
+            if (subscribedBuildSystem != null)
+            {
+                subscribedBuildSystem.OnSelectionChanged -= HandleSelectionChanged;
+                subscribedBuildSystem.OnDemolishModeChanged -= HandleDemolishModeChanged;
+            }
+            subscribedBuildSystem = null;
+            if (uiRoot != null) { uiRoot.SetActive(false); Destroy(uiRoot); }
+            if (statusLabel != null) { statusLabel.gameObject.SetActive(false); Destroy(statusLabel.gameObject); }
+            uiRoot = null; canvas = null; statusLabel = null; statusLabelText = null;
+            resourceText = null; goalText = null; statusText = null; hand = null; Anchor = null;
+            buildButtons.Clear();
+        }
         private void LateUpdate()
         {
+            var rig = PWR_PlayerRig.Instance;
+            if (!xr && canvas != null && rig != null && rig.XRActive)
+            {
+                rig.ResolveControllers();
+                if (rig.rightController != null)
+                {
+                    DestroyMenu();
+                    CreateMenu();
+                }
+            }
             if (canvas == null) return; // still waiting for the XR startup check
             // Outside the Power area (shared scene) the menu is closed and Y does nothing.
             bool inside = PWR_AreaGate.PlayerInside;
@@ -319,3 +350,4 @@ namespace Deadzone.Power
         }
     }
 }
+

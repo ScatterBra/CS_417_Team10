@@ -45,6 +45,11 @@ namespace Deadzone.Power
         private void Awake()
         {
             Instance = this;
+            ResolveControllers();
+        }
+
+        public void ResolveControllers()
+        {
             if (origin == null)
             {
                 var xrOrigin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
@@ -108,3 +113,4 @@ namespace Deadzone.Power
         }
     }
 }
+

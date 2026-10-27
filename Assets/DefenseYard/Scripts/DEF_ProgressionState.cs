@@ -44,10 +44,18 @@ public sealed class DEF_ProgressionState
     }
     void ClearAdvanced()
     {routeControlled=shocked=juggernautSeen=combatRepair=combatRefill=false;defenseTypes.Clear();}
-    public bool TeamReady => ready.Count == 3;
+        bool recordingPowerOnly;
+    public bool RecordingPowerOnly => recordingPowerOnly;
+    public void ConfigureRecordingPowerOnly()
+    {
+        if (Current != Stage.TeamPrerequisites || ready.Count != 0 || receipts.Count != 0)
+            throw new InvalidOperationException("Recording configuration must precede all evidence.");
+        recordingPowerOnly = true;
+    }
+    public bool TeamReady => recordingPowerOnly ? ready.Contains(Prerequisite.Power6) : ready.Count == 3;
     public bool AcceptPrerequisite(Prerequisite kind, int session, string receipt)
     {
-        if (session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
+        if ((recordingPowerOnly && kind != Prerequisite.Power6) || session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
             !Enum.IsDefined(typeof(Prerequisite), kind) || !receipts.Add(kind + ":" + receipt)) return false;
         ready.Add(kind);
         if (TeamReady) Current = Stage.PlaceSentry;
@@ -104,4 +112,5 @@ public sealed class DEF_ProgressionState
     public void NewSession() { Session++; ClearAdvanced(); Attempt = 1; sentry = null; Introduction++; ready.Clear(); receipts.Clear(); Current = Stage.TeamPrerequisites; }
     bool Matches(int session, int attempt) => session == Session && attempt == Attempt;
 }
+
 

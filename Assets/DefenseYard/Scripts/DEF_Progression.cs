@@ -5,6 +5,8 @@ using S = DEF_ProgressionState.Stage;
 public sealed class DEF_Progression : MonoBehaviour
 {
     [SerializeField] DEF_PrerequisiteSource power, clinic, workshop;
+    [SerializeField] bool recordingPowerOnly;
+    void Awake() { if(recordingPowerOnly) State.ConfigureRecordingPowerOnly(); }
     [SerializeField] DEF_ProgressionPresenter presenter;
     [SerializeField] SCV_ResourceManager repairLedger;
     DEF_WorkshopRepairReceiver trainingRepairReceiver;
@@ -95,7 +97,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
     public string NextGoal => State.Current switch
     {
-        S.TeamPrerequisites => "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
+        S.TeamPrerequisites => State.RecordingPowerOnly ? "Complete real Power Step6. Clinic and Workshop prerequisites are NOT REQUIRED in this recording setup." : "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
         S.PlaceSentry => "Place one basic sentry on valid empty ground.",
         S.RepairIntroduction or S.AmmoIntroduction or S.WaveIntroduction => "Read the introduction; the next action unlocks after it finishes.",
         S.Repair => "Release a crafted RepairKit in the training sentry receiver to restore integrity.",
@@ -230,5 +232,6 @@ public sealed class DEF_Progression : MonoBehaviour
     }
 }
 public enum DEF_Action { BasicSentry, Repair, PhysicalAmmo, RemoteAmmo, AmmoCrate, StartWave, Combat, Barricade, Shock, Missile }
+
 
 

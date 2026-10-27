@@ -20416,6 +20416,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc287361295bdb244aaf467fba23d3c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DEF_Progression
+  recordingPowerOnly: 1
   power: {fileID: 945513218}
   clinic: {fileID: 1348923323}
   workshop: {fileID: 990417001}
