@@ -37,6 +37,7 @@ public static class DEF_QuestPackaging
             if(!remaining.Any(c=>c is DEF_Progression))throw new Exception("Missing fail-closed progression controller");
             foreach(var c in remaining.OfType<DEF_VRInput>())c.simulateInEditor=false;
             var label=new GameObject("INCOMPLETE DEMO - packaging only").AddComponent<TextMeshPro>();label.text="INCOMPLETE MP2B DEMO\nPACKAGING TEST ONLY\nPower / Clinic readiness not connected";label.fontSize=2;label.rectTransform.sizeDelta=new Vector2(8,3);label.transform.position=new Vector3(0,2,2);
+            DEF_RouteValidation.Run();
             EditorSceneManager.SaveScene(scene);log.Add("Preserved XR Origins: "+rigs);log.Add("Power/Clinic completion not injected; locked scene remains incomplete.");
             File.WriteAllLines("../quest-packaging-prepare.txt",log);
         }
@@ -47,23 +48,33 @@ public static class DEF_QuestPackaging
     [MenuItem("Defense Yard/MP2B/Build Integrated Candidate APK (No Run)")]
     public static void BuildIntegrated()
     {
-        const string source="Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity";
-        const string output="Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity";
-        if(Application.isPlaying)throw new Exception("Edit Mode only");
-        if(!File.Exists(output)) {
-            if(!AssetDatabase.CopyAsset(source,output))throw new Exception("Headset copy failed");
-            var previous=SceneManager.GetActiveScene();var scene=EditorSceneManager.OpenScene(output,OpenSceneMode.Additive);
-            try {
-                var all=scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MonoBehaviour>(true)).Where(c=>c!=null).ToArray();
-                foreach(var c in all.Where(c=>c.GetType().Name=="XRDeviceSimulator"||c.GetType().Name=="XRInteractionSimulator")) {
-                    if(c.GetComponentsInChildren<MonoBehaviour>(true).Any(x=>x!=null&&x.GetType().Name=="XROrigin"))throw new Exception("Simulator contains real rig");
-                    UnityEngine.Object.DestroyImmediate(c.gameObject);
-                }
+        if(Application.isPlaying || EditorApplication.isCompiling) throw new Exception("Wait for Edit Mode compilation");
+        if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) throw new Exception("Preparation cancelled");
+        foreach(var path in new[]{"Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity","Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity","Assets/DefenseYard/Scenes/DEF_Full_Desktop_Demo.unity"})
+        {
+            if(!File.Exists(path)) throw new Exception("Required integrated source scene missing: "+path);
+            EditorSceneManager.OpenScene(path);
+            DEF_ReleasePreparation.Prepare();
+            DEF_ClinicStaging.BindOwnerManagers();
+            var scene=SceneManager.GetActiveScene();
+            if(path.EndsWith("_Quest.unity")) {
+                foreach(var c in scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MonoBehaviour>(true)).Where(c=>c!=null).ToArray())
+                    if(c.GetType().Name=="XRDeviceSimulator"||c.GetType().Name=="XRInteractionSimulator") {
+                        if(c.GetComponentsInChildren<MonoBehaviour>(true).Any(x=>x!=null&&x.GetType().Name=="XROrigin"))throw new Exception("Simulator contains real rig");
+                        UnityEngine.Object.DestroyImmediate(c.gameObject);
+                    }
                 foreach(var input in scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<DEF_VRInput>(true)))input.simulateInEditor=false;
-                EditorSceneManager.SaveScene(scene);
-            } finally {EditorSceneManager.CloseScene(scene,true);SceneManager.SetActiveScene(previous);}
+            }
+            DEF_RouteValidation.Run();
+            EditorSceneManager.SaveScene(scene);
         }
-        BuildScene(output);
+        DEF_AuditValidation.RunAll();
+        DEF_PowerValidation.RunPower(); DEF_ClinicValidation.Run(); DEF_ClinicTrainingValidation.Run();
+        foreach(var name in new[]{"repair","progression","ammo-dualmode","audit","runtime-edge","felix-compat","affordance","walkthrough","power","clinic"}) {
+            var report="../"+name+"-editmode-results.txt";
+            if(!File.Exists(report)||File.ReadAllLines(report).Any(l=>l.StartsWith("FAIL ")))throw new Exception("Missing or failed suite: "+name);
+        }
+        BuildScene("Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity");
     }
     static void BuildScene(string buildScene)
     {
@@ -79,6 +90,9 @@ public static class DEF_QuestPackaging
             if(buildScene.Contains("Clinic_Integration")) {
                 var power=all.OfType<DEF_PowerReadiness>().Single();var clinic=all.OfType<DEF_ClinicReadiness>().Single();
                 if(power.director==null||power.charger==null||power.floodlight==null||clinic.patient==null||clinic.buildingsRoot==null||clinic.medicineRecipe==null||clinic.benchDefinition==null||clinic.stationDefinition==null)throw new Exception("Authentic station references missing.");
+                var training=all.OfType<DEF_ClinicTraining>().Single();
+                var owner=all.OfType<MED_ProgressionManager>().Single();
+                if(!owner.IntegrationMode || training.patient!=clinic.patient || training.buildingsRoot!=clinic.buildingsRoot || training.medicineRecipe!=clinic.medicineRecipe || training.wildSpawner==null || training.directions==null || all.OfType<MED_AreaGate>().Count()!=1 || all.OfType<MED_AchievementManager>().Count()!=1)throw new Exception("Integrated Clinic manager/training bindings missing or mismatched");
                 var progression=new SerializedObject(all.OfType<DEF_Progression>().Single());
                 foreach(var field in new[]{"power","clinic","workshop"})if(progression.FindProperty(field).objectReferenceValue==null)throw new Exception("Missing progression source: "+field);
             }

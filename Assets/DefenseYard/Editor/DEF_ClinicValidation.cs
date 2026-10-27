@@ -12,7 +12,7 @@ public static class DEF_ClinicValidation
     [MenuItem("Defense Yard/MP2B/Run All Checks Including Clinic")]
     public static void RunAll(){if(Application.isPlaying)throw new Exception("Edit Mode only");DEF_PowerValidation.RunInEditor();Run();}
     public static void RunBatch(){if(!Application.isBatchMode)throw new Exception("Batch only");DEF_PowerValidation.RunBatch();Run();}
-    static void Run()
+    public static void Run()
     {
         var previous=SceneManager.GetActiveScene();var fixture=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Additive);
         SceneManager.SetActiveScene(fixture);var results=new List<string>();var recipes=new List<MED_Recipe>();var definitions=new List<MED_BuildingDefinition>();

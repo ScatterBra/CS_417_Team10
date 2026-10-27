@@ -21,7 +21,7 @@ public static class DEF_PowerValidation
         if(Application.isPlaying)throw new Exception("Edit Mode only");
         DEF_AuditValidation.RunAll();RunPower();
     }
-    static void RunPower()
+    public static void RunPower()
     {
         var previous=SceneManager.GetActiveScene();
         var fixture=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Additive);SceneManager.SetActiveScene(fixture);
