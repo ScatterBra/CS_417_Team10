@@ -28,6 +28,7 @@ public enum MED_Feature
 /// </summary>
 public class MED_ProgressionManager : MonoBehaviour
 {
+    public Transform presentationRoot;
     public const int ThresholdCount = 5;
     // Integrated Clinic training is the sole progression authority in its scene.
     public bool IntegrationMode => DEF_ClinicTraining.For(this) != null;
@@ -148,6 +149,7 @@ public class MED_ProgressionManager : MonoBehaviour
         if (IntegrationMode) return;
         BindPlayer();
         tray = MED_MedicineTray.Create(trayPosition);
+        if(presentationRoot!=null){tray.transform.SetParent(presentationRoot,false);tray.transform.localPosition=trayPosition;}
         tray.SetActive(false);
         BuildSign();
         foreach (var b in FindObjectsByType<MED_Building>()) AttachSandbox(b);
@@ -421,7 +423,7 @@ public class MED_ProgressionManager : MonoBehaviour
     {
         sign = MED_WorldPanel.Create("MED_NextGoalSign", new Vector2(2.8f, 0.9f), 0.9f, 1.0f,
             new Color(1f, 0.85f, 0.4f), new Color(1f, 0.75f, 0.2f));
-        sign.Root.transform.position = signPosition;
+        if(presentationRoot!=null){sign.Root.transform.SetParent(presentationRoot,false);sign.Root.transform.localPosition=signPosition;}else sign.Root.transform.position=signPosition;
         sign.Root.AddComponent<MED_Billboard>();
         sign.Root.SetActive(MED_AreaGate.PlayerInside);
         RefreshSign();

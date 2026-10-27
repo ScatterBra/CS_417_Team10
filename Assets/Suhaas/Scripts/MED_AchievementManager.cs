@@ -24,6 +24,7 @@ public enum MED_Achievement
 /// </summary>
 public class MED_AchievementManager : MonoBehaviour
 {
+    public Transform presentationRoot;
     public const int Count = 5;
     const int RecipesNeeded = 5;
     const int CartsNeeded = 3;
@@ -86,8 +87,17 @@ public class MED_AchievementManager : MonoBehaviour
         BindPlayer();
     }
 
+    DEF_ClinicTraining Training => DEF_ClinicTraining.For(this);
+    bool Scoped(Component source, MED_PlayerResources patient) => Training!=null && patient==Training.patient && source.gameObject.scene==gameObject.scene;
+    void ScopedCraft(MED_PrepBench source,MED_PlayerResources patient,MED_Recipe recipe){if(Scoped(source,patient)&&source.transform.IsChildOf(Training.buildingsRoot))RecordCraft(recipe);}
+    void ScopedCart(MED_SupplyCart source,MED_PlayerResources patient,MED_ResourceType resource,bool empty){if(Scoped(source,patient)&&empty)RecordCart();}
+    void ScopedCabinet(MED_MedicineCabinet source,MED_PlayerResources patient){if(Scoped(source,patient)&&source.transform.IsChildOf(Training.buildingsRoot))Grant(MED_Achievement.StockedUp);}
+    void ScopedPlanter(MED_HerbPlanter source,MED_PlayerResources patient){if(Scoped(source,patient)&&source.transform.IsChildOf(Training.buildingsRoot))Grant(MED_Achievement.GreenThumb);}
     void OnEnable()
     {
+        MED_MedicineCabinet.FilledCommitted+=ScopedCabinet; MED_HerbPlanter.HarvestCommitted+=ScopedPlanter;
+        MED_PrepBench.CraftCommitted += ScopedCraft;
+        MED_SupplyCart.UnloadCommitted += ScopedCart;
         MED_PrepBench.Crafted += OnCrafted;
         MED_SupplyCart.CartEmptied += OnCartEmptied;
         MED_HerbPlanter.Harvested += OnPlanterHarvested;
@@ -96,6 +106,9 @@ public class MED_AchievementManager : MonoBehaviour
 
     void OnDisable()
     {
+        MED_MedicineCabinet.FilledCommitted-=ScopedCabinet; MED_HerbPlanter.HarvestCommitted-=ScopedPlanter;
+        MED_PrepBench.CraftCommitted -= ScopedCraft;
+        MED_SupplyCart.UnloadCommitted -= ScopedCart;
         MED_PrepBench.Crafted -= OnCrafted;
         MED_SupplyCart.CartEmptied -= OnCartEmptied;
         MED_HerbPlanter.Harvested -= OnPlanterHarvested;
@@ -117,7 +130,7 @@ public class MED_AchievementManager : MonoBehaviour
     void BindPlayer()
     {
         if (player != null) return;
-        player = FindAnyObjectByType<MED_PlayerResources>();
+        player = Training!=null ? Training.patient : FindAnyObjectByType<MED_PlayerResources>();
         if (player == null) return;
         lastHealth = player.Health;
         player.OnResourceChanged += OnResourceChanged;
@@ -125,20 +138,22 @@ public class MED_AchievementManager : MonoBehaviour
 
     // ---------- Conditions ----------
 
-    void OnCrafted(MED_Recipe recipe)
+    void OnCrafted(MED_Recipe recipe){if(Training==null)RecordCraft(recipe);}
+    void RecordCraft(MED_Recipe recipe)
     {
         if (recipe == null) return;
         craftedRecipes.Add(recipe.name);
         if (craftedRecipes.Count >= RecipesNeeded) Grant(MED_Achievement.Apothecary);
     }
 
-    void OnCartEmptied()
+    void OnCartEmptied(){if(Training==null)RecordCart();}
+    void RecordCart()
     {
         if (++cartsEmptied >= CartsNeeded) Grant(MED_Achievement.SupplyRunner);
     }
 
-    void OnPlanterHarvested() => Grant(MED_Achievement.GreenThumb);
-    void OnCabinetFilled() => Grant(MED_Achievement.StockedUp);
+    void OnPlanterHarvested() {if(Training==null)Grant(MED_Achievement.GreenThumb);}
+    void OnCabinetFilled() {if(Training==null)Grant(MED_Achievement.StockedUp);}
 
     void OnResourceChanged(MED_ResourceType type, int amount)
     {
@@ -159,7 +174,7 @@ public class MED_AchievementManager : MonoBehaviour
         if (trophyPrefab != null)
         {
             var slot = SlotPosition((int)a);
-            var t = Instantiate(trophyPrefab, slot, Quaternion.identity);
+            var t = Instantiate(trophyPrefab, slot, presentationRoot!=null?presentationRoot.rotation:Quaternion.identity,presentationRoot);
             t.Show(a, title, HintOf(a));
             trophies[a] = t;
         }
@@ -170,6 +185,7 @@ public class MED_AchievementManager : MonoBehaviour
     /// <summary>Test hook (GRANT NEXT ACHIEVEMENT): earns the first achievement not yet earned.</summary>
     public void GrantNext()
     {
+        if(Training!=null)return;
         for (int i = 0; i < Count; i++)
             if (!earned.Contains((MED_Achievement)i)) { Grant((MED_Achievement)i); return; }
     }
@@ -188,12 +204,12 @@ public class MED_AchievementManager : MonoBehaviour
 
     // ---------- Trophy shelf (built from primitives, against the east wall) ----------
 
-    Vector3 SlotPosition(int index) => shelfPosition + new Vector3(-0.02f, 1.08f, (index - (Count - 1) * 0.5f) * slotSpacing);
+    Vector3 SlotPosition(int index) {var local=shelfPosition+new Vector3(-0.02f,1.08f,(index-(Count-1)*0.5f)*slotSpacing);return presentationRoot!=null?presentationRoot.TransformPoint(local):local;}
 
     void BuildShelf()
     {
         shelf = new GameObject("MED_TrophyShelf");
-        shelf.transform.position = shelfPosition;
+        if(presentationRoot!=null){shelf.transform.SetParent(presentationRoot,false);shelf.transform.localPosition=shelfPosition;}else shelf.transform.position=shelfPosition;
         var wood = new Color(0.45f, 0.32f, 0.2f);
         float length = Count * slotSpacing + 0.3f;
         MED_SandboxUtil.Prim(PrimitiveType.Cube, "Board", shelf.transform, new Vector3(0f, 1.05f, 0f), new Vector3(0.45f, 0.06f, length), wood, false);

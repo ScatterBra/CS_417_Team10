@@ -26,9 +26,10 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     /// <summary>Raised when stocking fills a cabinet to its maximum (used by the Stocked Up achievement).</summary>
     public static event System.Action Filled;
+    public static event System.Action<MED_MedicineCabinet,MED_PlayerResources> FilledCommitted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => Filled = null;
+    static void ResetStatics() {Filled=null;FilledCommitted=null;}
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 2f;
 
@@ -116,13 +117,14 @@ public class MED_MedicineCabinet : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (stock.Value + 1f > stock.Max) return Fail("Cabinet full");
-        if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
+        if(player==null)return Fail("No Clinic patient bound");
+        if(player.Get(MED_ResourceType.Medicine)<1)return Fail("No Medicine");
         supplyBusy=true;bool accepted;
         try {evidenceStock.Sync(stock.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(stock.Value+1f);});}
         finally {supplyBusy=false;}
         if(!accepted)return Fail("Stock failed: Medicine unavailable. Gather Medicine and retry.");
         MED_FloatingText.Spawn(MessagePosition, "+1 Stocked", new Color(0.6f, 1f, 0.6f));
-        if (stock.Value >= stock.Max) Filled?.Invoke();
+        if (stock.Value >= stock.Max) { FilledCommitted?.Invoke(this,player); Filled?.Invoke(); }
         return true;
     }
 

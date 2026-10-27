@@ -23,3 +23,10 @@ Commit-time placement now checks area and owner feature locks as well as ordered
 Compiler rerun: runtime/editor exit 0. Added scene-reload completion regression assertion, not executed outside Unity. Earlier fixture additions also remain unexecuted. No actual Unity or Quest pass claimed.
 
 Residual audit scope: owner legacy presentation events remain global; they are not Defense mastery inputs. Trophy shelf world construction still requires rotated-layout visual verification. Refund saturation at int.MaxValue and reset/callback reentrancy deserve runtime fixtures. This is a reviewed code checkpoint, not a release-ready claim.
+
+## Final source audit follow-up
+Refunds now reject saturation before consumption, retain the original payer/ticket for retry, and guard reentry; no clamped partial refund occurs. Executed nine checks against the actual MED_ClinicEvidence transaction source with minimal non-Unity data stubs: paid debit, wrong payer rejection, saturation preservation, busy rejection, callback reentry rejection, successful refund, duplicate refund rejection, consumed ticket output rejection, and null ticket rejection. All nine passed. These do not exercise Unity native objects.
+
+Integrated achievements ignore legacy source-less craft/cart/planter/cabinet callbacks and consume source/patient scoped committed notifications instead; building events additionally require the configured building root. Health presentation binds the configured Clinic patient. Debug GrantNext is disabled in integrated mode. Defense mastery still consumes only authenticated readiness, never these presentation awards. Null-patient stock/refill/treatment feedback is distinct from empty inventory/full health.
+
+Sign, tray, shelf and trophy transforms support a Clinic presentationRoot; prebuild binds the Clinic grid transform and uses local offsets, including rotated trophy placement. Standalone scenes with no presentationRoot retain legacy coordinates. Native visual/scene tests remain pending. Runtime/editor standalone compile both pass after final fixes.

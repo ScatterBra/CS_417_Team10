@@ -153,7 +153,8 @@ public class MED_TreatmentStation : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (storedMedicine.Value + 1f > storedMedicine.Max) return Fail("Station is full");
-        if (player == null || player.Get(MED_ResourceType.Medicine) < 1) return Fail("No Medicine");
+        if(player==null)return Fail("No Clinic patient bound");
+        if(player.Get(MED_ResourceType.Medicine)<1)return Fail("No Medicine");
         supplyBusy=true;
         bool accepted;
         try {evidenceStock.Sync(storedMedicine.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(storedMedicine.Value+1f);}, DEF_ClinicTraining.For(this)!=null);}
@@ -172,7 +173,8 @@ public class MED_TreatmentStation : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (!playerOnPad) return Fail(MED_Messages.NotOnPad);
-        if (player == null || player.IsHealthFull) return Fail(MED_Messages.HealthFull);
+        if(player==null)return Fail("No Clinic patient bound");
+        if(player.IsHealthFull)return Fail(MED_Messages.HealthFull);
         if (storedMedicine.Value < 1f) return Fail(MED_Messages.StationEmpty);
         StartDose();
         return true;

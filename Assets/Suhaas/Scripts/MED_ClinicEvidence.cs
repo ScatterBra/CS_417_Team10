@@ -107,6 +107,7 @@ public partial class MED_PlayerResources
     internal bool RefundRecipe(MED_CraftTicket ticket)
     {
         if(evidenceTransaction||ticket==null||ticket.Player!=this||ticket.Consumed)return false;
+        foreach(var input in ticket.Inputs)if((long)Get(input.Key)+input.Value>int.MaxValue)return false;
         ticket.Consumed=true; evidenceTransaction=true;
         try {foreach(var input in ticket.Inputs){amounts[(int)input.Key]=(int)Math.Min(int.MaxValue,(long)Get(input.Key)+input.Value);if(input.Key==MED_ResourceType.Medicine)AdjustUnprovenMedicine(Get(input.Key));}
         foreach(var input in ticket.Inputs)NotifyResource(input.Key,Get(input.Key));}

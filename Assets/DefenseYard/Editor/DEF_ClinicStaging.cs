@@ -22,7 +22,10 @@ public static class DEF_ClinicStaging
         if (achievement==null) achievement=training.gameObject.AddComponent<MED_AchievementManager>();
         var so=new SerializedObject(achievement);
         so.FindProperty("trophyPrefab").objectReferenceValue=AssetDatabase.LoadAssetAtPath<MED_Trophy>("Assets/Suhaas/Prefabs/MED_Trophy.prefab");
-        so.FindProperty("shelfPosition").vector3Value=training.buildingsRoot.TransformPoint(new Vector3(7.2f,0,3.5f));
+        so.FindProperty("shelfPosition").vector3Value=new Vector3(7.2f,0,3.5f);
+        var clinicRoot=All<MED_GridManager>(scene).Single().transform;
+        so.FindProperty("presentationRoot").objectReferenceValue=clinicRoot;
+        All<MED_ProgressionManager>(scene).Single().presentationRoot=clinicRoot;
         so.ApplyModifiedPropertiesWithoutUndo();
         if(so.FindProperty("trophyPrefab").objectReferenceValue==null)throw new Exception("Owner trophy prefab missing");
         var spawner=new SerializedObject(training.wildSpawner);
