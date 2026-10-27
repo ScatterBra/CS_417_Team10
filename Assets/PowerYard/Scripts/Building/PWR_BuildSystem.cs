@@ -33,6 +33,8 @@ namespace Deadzone.Power
         /// <summary>(def, removedInstance) — the instance is destroyed at the end of the frame.</summary>
         public event Action<PWR_BuildableDef, PWR_GridBuilding> OnDemolished;
         public event Action<bool> OnDemolishModeChanged;
+        /// <summary>A building was locked or unlocked (PWR_Progression).</summary>
+        public event Action OnUnlocksChanged;
 
         public int QuarterTurns { get; private set; }
         public string LastMessage { get; private set; } = "";
@@ -41,6 +43,7 @@ namespace Deadzone.Power
         public bool IsActive => selected != null || Demolishing;
 
         private readonly Dictionary<string, int> builtCounts = new Dictionary<string, int>();
+        private readonly Dictionary<string, string> lockHints = new Dictionary<string, string>();
         private readonly Dictionary<PWR_GridBuilding, PWR_BuildableDef> placed = new Dictionary<PWR_GridBuilding, PWR_BuildableDef>();
         private readonly Dictionary<string, Dictionary<string, float>> keptStats = new Dictionary<string, Dictionary<string, float>>();
         private Transform demolishBox;
@@ -76,8 +79,33 @@ namespace Deadzone.Power
             if (Instance == this) Instance = null;
         }
 
+        // ---------- unlocks (rubric: Mastery Thresholding) ----------
+
+        public bool IsUnlocked(PWR_BuildableDef def) => def == null || !lockHints.ContainsKey(def.BuildingId);
+
+        /// <summary>Hides a building from the menu; the hint says how to unlock it.</summary>
+        public void Lock(string buildingId, string hint)
+        {
+            lockHints[buildingId] = hint;
+            if (selected != null && selected.BuildingId == buildingId) Select(null);
+            OnUnlocksChanged?.Invoke();
+        }
+
+        public void Unlock(string buildingId)
+        {
+            if (lockHints.Remove(buildingId)) OnUnlocksChanged?.Invoke();
+        }
+
+        private string LockedText(PWR_BuildableDef def) =>
+            $"{def.displayName} is locked. {(lockHints.TryGetValue(def.BuildingId, out var hint) ? hint : "")}";
+
         public void Select(PWR_BuildableDef def)
         {
+            if (def != null && !IsUnlocked(def))
+            {
+                LastMessage = LockedText(def);
+                return;
+            }
             bool wasDemolishing = Demolishing;
             Demolishing = false;
             selected = def;
@@ -114,33 +142,45 @@ namespace Deadzone.Power
             reason = null;
             if (def == null || def.prefab == null) { reason = "Nothing selected"; return false; }
             if (grid == null) { reason = "No grid"; return false; }
+            if (!IsUnlocked(def)) { reason = LockedText(def); return false; }
             if (def.maxCount > 0 && CountBuilt(def.BuildingId) >= def.maxCount)
             {
-                reason = $"Only {def.maxCount} {def.displayName} allowed";
+                reason = $"Only {def.maxCount} {def.displayName} allowed. Use Demolish to move the one you built.";
                 return false;
             }
 
             Vector2Int cell = grid.WorldToCell(worldPos);
-            if (!grid.InBounds(cell)) { reason = "Outside build area"; return false; }
+            if (!grid.InBounds(cell)) { reason = "Can't build here: outside the build area. Aim at the floor grid."; return false; }
 
             var top = grid.GetTop(cell);
             if (def.RequiresFoundation)
             {
                 if (top == null || !top.isFoundation || top.buildingId != def.requiredFoundationId)
                 {
-                    reason = top != null && top.buildingId == def.BuildingId ? "Cell occupied" : "Needs a Concrete Pad first";
+                    reason = top != null && top.buildingId == def.BuildingId ? OccupiedText
+                        : $"{def.displayName} needs a Concrete Pad underneath. Place a pad here first.";
                     return false;
                 }
             }
             else if (top != null)
             {
-                reason = "Cell occupied";
+                reason = OccupiedText;
                 return false;
             }
 
             var res = PWR_PlayerResources.Instance;
-            if (res != null && !res.CanAfford(def.cost)) { reason = $"Needs {def.CostText()}"; return false; }
+            if (res != null && !res.CanAfford(def.cost)) { reason = MissingCostText(def, res); return false; }
             return true;
+        }
+
+        private const string OccupiedText = "Can't build here: this cell is taken. Pick an empty cell or demolish what's there.";
+
+        private static string MissingCostText(PWR_BuildableDef def, PWR_PlayerResources res)
+        {
+            foreach (var c in def.cost)
+                if (res.Get(c.type) < c.amount)
+                    return $"{def.displayName} needs {c}. {PWR_Names.HowToGet(c.type)}";
+            return $"{def.displayName} needs {def.CostText()}.";
         }
 
         public PWR_GridBuilding TryBuild(Vector3 worldPos) => TryBuild(selected, worldPos);
@@ -149,7 +189,7 @@ namespace Deadzone.Power
         {
             if (!CanBuild(def, worldPos, out var reason))
             {
-                LastMessage = $"Can't build: {reason}";
+                LastMessage = reason;
                 PWR_Feedback.Show(worldPos + Vector3.up * 0.6f, reason, PWR_Feedback.Bad);
                 return null;
             }
@@ -210,10 +250,10 @@ namespace Deadzone.Power
         {
             def = null;
             reason = null;
-            if (target == null) { reason = "Nothing to demolish here"; return false; }
-            if (!placed.TryGetValue(target, out def)) { reason = "Only things you built can be demolished"; return false; }
+            if (target == null) { reason = "Nothing to demolish here. Aim at something you built."; return false; }
+            if (!placed.TryGetValue(target, out def)) { reason = "Can't demolish this: only things you built can be removed."; return false; }
             var grid = PWR_GridManager.Instance;
-            if (grid != null && grid.GetTop(target.Cell) != target) { reason = "Remove what is on top of it first"; return false; }
+            if (grid != null && grid.GetTop(target.Cell) != target) { reason = "Something is built on top of this. Demolish that first."; return false; }
             return true;
         }
 
@@ -252,7 +292,7 @@ namespace Deadzone.Power
             var target = demolishTarget;
             if (!CanDemolish(target, out var def, out var reason))
             {
-                LastMessage = $"Can't demolish: {reason}";
+                LastMessage = reason;
                 PWR_Feedback.Show(feedbackPos, reason, PWR_Feedback.Bad);
                 return false;
             }

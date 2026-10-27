@@ -48,7 +48,9 @@ namespace Deadzone.Power
             {
                 if (stats.Get(statName) < statCostPerHarvest - 0.001f)
                 {
-                    PWR_Feedback.Show(transform.position + Vector3.up, "Empty", PWR_Feedback.Bad);
+                    PWR_Feedback.Show(transform.position + Vector3.up,
+                        resource == PWR_ResourceType.CrudeOil ? "This barrel is empty. Look for another Oil Barrel."
+                        : $"This is empty. No more {PWR_Names.Of(resource)} here.", PWR_Feedback.Bad);
                     return false;
                 }
                 stats.Add(statName, -statCostPerHarvest);

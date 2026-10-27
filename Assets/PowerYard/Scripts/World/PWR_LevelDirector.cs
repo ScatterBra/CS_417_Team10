@@ -7,6 +7,9 @@ namespace Deadzone.Power
     /// <summary>
     /// Runs the level: dark start with red emergency lights, room brightness follows the floodlight,
     /// the bulb burns out once at 80% charge, event-driven tutorials, and the completion message.
+    /// The station is complete once the burnt-out bulb has been replaced AND the player has picked
+    /// up the Charged Cell, in either order. Other areas check <see cref="StationComplete"/> or
+    /// listen to <see cref="StationCompleted"/>.
     /// </summary>
     public class PWR_LevelDirector : MonoBehaviour
     {
@@ -26,37 +29,63 @@ namespace Deadzone.Power
         [Range(0f, 100f)] public float bulbFailurePercent = 80f;
         [Range(0f, 1f)] public float lowChargeWarning = 0.15f;
 
-        public static event Action LevelCompleted;
+        /// <summary>True once the Power Station is finished (bulb replaced + Charged Cell picked up).</summary>
+        public static bool StationComplete { get; private set; }
+        /// <summary>Fired once, the moment <see cref="StationComplete"/> becomes true.</summary>
+        public static event Action StationCompleted;
 
         public bool BulbFailed { get; private set; }
-        public bool Complete { get; private set; }
 
         private readonly Dictionary<Light, float> originalIntensity = new Dictionary<Light, float>();
         private PWR_BuildSystem buildSystem;
 
+        // The scene's own lighting, restored whenever the player is outside the Power area.
+        private UnityEngine.Rendering.AmbientMode originalAmbientMode;
+        private Color originalAmbientLight;
+        private bool stationLightingApplied;
+
+        // Statics survive a scene reload (and play mode without domain reload), so a new level starts fresh.
+        private void Awake()
+        {
+            StationComplete = false;
+            if (!GetComponent<PWR_Progression>()) gameObject.AddComponent<PWR_Progression>();
+            if (!GetComponent<PWR_AreaGate>()) gameObject.AddComponent<PWR_AreaGate>();
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            StationComplete = false;
+            StationCompleted = null;
+        }
+
         private void OnEnable()
         {
-            PWR_CellCharger.Completed += HandleCompleted;
+            PWR_CellCharger.Completed += HandleCellReady;
+            PWR_CellCharger.CellCollected += HandleCellCollected;
             PWR_Floodlight.BulbBroken += HandleBulbBroken;
+            PWR_Floodlight.BulbInstalled += HandleBulbInstalled;
         }
 
         private void OnDisable()
         {
-            PWR_CellCharger.Completed -= HandleCompleted;
+            PWR_CellCharger.Completed -= HandleCellReady;
+            PWR_CellCharger.CellCollected -= HandleCellCollected;
             PWR_Floodlight.BulbBroken -= HandleBulbBroken;
+            PWR_Floodlight.BulbInstalled -= HandleBulbInstalled;
         }
 
         private void Start()
         {
             buildSystem = PWR_BuildSystem.Instance;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = ambientDark;
+            if (charger == null || floodlight == null)
+                Debug.LogError("[PWR] Level Director is missing its Cell Charger or Floodlight reference: the station can never be completed.", this);
+            originalAmbientMode = RenderSettings.ambientMode;
+            originalAmbientLight = RenderSettings.ambientLight;
             foreach (var l in sceneLightsToDim)
-            {
-                if (l == null) continue;
-                originalIntensity[l] = l.intensity;
-                l.intensity = 0f;
-            }
+                if (l != null) originalIntensity[l] = l.intensity;
+            if (TryGetComponent(out PWR_AreaGate gate)) gate.Evaluate();
+            UpdateLighting();
             // After PWR_PlayerRig.WaitForXRStartup (up to 2 s) so the menu anchor exists.
             Invoke(nameof(ShowIntro), 2.5f);
         }
@@ -67,16 +96,48 @@ namespace Deadzone.Power
                 : PWR_WristPanel.Instance != null && PWR_WristPanel.Instance.Anchor != null ? PWR_WristPanel.Instance.Anchor
                 : Camera.main != null ? Camera.main.transform : transform;
             Tutorial("wrist_menu",
-                "Press Y on your left controller to open the build menu, press it again to close it.\n(Desktop: 1-5 select, X demolish, R rotate, click to place)",
+                "Press Y on your left controller to open the build menu above your right hand. Point at it with your left controller and pull the trigger. Press Y again to close it.\n(Desktop: 1-5 select, X demolish, R rotate, click to place)",
                 anchor, new Vector3(0f, 0.25f, 0f));
+        }
+
+        /// <summary>
+        /// Inside the Power area the room is dark and brightens with the Floodlight; outside it the
+        /// scene's own lighting is restored, so the rest of a shared scene isn't darkened.
+        /// </summary>
+        private void UpdateLighting()
+        {
+            if (PWR_AreaGate.PlayerInside)
+            {
+                float lit = floodlight != null ? floodlight.LightFraction : 0f;
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+                RenderSettings.ambientLight = Color.Lerp(ambientDark, ambientLit, lit);
+                foreach (var kv in originalIntensity)
+                    if (kv.Key != null) kv.Key.intensity = kv.Value * lit;
+                stationLightingApplied = true;
+            }
+            else if (stationLightingApplied)
+            {
+                // Restore once on the way out, then leave the lighting to the rest of the scene.
+                RenderSettings.ambientMode = originalAmbientMode;
+                RenderSettings.ambientLight = originalAmbientLight;
+                foreach (var kv in originalIntensity)
+                    if (kv.Key != null) kv.Key.intensity = kv.Value;
+                stationLightingApplied = false;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (stationLightingApplied)
+            {
+                RenderSettings.ambientMode = originalAmbientMode;
+                RenderSettings.ambientLight = originalAmbientLight;
+            }
         }
 
         private void Update()
         {
-            float lit = floodlight != null ? floodlight.LightFraction : 0f;
-            RenderSettings.ambientLight = Color.Lerp(ambientDark, ambientLit, lit);
-            foreach (var kv in originalIntensity)
-                if (kv.Key != null) kv.Key.intensity = kv.Value * lit;
+            UpdateLighting();
 
             if (bankHint != null && buildSystem != null && buildSystem.CountBuilt("BatteryBank") > 0)
                 bankHint.SetActive(false);
@@ -117,15 +178,49 @@ namespace Deadzone.Power
                 light.transform, new Vector3(0f, 1.9f, 0f));
         }
 
-        private void HandleCompleted(PWR_CellCharger c)
+        // ---------- completion: bulb replaced + Charged Cell picked up, in either order ----------
+
+        // Only an actual replacement counts: the original bulb always burns out at 80% charge first.
+        private bool BulbReplaced => floodlight != null && floodlight.BulbReplaced;
+
+        private void HandleCellReady(PWR_CellCharger c)
         {
-            if (Complete) return;
-            Complete = true;
+            if (!BulbReplaced && floodlight != null)
+                Tutorial("cell_ready_no_bulb",
+                    "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
+                    floodlight.transform, new Vector3(0f, 1.9f, 0f));
+            else if (!c.IsCellCollected)
+                Tutorial("cell_ready", "Charged Cell ready! Pick it up to bring the station online.",
+                    c.transform, new Vector3(0f, 1.2f, 0f));
+            TryComplete();
+        }
+
+        private void HandleCellCollected(PWR_CellCharger c)
+        {
+            if (!BulbReplaced && floodlight != null)
+                Tutorial("cell_ready_no_bulb",
+                    "Charged Cell ready, but the Floodlight is still out. Install the spare bulb to bring the station online.",
+                    floodlight.transform, new Vector3(0f, 1.9f, 0f));
+            TryComplete();
+        }
+
+        private void HandleBulbInstalled(PWR_Floodlight light)
+        {
+            if (charger != null && charger.IsComplete && !charger.IsCellCollected)
+                Tutorial("cell_pickup", "Pick up the Charged Cell to bring the station online.",
+                    charger.transform, new Vector3(0f, 1.2f, 0f));
+            TryComplete();
+        }
+
+        private void TryComplete()
+        {
+            if (StationComplete || charger == null || !charger.IsCellCollected || !BulbReplaced) return;
+            StationComplete = true;
             var mgr = PWR_TutorialManager.Instance;
             if (mgr != null)
-                mgr.ShowMessage("STATION ONLINE\nThe Charged Cell is ready to take to the Defense Yard.\nLevel complete!",
-                    c.transform, new Vector3(0f, 1.2f, 0f), 0f);
-            LevelCompleted?.Invoke();
+                mgr.ShowMessage("STATION ONLINE\nPower is restored. Level complete!\nNext: take the Charged Cell to the Defense Yard.",
+                    charger.transform, new Vector3(0f, 1.2f, 0f), 0f);
+            StationCompleted?.Invoke();
         }
 
         private static void Tutorial(string id, string message, Transform anchor, Vector3 offset)

@@ -26,17 +26,28 @@ namespace Deadzone.Power
         [Tooltip("Hide the editor markers on the spawn points at runtime.")]
         public bool hideMarkers = true;
 
+        [Tooltip("Off when PWR_Progression releases barrels/crates and scrap later.")]
+        public bool spawnOnStart = true;
+
         public int Seed { get; private set; }
+
+        private bool barrelsSpawned, scrapSpawned;
 
         private void Start()
         {
             Seed = Random.Range(int.MinValue, int.MaxValue);
+            if (hideMarkers)
+                foreach (var p in spawnPoints)
+                    if (p != null) p.gameObject.SetActive(false);
+            if (!spawnOnStart) return;
             SpawnBarrelsAndCrates();
             SpawnScrap();
         }
 
-        private void SpawnBarrelsAndCrates()
+        public void SpawnBarrelsAndCrates()
         {
+            if (barrelsSpawned) return;
+            barrelsSpawned = true;
             var types = new List<GameObject>();
             for (int i = 0; i < barrelCount; i++) types.Add(barrelPrefab);
             for (int i = 0; i < crateCount; i++) types.Add(cratePrefab);
@@ -53,15 +64,12 @@ namespace Deadzone.Power
                 Vector3 pos = GroundAt(p.position);
                 Instantiate(types[i], pos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
             }
-
-            if (hideMarkers)
-                foreach (var p in spawnPoints)
-                    if (p != null) p.gameObject.SetActive(false);
         }
 
-        private void SpawnScrap()
+        public void SpawnScrap()
         {
-            if (scrapPrefab == null || scrapZones.Count == 0) return;
+            if (scrapSpawned || scrapPrefab == null || scrapZones.Count == 0) return;
+            scrapSpawned = true;
             for (int i = 0; i < scrapCount; i++)
             {
                 var zone = scrapZones[Random.Range(0, scrapZones.Count)];

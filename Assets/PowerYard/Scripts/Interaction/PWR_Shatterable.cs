@@ -32,7 +32,7 @@ namespace Deadzone.Power
                 interactable.Used += held =>
                 {
                     if (held != null && held.GetComponentInParent<PWR_Wrench>() != null) Hit();
-                    else PWR_Feedback.Show(transform.position + Vector3.up, "Hit it with the Wrench", PWR_Feedback.Info);
+                    else PWR_Feedback.Show(transform.position + Vector3.up, "Too sturdy to open by hand. Grab the Wrench from the Workbench and hit the crate.", PWR_Feedback.Info);
                 };
         }
 

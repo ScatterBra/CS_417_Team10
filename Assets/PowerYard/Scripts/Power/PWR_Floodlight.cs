@@ -28,6 +28,8 @@ namespace Deadzone.Power
 
         public bool HasBulb => bulb != null;
         public bool IsLit => HasBulb && LightFraction > 0.05f;
+        /// <summary>A replacement bulb has been installed (the original one only fails once).</summary>
+        public bool BulbReplaced => HasBulb && bulbUnbreakable;
 
         /// <summary>0..1 of how bright the lamp currently is.</summary>
         public float LightFraction => HasBulb ? stats.GetNormalized(brightnessStat) : 0f;
@@ -48,9 +50,21 @@ namespace Deadzone.Power
                     var item = held != null ? held.GetComponentInParent<PWR_ItemObject>() : null;
                     var socket = GetComponentInChildren<PWR_ItemSocket>();
                     if (item != null && socket != null && socket.TryInsert(item)) return;
-                    PWR_Feedback.Show(transform.position + Vector3.up * 2f,
-                        HasBulb ? "Powered by a nearby Battery Bank" : "Needs a Light Bulb", PWR_Feedback.Info);
+                    PWR_Feedback.Show(transform.position + Vector3.up * 2f, UseText(item), PWR_Feedback.Info);
                 };
+        }
+
+        /// <summary>What happens when the player uses the lamp (with or without an item in hand).</summary>
+        private string UseText(PWR_ItemObject item)
+        {
+            if (item != null && item.resource != PWR_ResourceType.LightBulb)
+                return $"The lamp takes a Light Bulb, not a {PWR_Names.Of(item.resource)}.";
+            if (item != null && HasBulb)
+                return "The lamp already has a working bulb. Keep the spare for when it burns out.";
+            if (!HasBulb)
+                return "The lamp has no bulb. Craft a Light Bulb (1 Glass + 2 Copper Wire) and drop it in.";
+            return IsLit ? "Powered by a nearby Battery Bank."
+                : "No power. Place a charged Battery Bank within 2 cells of the lamp.";
         }
 
         private void Update()

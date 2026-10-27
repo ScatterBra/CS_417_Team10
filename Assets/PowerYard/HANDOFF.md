@@ -6,6 +6,26 @@ Owner prefix: `PWR_` · Namespace: `Deadzone.Power` · Scene: `Scenes/PWR.unity`
 - **Charged Cell** (`Prefabs/PWR_ChargedCell`): a physical, grabbable item ejected by the Cell Charger when
   charging reaches 100%. This is the station's output, meant to be carried to the next room.
 
+## Completion check (for other areas)
+The station is complete once the burnt-out Floodlight bulb has been replaced **and** the player has
+picked up the Charged Cell (either order).
+- `Deadzone.Power.PWR_LevelDirector.StationComplete` — static bool, check it any time.
+- `Deadzone.Power.PWR_LevelDirector.StationCompleted` — static event, fired once when it becomes true.
+- Finer-grained: `PWR_CellCharger.Completed` (cell ejected), `PWR_CellCharger.CellCollected` (cell first
+  picked up), `PWR_Floodlight.BulbInstalled` (replacement bulb installed).
+
+## Progression (MP2B)
+`PWR_Progression` (added at runtime by `PWR_LevelDirector`) gates the station in five thresholds:
+Floodlight lit → generators + barrels/crates + Refine Oil · first generator running → pads/belts + scrap +
+chute/bin · first bin collection → Fuse/Battery/Bulb recipes + electrolyte tank · first Battery crafted →
+Cell Charger · station complete. Each shows a reveal card first; `PWR_Progression.Instance.NextGoal` is
+the current goal (also shown in the wrist menu).
+
+## Shared scene
+`PWR_AreaGate` (added at runtime) treats the build grid + 3 m as the Power area. Outside it the station
+restores the scene's own ambient light and lights, closes its wrist menu and ignores its build controls
+(Y, B, right trigger placing, right stick rotating). Check `PWR_AreaGate.PlayerInside` if needed.
+
 ## What it consumes
 Nothing from other stations (MP2A standalone rule). Everything is gathered in this room:
 - Scrap (scattered on the floor) → conveyor belts

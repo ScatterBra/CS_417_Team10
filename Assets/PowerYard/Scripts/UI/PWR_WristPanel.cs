@@ -11,23 +11,23 @@ namespace Deadzone.Power
 {
     /// <summary>
     /// The player's wrist menu: resource list, build menu and build status. In VR it is hidden until Y on
-    /// the left controller opens it; it then floats just above the left controller facing the player,
-    /// lightly smoothed so hand tremor doesn't shake the buttons under the right controller ray (or a
-    /// fingertip poke). While placing, the build status floats above the ghost instead. On desktop it
-    /// is a screen overlay with hotkey hints.
+    /// the left controller opens it; it then floats just above the right controller facing the player
+    /// (the left wrist holds the shared outpost panel), lightly smoothed so hand tremor doesn't shake
+    /// the buttons under the left controller ray (or a fingertip poke). While placing, the build status
+    /// floats above the ghost instead. On desktop it is a screen overlay with hotkey hints.
     /// </summary>
     public class PWR_WristPanel : MonoBehaviour
     {
         public static PWR_WristPanel Instance { get; private set; }
 
         [Header("VR menu")]
-        [Tooltip("Gap between the left controller and the bottom edge of the menu.")]
+        [Tooltip("Gap between the right controller and the bottom edge of the menu.")]
         public float wristGap = 0.03f;
         [Tooltip("How quickly the menu catches up with the hand. Lower = steadier but laggier.")]
         public float followSharpness = 18f;
         public float worldWidth = 0.28f;
 
-        /// <summary>Transform tutorials about the menu attach to (the left controller in VR).</summary>
+        /// <summary>Transform tutorials about the menu attach to (the right controller in VR).</summary>
         public Transform Anchor { get; private set; }
 
         public bool IsOpen => canvas != null && canvas.gameObject.activeSelf;
@@ -36,8 +36,10 @@ namespace Deadzone.Power
         const int Padding = 10;
         const float XrButtonHeight = 72f;
         const float XrButtonSpacing = 8f;
+        const float GoalHeight = 56f;
 
         private TMP_Text resourceText;
+        private TMP_Text goalText;
         private TMP_Text statusText;
         private readonly List<Button> buildButtons = new List<Button>();
         private readonly StringBuilder sb = new StringBuilder();
@@ -75,13 +77,13 @@ namespace Deadzone.Power
             var rig = PWR_PlayerRig.Instance;
             var bs = PWR_BuildSystem.Instance;
             int buttonCount = (bs != null ? bs.buildables.Count : 0) + 2; // + Demolish, Cancel
-            xr = rig != null && rig.XRActive && rig.leftController != null;
+            xr = rig != null && rig.XRActive && rig.rightController != null;
 
             if (xr)
             {
                 int rows = (buttonCount + 1) / 2;
                 float gridHeight = rows * XrButtonHeight + (rows - 1) * XrButtonSpacing;
-                float unitsHigh = 2 * Padding + 40 + 5 * 30 + gridHeight + 50 + 3 * 6;
+                float unitsHigh = 2 * Padding + 40 + GoalHeight + 5 * 30 + gridHeight + 50 + 4 * 6;
                 canvas = PWR_UIFactory.CreateWorldCanvas("PWR_BuildMenu", null, new Vector2(UnitsWide, unitsHigh),
                     worldWidth / UnitsWide, true);
                 // PWR_BuildInput checks for this collider so a trigger pull on the menu doesn't also place.
@@ -90,13 +92,13 @@ namespace Deadzone.Power
                 box.size = new Vector3(UnitsWide, unitsHigh, 4f);
                 BuildContents(bs, gridHeight);
                 canvas.gameObject.SetActive(false);
-                hand = rig.leftController;
+                hand = rig.rightController;
                 Anchor = hand;
                 CreateStatusLabel();
             }
             else
             {
-                float unitsHigh = 70 + 10 * 30 + buttonCount * 58 + 90;
+                float unitsHigh = 70 + GoalHeight + 10 * 30 + buttonCount * 58 + 90;
                 canvas = PWR_UIFactory.CreateOverlayCanvas("PWR_DesktopHUD");
                 var holder = new GameObject("Panel", typeof(RectTransform));
                 holder.transform.SetParent(canvas.transform, false);
@@ -128,6 +130,7 @@ namespace Deadzone.Power
             var layout = PWR_UIFactory.CreateVerticalLayout(canvas.transform, 6, Padding);
             var title = PWR_UIFactory.CreateLayoutText(layout, "<b>POWER STATION</b>", 28, xr ? 40 : 36);
             title.color = PWR_UIFactory.AccentColor;
+            goalText = PWR_UIFactory.CreateLayoutText(layout, "", 18, GoalHeight);
             resourceText = PWR_UIFactory.CreateLayoutText(layout, "", 22, xr ? 5 * 30 : 10 * 30);
 
             var input = FindAnyObjectByType<PWR_BuildInput>();
@@ -227,6 +230,16 @@ namespace Deadzone.Power
 
         private void LateUpdate()
         {
+            if (canvas == null) return; // still waiting for the XR startup check
+            // Outside the Power area (shared scene) the menu is closed and Y does nothing.
+            bool inside = PWR_AreaGate.PlayerInside;
+            if (!xr && canvas.enabled != inside) canvas.enabled = inside;
+            if (!inside)
+            {
+                if (xr) Close();
+                if (statusLabel != null && statusLabel.gameObject.activeSelf) statusLabel.gameObject.SetActive(false);
+                return;
+            }
             if (xr)
             {
                 if (toggle.WasPressedThisFrame())
@@ -269,13 +282,19 @@ namespace Deadzone.Power
                 foreach (PWR_ResourceType t in Enum.GetValues(typeof(PWR_ResourceType)))
                 {
                     int v = res.Get(t);
+                    if (v <= 0 && !PWR_Progression.IsResourceVisible(t)) continue; // not introduced yet
                     sb.Append(v > 0 ? "<color=#FFFFFF>" : "<color=#7A7A7A>")
                       .Append(PWR_Names.Of(t)).Append(": ").Append(v).Append("</color>");
                     // VR packs the list into two columns to keep the menu short.
                     sb.Append(xr && i % 2 == 0 ? "<pos=50%>" : "\n");
                     i++;
                 }
-                resourceText.text = sb.ToString();
+                resourceText.text = i > 0 ? sb.ToString() : "<color=#7A7A7A>No supplies yet</color>";
+            }
+            if (goalText != null)
+            {
+                var progression = PWR_Progression.Instance;
+                goalText.text = progression != null ? $"<color=#FFC840>Next goal:</color> {progression.NextGoal}" : "";
             }
 
             var bs = PWR_BuildSystem.Instance;
@@ -285,6 +304,8 @@ namespace Deadzone.Power
                 var def = bs.buildables[i];
                 bool limitReached = def.maxCount > 0 && bs.CountBuilt(def.BuildingId) >= def.maxCount;
                 buildButtons[i].interactable = !limitReached;
+                bool unlocked = bs.IsUnlocked(def);
+                if (buildButtons[i].gameObject.activeSelf != unlocked) buildButtons[i].gameObject.SetActive(unlocked);
             }
             if (statusText == null) return;
             if (bs.Demolishing)
@@ -293,6 +314,8 @@ namespace Deadzone.Power
                 statusText.text = $"{bs.LastMessage}\nRotation: {bs.QuarterTurns * 90}°";
             else
                 statusText.text = xr ? bs.LastMessage : "WASD move, hold RMB look, E use, F grab/drop\n" + bs.LastMessage;
+            if (PWR_LevelDirector.StationComplete && !bs.IsActive) // the status box only fits two lines
+                statusText.text = "<color=#7CFC7C><b>POWER STATION ONLINE</b></color>\n" + statusText.text;
         }
     }
 }
