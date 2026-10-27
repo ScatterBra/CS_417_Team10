@@ -16,6 +16,12 @@ public class MED_MedicineCabinet : MonoBehaviour
 
     public MED_Stat Stock => stock;
 
+    /// <summary>Raised when stocking fills a cabinet to its maximum (used by the Stocked Up achievement).</summary>
+    public static event System.Action Filled;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Filled = null;
+
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 2f;
 
     void OnEnable()
@@ -107,6 +113,7 @@ public class MED_MedicineCabinet : MonoBehaviour
         player.TrySpend(MED_ResourceType.Medicine, 1);
         stock.Add(1f);
         MED_FloatingText.Spawn(MessagePosition, "+1 Stocked", new Color(0.6f, 1f, 0.6f));
+        if (stock.Value >= stock.Max) Filled?.Invoke();
         return true;
     }
 

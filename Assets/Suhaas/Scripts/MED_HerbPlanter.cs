@@ -43,6 +43,11 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
     public MED_Stat Growth => growth;
     public MED_Stat Moisture => moisture;
     public event Action StateChanged;
+    /// <summary>Raised when a ripe planter is harvested (used by the Green Thumb achievement).</summary>
+    public static event Action Harvested;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => Harvested = null;
 
     Vector3 MessagePosition => messageAnchor != null ? messageAnchor.position : transform.position + Vector3.up * 1.2f;
 
@@ -176,6 +181,7 @@ public class MED_HerbPlanter : MonoBehaviour, MED_IToolTarget
         tool.SendHaptic(0.5f, 0.1f);
         growth.Set(0f);
         SetState(PlanterState.Empty);
+        Harvested?.Invoke();
         return true;
     }
 

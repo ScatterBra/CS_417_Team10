@@ -548,3 +548,21 @@ Two new buttons in `MED_TestTools`: "TEST: RESET PROGRESSION" (thresholds, unloc
 - New catch "Planter locked - sterilize a batch first", reachable through a LOCKED plate that now marks every hidden shelf slot.
 - `MED_ProgressionManager.ThresholdCount` = 5; RESET PROGRESSION and SKIP TO NEXT THRESHOLD were checked through all five steps (6th skip does nothing; `ClinicCompleted` fired once).
 - If the player is already at 100 HP when T5 begins, T5 clears immediately.
+
+### Step 12 - 2026-10-27 - Achievements and trophy shelf
+New scripts: `MED_AchievementManager`, `MED_Trophy`, `MED_ResetAchievementsButton`, `MED_GrantAchievementButton`. New assets: `Prefabs/MED_Trophy.prefab` (gold cup from primitives + billboard label), `Materials/MED_Gold.mat`. A `MED_Achievements` object in `MED_Clinic.unity` holds the manager and builds the trophy shelf from primitives at (7.2, 0, 3.5) against the east wall; its five slots are fixed per achievement, in the order below.
+
+| # | Achievement | Condition | Event used |
+|---|---|---|---|
+| 1 | Apothecary | Craft all 5 Prep Bench recipes (Medicine, Antiseptic, BandageKit, Painkiller, Tonic) at least once. BandageKit, Tonic and Painkiller are locked until T3, so this naturally comes after it | `MED_PrepBench.Crafted` (existing) |
+| 2 | Supply Runner | Unload 3 supply carts (the last unit of a cart counts it) | new static `MED_SupplyCart.CartEmptied` |
+| 3 | Green Thumb | Harvest a ripe Herb Planter with the Sickle; the T4 sandbox demo plant does not count | new static `MED_HerbPlanter.Harvested` |
+| 4 | Stocked Up | Fill a Medicine Cabinet to its maximum by stocking | new static `MED_MedicineCabinet.Filled` |
+| 5 | Full Recovery | Climb to 100 health twice from below (use TEST: RESET HEALTH between) | `MED_PlayerResources.OnResourceChanged` (existing) |
+
+- When earned: the trophy pops in on its slot (ease-out-back, then turns slowly), its label shows the name and a short hint, a floating "Achievement: <name>" text rises above it, and the HUD message line shows the same text for 4 s. Each trophy appears once per run; state is in the scene object only.
+- None duplicates a threshold: T1 craft one Medicine / T2 stock a station / T3 first dose / T4 sterilize a batch / T5 reach 100 once. Full Recovery needs 100 reached twice, and Stocked Up is about the Cabinet, which no threshold requires.
+- Test buttons in `MED_TestTools` (east side, x 5.4 and 6.3): "TEST: RESET ACHIEVEMENTS" (removes trophies, clears counters) and "TEST: GRANT NEXT ACHIEVEMENT" (earns the first unearned one, in table order). RESET PROGRESSION does not reset achievements.
+- Existing scripts touched: only static events added to `MED_SupplyCart`, `MED_HerbPlanter` and `MED_MedicineCabinet`.
+- Verified in Play mode by script: all five earned through the real code paths (5 benches, 3 carts, cabinet, planter, health), duplicates ignored, the same 100 health twice in a row does not count, reset and grant-next work. Not yet checked by hand in the XR simulator.
+- Known issue: the first 100 health counts even if it happened before the Clinic's thresholds were reached, since achievements are independent of progression.

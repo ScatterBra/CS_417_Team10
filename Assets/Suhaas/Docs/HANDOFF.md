@@ -35,6 +35,23 @@ Medicine / Antiseptic / Sterile Bandages recipes. Every threshold shows one worl
 interface metaphor; T5 shows a "Clinic Complete" card) first, then releases the content so its existing pop-up tutorial follows. The NEXT GOAL sign
 floats over the room and the goal also shows in the player HUD.
 
+## Achievements
+`MED_AchievementManager` (scene object `MED_Achievements`) puts a gold `MED_Trophy` (`Prefabs/MED_Trophy.prefab`, built
+from primitives) on the trophy shelf against the east wall when a condition is first met, with a small label and a
+floating "Achievement: <name>" text (also shown in the HUD message line). Each trophy appears once per run; nothing is
+saved after Play stops. None of the five repeats a progression threshold.
+
+| Achievement | Condition | Raised by |
+|---|---|---|
+| Apothecary | Craft all 5 Prep Bench recipes at least once | `MED_PrepBench.Crafted` |
+| Supply Runner | Unload 3 supply carts completely | `MED_SupplyCart.CartEmptied` |
+| Green Thumb | Harvest a ripe Herb Planter (the sandbox demo plant does not count) | `MED_HerbPlanter.Harvested` |
+| Stocked Up | Fill the Medicine Cabinet to full | `MED_MedicineCabinet.Filled` |
+| Full Recovery | Climb to 100 health twice (drop below 100 in between) | `MED_PlayerResources.OnResourceChanged` |
+
+API: `MED_AchievementManager.Instance`, `IsEarned(MED_Achievement)`, `EarnedCount`, static event `Earned`. Other areas
+need not use it. Test buttons: `RESET ACHIEVEMENTS` and `GRANT NEXT ACHIEVEMENT`.
+
 ## Shared scene
 `MED_AreaGate` (added at runtime by `MED_ProgressionManager`) treats the build grid + 3 m as the Clinic area
 (+1 m hysteresis on the way out). Outside it, the Clinic ignores action buttons, recipe cards, test buttons,
@@ -49,6 +66,7 @@ Nothing from other stations yet (MP2A standalone rule). Everything is gathered i
 ## Test buttons (MED_TestTools, removable at integration)
 `RESET PROGRESSION` (back to the start state, clears placed buildings, resets health and the reveal-once memory)
 and `SKIP TO NEXT THRESHOLD` (clears the next of the five thresholds; its reveal card and unlock follow as normal).
+`RESET ACHIEVEMENTS` / `GRANT NEXT ACHIEVEMENT` are described under Achievements. RESET PROGRESSION does not touch achievements.
 
 If the player is already at 100 HP when T5 begins, T5 clears at once (nothing left to heal), so nobody gets stuck at 100/100.
 
