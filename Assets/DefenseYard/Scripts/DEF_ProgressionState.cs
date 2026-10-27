@@ -50,9 +50,9 @@ public sealed class DEF_ProgressionState
     {
         if (Current != Stage.TeamPrerequisites || ready.Count != 0 || receipts.Count != 0)
             throw new InvalidOperationException("Recording configuration must precede all evidence.");
-        recordingPowerOnly = true;
+        recordingPowerOnly = true; Current = Stage.PlaceSentry;
     }
-    public bool TeamReady => recordingPowerOnly ? ready.Contains(Prerequisite.Power6) : ready.Count == 3;
+    public bool TeamReady => recordingPowerOnly || ready.Count == 3;
     public bool AcceptPrerequisite(Prerequisite kind, int session, string receipt)
     {
         if ((recordingPowerOnly && kind != Prerequisite.Power6) || session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
@@ -109,8 +109,9 @@ public sealed class DEF_ProgressionState
         BeginIntroduction(Stage.FirstWaveComplete); return true;
     }
     public void RetryDefense() { Attempt++; ClearAdvanced(); sentry = null; Introduction++; Current = TeamReady ? Stage.PlaceSentry : Stage.TeamPrerequisites; }
-    public void NewSession() { Session++; ClearAdvanced(); Attempt = 1; sentry = null; Introduction++; ready.Clear(); receipts.Clear(); Current = Stage.TeamPrerequisites; }
+    public void NewSession() { Session++; ClearAdvanced(); Attempt = 1; sentry = null; Introduction++; ready.Clear(); receipts.Clear(); Current = recordingPowerOnly ? Stage.PlaceSentry : Stage.TeamPrerequisites; }
     bool Matches(int session, int attempt) => session == Session && attempt == Attempt;
 }
+
 
 

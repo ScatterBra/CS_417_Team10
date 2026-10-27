@@ -97,7 +97,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
     public string NextGoal => State.Current switch
     {
-        S.TeamPrerequisites => State.RecordingPowerOnly ? "Complete real Power Step6. Clinic and Workshop prerequisites are NOT REQUIRED in this recording setup." : "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
+        S.TeamPrerequisites => State.RecordingPowerOnly ? "External yard prerequisites omitted in recording setup." : "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
         S.PlaceSentry => "Place one basic sentry on valid empty ground.",
         S.RepairIntroduction or S.AmmoIntroduction or S.WaveIntroduction => "Read the introduction; the next action unlocks after it finishes.",
         S.Repair => "Release a crafted RepairKit in the training sentry receiver to restore integrity.",
@@ -112,6 +112,26 @@ public sealed class DEF_Progression : MonoBehaviour
         S.JuggernautActive => "Clear the Juggernaut wave with two defense types contributing, physical repair and refill, and the base alive.",
         _ => "Defense progression complete."
     };
+    // Recording branch only: spend explicitly preloaded test parts through the normal
+    // workbench transaction. These are fixture supplies, never player crafting evidence.
+    System.Collections.IEnumerator Start()
+    {
+        if (!recordingPowerOnly) yield break;
+        yield return null;
+        var bench = FindAnyObjectByType<SCV_Workbench>();
+        if (bench == null || repairLedger == null) { Debug.LogError("Recording fixture missing Workshop bindings"); yield break; }
+        GetComponent<DEF_GameState>().scrap = 400;
+        repairLedger.AddParts(12 * bench.AmmoPartsCost + 6 * bench.RepairPartsCost);
+        int index = 0;
+        System.Action<SCV_CraftedItem> locate = item => {
+            item.transform.position = new Vector3(-2f + (index % 6) * .65f, 1.2f, -2f + (index / 6) * .65f);
+            item.gameObject.name = "PRELOADED RECORDING TEST SUPPLY - " + item.Type;
+            index++;
+        };
+        bench.PhysicalItemCrafted += locate;
+        try { for(int i=0;i<12;i++)bench.CraftAmmo(); for(int i=0;i<6;i++)bench.CraftRepairKit(); }
+        finally { bench.PhysicalItemCrafted -= locate; }
+    }
     void OnEnable()
     {
         Connect(power); Connect(clinic); Connect(workshop);
@@ -232,6 +252,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
 }
 public enum DEF_Action { BasicSentry, Repair, PhysicalAmmo, RemoteAmmo, AmmoCrate, StartWave, Combat, Barricade, Shock, Missile }
+
 
 
 
