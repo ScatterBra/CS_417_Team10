@@ -42,6 +42,7 @@ public class SCV_HarvestableWreck : MonoBehaviour
         SCV_ResourceManager manager,
         SCV_SalvageSpawner spawner)
     {
+        if (DEF_Progression.Current != null && DEF_Progression.Current.workshopRecording) { scrapRemaining = 12; scrapPerHarvest = 2; }
         resourceManager = manager;
         salvageSpawner = spawner;
 

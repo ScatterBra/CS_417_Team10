@@ -40,6 +40,7 @@ public class DEF_WaveManager : MonoBehaviour
     {
         var p=DEF_Progression.Current; var state=DEF_GameState.I;
         if(p==null || state==null || (!AttemptFailed && state.playerHealth>0))return false;
+        if(p.workshopRecording){p.BeginNewSession();return true;}
         if(p.DeferReset(false))return true;
         ResetOwnedWave();
         p.ResetDefenseAttempt();
@@ -291,7 +292,7 @@ public class DEF_WaveManager : MonoBehaviour
         DEF_HUD.Instance?.Notify("WAVE " + s.waveNumber.ToString("00") + " INCOMING  /  Defend all four sides");
         DEF_Audio.PlayUI("wave_start", 0.7f);
         if (spawnPoints.Count > 0)
-            DEF_Tutorials.Show("wave", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 3f - Vector3.up : transform.position, "WAVE ALARM\nInfected approach from all four sides. Turn and defend each window.");
+            DEF_Tutorials.Show("wave", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 3f - Vector3.up : transform.position, (DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? "RECORDING WAVE\nInfected use the east approach. Defend the east window." : "WAVE ALARM\nInfected approach from all four sides. Turn and defend each window."));
     }
 
     void ResetRun(DEF_GameState s)
@@ -339,7 +340,13 @@ public class DEF_WaveManager : MonoBehaviour
         if(spawnPoints.Count==0)return false;
         var s=DEF_GameState.I;
         float scale=1f+(s!=null?(s.waveNumber-1)*hpScalePerWave:0);
-        if(!SpawnAtPortal(Random.Range(0,spawnPoints.Count),scale))return false;
+                int portal=Random.Range(0,spawnPoints.Count);
+        if(DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording){
+            // A disclosed single east approach makes this recording loop short and repeatable.
+            var target=new Vector3(17,0,1);float best=float.PositiveInfinity;
+            for(int i=0;i<spawnPoints.Count;i++){float d=(spawnPoints[i]-target).sqrMagnitude;if(d<best){best=d;portal=i;}}
+        }
+        if(!SpawnAtPortal(portal,scale))return false;
         spawnedThisWave++;return true;
     }
     bool SpawnAtPortal(int pi,float hpScale)
@@ -353,3 +360,5 @@ public class DEF_WaveManager : MonoBehaviour
         attemptActors.Add(actor);return true;
     }
 }
+
+

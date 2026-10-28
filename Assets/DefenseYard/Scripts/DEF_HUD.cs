@@ -8,6 +8,7 @@ public class DEF_HUD : MonoBehaviour
     public static DEF_HUD Instance { get; private set; }
     public static bool TrainingActive => Instance != null && Instance.training;
     public static bool BlockingWorldInput => Instance != null && (Instance.shopOpen || Instance.guideOpen || Instance.paused || Time.frameCount <= Instance.suppressUntil);
+    public bool movementSafeMenus;
     public bool ReadyForWave => trainingStep >= 5;
     public Text healthText, waveText, waveStatus, zombieText, threatText, ammoText, scrapText, contextText, noticeText, selectedText, objectiveText, guideTitle, guideBody, guideIndex, guideNextText, guideSkipText, shopBalance, startText;
     public Image healthFill, selectedPicture, guidePicture;
@@ -86,7 +87,7 @@ public class DEF_HUD : MonoBehaviour
         zombieText.text = DEF_Zombie.all.Count + "  ZOMBIES";
         threatText.text = "THREAT LEVEL  " + (wave != null ? Mathf.FloorToInt(wave.threat) : 0);
         startButton.interactable = ready && (!training || ReadyForWave) && !shopOpen && !guideOpen;
-        startText.text = (state.playerHealth <= 0 || (wave != null && wave.AttemptFailed)) ? "RETRY DEFENSE  [MENU]" : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
+        startText.text = (state.playerHealth <= 0 || (wave != null && wave.AttemptFailed)) ? (DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? "RESTART RECORDING RUN [MENU]" : "RETRY DEFENSE  [MENU]") : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
         shopBalance.text = state.scrap + " SCRAP AVAILABLE";
         for (int i = 0; i < buyButtons.Length; i++)
         {
@@ -166,7 +167,7 @@ public class DEF_HUD : MonoBehaviour
     }
     public void CloseMenus() { if (guideOpen && trainingStep == 4) trainingStep = 5; shopOpen = guideOpen = false; suppressUntil = Time.frameCount + 2; SyncModal(); }
     void TogglePause() { if (shopOpen || guideOpen) return; paused = !paused; suppressUntil = Time.frameCount + 2; SyncModal(); }
-    void SyncModal() { shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = shopOpen || guideOpen || paused ? 0 : 1; }
+    void SyncModal() { shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = movementSafeMenus ? 1 : (shopOpen || guideOpen || paused ? 0 : 1); }
     public void FinishTraining() { if (!training) return; training = false; Notify("Training complete. Defend the outpost."); }
     public void RecordPlacement(GameObject defense)
     {
@@ -233,3 +234,5 @@ public class DEF_HUD : MonoBehaviour
         return "";
     }
 }
+
+

@@ -63,7 +63,7 @@ public class DEF_Barricade : MonoBehaviour
     public void TakeDamage(float d)
     {
         if (health >= maxHealth) DEF_Tutorials.Show("repair", transform,
-            DEF_VRInput.Active ? "REPAIR\nAim here and squeeze the right grip: restore 40 integrity for 10 scrap." : "Right grip repairs for 10 scrap");
+            "REPAIR\n" + DEF_Tutorials.RepairAdvice);
         health = Mathf.Max(0, health - d);
         DEF_Effects.ApplyDamage(gameObject, health / maxHealth);
         if (health <= 0f)

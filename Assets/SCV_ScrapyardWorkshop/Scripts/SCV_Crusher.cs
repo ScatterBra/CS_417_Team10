@@ -59,6 +59,7 @@ public class SCV_Crusher : MonoBehaviour
 
     public void ProcessScrap()
     {
+        if(progressionManager!=null&&!progressionManager.CrusherReady){SetFeedback("CRUSHER LOCKED: finish harvesting and read the introduction.");return;}
         if (isProcessing)
         {
             SetFeedback(
@@ -267,3 +268,4 @@ public class SCV_Crusher : MonoBehaviour
         TryEmergencyRepair();
     }
 }
+

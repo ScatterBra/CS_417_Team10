@@ -3,6 +3,7 @@ using UnityEngine;
 // Teaching receiver remains outside Defense gates. Craft-ready alone never completes Step14.
 public sealed class DEF_WorkshopReadiness : DEF_PrerequisiteSource
 {
+    public bool craftingOnlyRecording;
     [SerializeField] SCV_ProgressionManager crafting;
     [SerializeField] SCV_Workbench workbench;
     readonly System.Collections.Generic.HashSet<string> freshCrafts=new();
@@ -27,7 +28,8 @@ public sealed class DEF_WorkshopReadiness : DEF_PrerequisiteSource
     void Update() { Check(); }
     void Check()
     {
-        if (!published && Session > 0 && workbench != null && ammoCrafted && repairCrafted && crafting != null && crafting.WorkshopComplete && !string.IsNullOrEmpty(physicalReceipt))
-        { published = true; Publish(physicalReceipt); }
+        if (!published && Session > 0 && workbench != null && ammoCrafted && repairCrafted && crafting != null && crafting.WorkshopComplete && (craftingOnlyRecording ? crafting.DefenseSupplyReady : !string.IsNullOrEmpty(physicalReceipt)))
+        { published = true; Publish(craftingOnlyRecording ? "authenticated-fresh-ammo-and-kit-crafts" : physicalReceipt); }
     }
 }
+

@@ -168,7 +168,7 @@ public class DEF_Turret : MonoBehaviour
     {
         health = Mathf.Max(0, health - d);
         UpdateDamageTint();
-        if (health > 0) DEF_Tutorials.Show("repair-turret", transform, "SENTRY REPAIR\nAim here and squeeze the right grip to restore 40 integrity for 10 scrap.");
+        if (health > 0) DEF_Tutorials.Show("repair-turret", transform, "SENTRY REPAIR\n" + DEF_Tutorials.RepairAdvice);
         if (health <= 0f)
         {
             var pf = DEF_Pathfinder.I;

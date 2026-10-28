@@ -23,7 +23,7 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         Set(waveContent, owner.IsAllowed(DEF_Action.StartWave) || owner.IsAllowed(DEF_Action.Combat));
         Set(advancedContent, owner.IsAllowed(DEF_Action.Barricade));
         Set(missileContent,owner.IsAllowed(DEF_Action.Missile));
-        goalText.text = owner.NextGoal;
+        goalText.text = (owner.workshopRecording ? "SIMPLIFIED WORKSHOP TO DEFENSE RECORDING\nPower/Clinic omitted; actual crafting and deliveries required.\n" : "") + owner.NextGoal;
         bool intro = state.IntroductionActive;
         introductionText.gameObject.SetActive(intro);
         if (!intro) { presenting = false; return; }
@@ -46,3 +46,4 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     static void Set(GameObject[] objects, bool active)
     { if (objects != null) foreach (var obj in objects) if (obj != null) obj.SetActive(active); }
 }
+

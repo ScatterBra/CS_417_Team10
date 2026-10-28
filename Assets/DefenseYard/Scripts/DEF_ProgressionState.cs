@@ -44,10 +44,16 @@ public sealed class DEF_ProgressionState
     }
     void ClearAdvanced()
     {routeControlled=shocked=juggernautSeen=combatRepair=combatRefill=false;defenseTypes.Clear();}
-    public bool TeamReady => ready.Count == 3;
+        public bool WorkshopRecording { get; private set; }
+    public void ConfigureWorkshopRecording()
+    {
+        if(Current!=Stage.TeamPrerequisites || ready.Count!=0)throw new InvalidOperationException("Configure before evidence");
+        WorkshopRecording=true;
+    }
+    public bool TeamReady => WorkshopRecording ? ready.Contains(Prerequisite.Workshop14) : ready.Count == 3;
     public bool AcceptPrerequisite(Prerequisite kind, int session, string receipt)
     {
-        if (session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
+        if ((WorkshopRecording && kind != Prerequisite.Workshop14) || session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
             !Enum.IsDefined(typeof(Prerequisite), kind) || !receipts.Add(kind + ":" + receipt)) return false;
         ready.Add(kind);
         if (TeamReady) Current = Stage.PlaceSentry;
@@ -104,4 +110,5 @@ public sealed class DEF_ProgressionState
     public void NewSession() { Session++; ClearAdvanced(); Attempt = 1; sentry = null; Introduction++; ready.Clear(); receipts.Clear(); Current = Stage.TeamPrerequisites; }
     bool Matches(int session, int attempt) => session == Session && attempt == Attempt;
 }
+
 

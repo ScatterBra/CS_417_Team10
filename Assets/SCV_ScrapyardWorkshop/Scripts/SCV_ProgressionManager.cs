@@ -3,6 +3,7 @@ using TMPro;
 
 public class SCV_ProgressionManager : MonoBehaviour
 {
+    public bool defenseRecording;
     public enum WorkshopStage
     {
         HarvestSalvage,
@@ -32,6 +33,10 @@ public class SCV_ProgressionManager : MonoBehaviour
 
     [SerializeField] private GameObject defenseSupplyInteraction;
 
+    public bool CrusherReady => !defenseRecording || (crusherInteraction != null && crusherInteraction.activeInHierarchy);
+    public bool WorkbenchReady => !defenseRecording || (workbenchInteraction != null && workbenchInteraction.activeInHierarchy);
+    public bool DefenseSupplyReady => !defenseRecording || (defenseSupplyInteraction != null && defenseSupplyInteraction.activeInHierarchy);
+    private float UnlockDelay => defenseRecording ? Mathf.Max(interactionUnlockDelay,revealDuration)+.1f : interactionUnlockDelay;
     private bool craftedAmmo = false;
     private bool craftedRepairKit = false;
 
@@ -72,7 +77,7 @@ public class SCV_ProgressionManager : MonoBehaviour
 
         Invoke(
             nameof(EnableCrusherInteraction),
-            interactionUnlockDelay
+            UnlockDelay
         );
     }
 
@@ -98,7 +103,7 @@ public class SCV_ProgressionManager : MonoBehaviour
 
         Invoke(
             nameof(EnableWorkbenchInteraction),
-            interactionUnlockDelay
+            UnlockDelay
         );
     }
 
@@ -138,7 +143,7 @@ public class SCV_ProgressionManager : MonoBehaviour
 
         Invoke(
             nameof(EnableDefenseSupplyInteraction),
-            interactionUnlockDelay
+            UnlockDelay
         );
     }
 
@@ -176,7 +181,7 @@ public class SCV_ProgressionManager : MonoBehaviour
             case WorkshopStage.WorkshopComplete:
                 objectiveText.text =
                     "CURRENT OBJECTIVE\n" +
-                    "SUPPLY THE DEFENSE YARD";
+                    (defenseRecording ? "CRAFTING READY: Keep your kit and ammo. Transfer 4 Scrap, then carry supplies to Defense." : "SUPPLY THE DEFENSE YARD");
                 break;
         }
     }
@@ -199,3 +204,4 @@ public class SCV_ProgressionManager : MonoBehaviour
             revealCanvas.SetActive(false);
     }
 }
+

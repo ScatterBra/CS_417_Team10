@@ -5,6 +5,8 @@ using S = DEF_ProgressionState.Stage;
 public sealed class DEF_Progression : MonoBehaviour
 {
     [SerializeField] DEF_PrerequisiteSource power, clinic, workshop;
+    public bool workshopRecording;
+    void Awake(){if(workshopRecording)State.ConfigureWorkshopRecording();}
     [SerializeField] DEF_ProgressionPresenter presenter;
     [SerializeField] SCV_ResourceManager repairLedger;
     DEF_WorkshopRepairReceiver trainingRepairReceiver;
@@ -42,7 +44,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
     [Header("Explicit training baseline applied only at successful first sentry placement")]
     [Range(1,99)] public float trainingDamage = 20;
-    [Min(1)] public int trainingAmmo = 30;
+    [Min(0)] public int trainingAmmo = 30;
     public DEF_ProgressionState State { get; } = new();
     public string LastFailure { get; private set; }
     public static DEF_Progression Current => DEF_GameState.I != null ? DEF_GameState.I.GetComponent<DEF_Progression>() : null;
@@ -95,7 +97,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
     public string NextGoal => State.Current switch
     {
-        S.TeamPrerequisites => "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
+        S.TeamPrerequisites => workshopRecording ? "Harvest scrap, process three Parts, craft one Ammo Box and one RepairKit. Keep both for Defense. Transfer four scrap to Defense." : "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
         S.PlaceSentry => "Place one basic sentry on valid empty ground.",
         S.RepairIntroduction or S.AmmoIntroduction or S.WaveIntroduction => "Read the introduction; the next action unlocks after it finishes.",
         S.Repair => "Release a crafted RepairKit in the training sentry receiver to restore integrity.",
@@ -217,6 +219,7 @@ public sealed class DEF_Progression : MonoBehaviour
     public void BeginNewSession()
     {
         if(DeferReset(true))return;
+        if(Application.isPlaying && workshopRecording){Time.timeScale=1;UnityEngine.SceneManagement.SceneManager.LoadScene(gameObject.scene.path);return;}
         var training=DEF_ClinicTraining.For(this);
         if(Application.isPlaying && training!=null){training.RestartFullRun();return;}
         DEF_WaveManager.I?.ResetOwnedWave();ResetOwnedDefenses();retryScrap=null;
@@ -230,5 +233,7 @@ public sealed class DEF_Progression : MonoBehaviour
     }
 }
 public enum DEF_Action { BasicSentry, Repair, PhysicalAmmo, RemoteAmmo, AmmoCrate, StartWave, Combat, Barricade, Shock, Missile }
+
+
 
 

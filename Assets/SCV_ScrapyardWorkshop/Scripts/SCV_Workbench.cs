@@ -52,6 +52,7 @@ public class SCV_Workbench : MonoBehaviour
 
     public void CraftAmmo()
     {
+        if(progressionManager!=null&&!progressionManager.WorkbenchReady){SetFeedback("WORKBENCH LOCKED: process Scrap and read the introduction.");return;}
         if (!resourceManager.SpendParts(ammoPartsCost))
         {
             SetFeedback(
@@ -82,6 +83,7 @@ public class SCV_Workbench : MonoBehaviour
 
     public void CraftRepairKit()
     {
+        if(progressionManager!=null&&!progressionManager.WorkbenchReady){SetFeedback("WORKBENCH LOCKED: process Scrap and read the introduction.");return;}
         if (!resourceManager.SpendParts(repairPartsCost))
         {
             SetFeedback(
@@ -140,3 +142,4 @@ public class SCV_Workbench : MonoBehaviour
         CraftRepairKit();
     }
 }
+

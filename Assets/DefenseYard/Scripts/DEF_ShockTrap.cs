@@ -5,7 +5,7 @@ using UnityEngine;
 public class DEF_ShockTrap : MonoBehaviour
 {
     void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); }
-    public const int Cost = 50;
+    public static int Cost => DEF_Progression.Current != null && DEF_Progression.Current.workshopRecording ? 15 : 50;
     public float health = 80, maxHealth = 80;
     public float radius = 3, stunSeconds = 2, rechargeSeconds = 7;
     public Transform emitter;
@@ -33,7 +33,7 @@ public class DEF_ShockTrap : MonoBehaviour
         var trap = go.GetComponent<DEF_ShockTrap>(); trap.cell = new Vector2Int(x,z); trap.placed = true;
         state.scrap -= Cost; pf.SetBlocked(x,z,true); pf.Register(trap.cell,go); pf.RepathAll();
         DEF_Progression.Current?.RegisterAdvanced(trap);
-        DEF_Tutorials.Show("shock", go.transform, "SHOCK TRAP\nStuns nearby zombies for 2s.\n7s recharge. No ammo needed.\nRight grip repairs for 10 scrap.");
+        DEF_Tutorials.Show("shock", go.transform, "SHOCK TRAP\nStuns nearby zombies for 2s.\n7s recharge. No ammo needed.\nRelease a crafted RepairKit in its receiver to repair.");
         return true;
     }
     public bool CanDischarge => isActiveAndEnabled && health > 0 && DEF_GameState.I != null && DEF_GameState.I.playerHealth > 0 && (DEF_Progression.Current == null || (DEF_Progression.Current.IsAllowed(DEF_Action.Combat) && DEF_Progression.Current.IsAllowed(DEF_Action.Shock)));
@@ -103,3 +103,5 @@ public class DEF_ShockTrap : MonoBehaviour
         pf.SetBlocked(cell.x,cell.y,false); pf.Unregister(cell); pf.RepathAll();
     }
 }
+
+
