@@ -40,7 +40,31 @@ public static class DEF_WorkshopRecordingComposer
   foreach(var post in All<Transform>(s).Where(t=>t.name=="Fence post"&&Mathf.Abs(t.position.x-20.5f)<.05f&&Mathf.Abs(t.position.z)<3.5f)){post.gameObject.SetActive(false);if(PrefabUtility.IsPartOfPrefabInstance(post.gameObject))PrefabUtility.RecordPrefabInstancePropertyModifications(post.gameObject);}
   Physics.SyncTransforms();for(int z=-2;z<=2;z++)if(Physics.CheckCapsule(new Vector3(20.5f,.35f,z),new Vector3(20.5f,1.55f,z),.3f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore))throw new Exception("Recording entrance still has an obstructed standing capsule at z="+z);
   var setup=p.GetComponent<DEF_WorkshopRecordingSetup>()??p.gameObject.AddComponent<DEF_WorkshopRecordingSetup>();setup.hud=hud;setup.interfaceCanvas=canvas;setup.xrOrigin=rig.transform;
+  hud.shopPanel.transform.SetParent(hud.transform,false);hud.selectedPanel.transform.SetParent(hud.transform,false);
+  foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Recording view-anchored shop"))UnityEngine.Object.DestroyImmediate(old);
+  var popup=new GameObject("Recording view-anchored shop",typeof(RectTransform),typeof(Canvas));SceneManager.MoveGameObjectToScene(popup,s);
+  var popupRect=(RectTransform)popup.transform;popupRect.sizeDelta=new Vector2(1600,900);popupRect.localScale=Vector3.one*.001f;
+  setup.popupCanvas=popup.GetComponent<Canvas>();setup.popupCanvas.renderMode=RenderMode.WorldSpace;setup.popupCanvas.worldCamera=rig.Camera;DEF_IntegrationStaging.EnsureTrackedUI(setup.popupCanvas);
+  hud.shopPanel.transform.SetParent(popup.transform,false);hud.selectedPanel.transform.SetParent(popup.transform,false);
+  foreach(var old in hud.shopBalance.transform.parent.GetComponentsInChildren<Button>(true).Where(b=>b.name=="Transfer Workshop scrap").ToArray())UnityEngine.Object.DestroyImmediate(old.gameObject);
+  var transfer=UnityEngine.Object.Instantiate(hud.shopClose.gameObject,hud.shopBalance.transform.parent);transfer.name="Transfer Workshop scrap";
+  var transferRect=(RectTransform)transfer.transform;transferRect.anchorMin=transferRect.anchorMax=Vector2.one*0+new Vector2(1,0);transferRect.pivot=new Vector2(1,0);transferRect.anchoredPosition=new Vector2(-28,20);transferRect.sizeDelta=new Vector2(420,44);
+  setup.transferScrapButton=transfer.GetComponent<Button>();setup.transferScrapButton.onClick=new Button.ButtonClickedEvent();var transferText=transfer.GetComponentInChildren<Text>();transferText.text="TRANSFER 2 SCRAP\nWORKSHOP > DEFENSE";transferText.fontSize=16;transferText.alignment=TextAnchor.MiddleCenter;
+  var textRect=transferText.rectTransform;textRect.anchorMin=Vector2.zero;textRect.anchorMax=Vector2.one;textRect.offsetMin=new Vector2(8,2);textRect.offsetMax=new Vector2(-8,-2);
+  hud.shopBalance.rectTransform.sizeDelta=new Vector2(620,44);
   foreach(var b in rig.GetComponentsInChildren<MonoBehaviour>(true))if(b!=null&&b.GetType().Name=="JumpProvider")b.enabled=false;
+  foreach(var b in rig.GetComponentsInChildren<MonoBehaviour>(true))if(b!=null&&(b.GetType().Name=="GrabMoveProvider"||b.GetType().Name=="TwoHandedGrabMoveProvider"))b.enabled=false;
+  foreach(var manager in rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ControllerInputActionManager>(true)){
+   var so=new SerializedObject(manager);so.FindProperty("m_UIScrollingEnabled").boolValue=false;so.ApplyModifiedPropertiesWithoutUndo();}
+  foreach(var attach in rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Attachment.InteractionAttachController>(true)){
+   attach.useManipulationInput=false;attach.manipulationInput.inputSourceMode=UnityEngine.XR.Interaction.Toolkit.Inputs.Readers.XRInputValueReader.InputSourceMode.Unused;}
+  foreach(var move in rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider>(true)){
+   move.leftHandMovementDirection=move.rightHandMovementDirection=UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider.MovementDirection.HeadRelative;}
+  foreach(var old in All<Transform>(s).Where(t=>t.name.StartsWith("Recording doorway segment ")||t.name=="Recording outpost access ramp").ToArray())UnityEngine.Object.DestroyImmediate(old.gameObject);
+  var northWalls=All<Transform>(s).Where(t=>(t.name=="Armored lower wall"||t.name=="Window sill")&&Mathf.Abs(t.position.z-4.5f)<.05f&&Mathf.Abs(t.position.x-1)<.05f).ToArray();
+  if(northWalls.Length!=2)throw new Exception("Expected north wall and sill for the walk-in doorway");
+  foreach(var wall in northWalls){wall.gameObject.SetActive(false);foreach(int side in new[]{-1,1}){var segment=UnityEngine.Object.Instantiate(wall.gameObject,wall.parent);segment.name="Recording doorway segment "+wall.name+" "+side;segment.SetActive(true);var scale=wall.localScale;scale.x=(scale.x-1.8f)*.5f;segment.transform.localScale=scale;var position=wall.position;position.x=1+side*(.9f+scale.x*.5f);segment.transform.position=position;}if(PrefabUtility.IsPartOfPrefabInstance(wall.gameObject))PrefabUtility.RecordPrefabInstancePropertyModifications(wall.gameObject);}
+  var ramp=GameObject.CreatePrimitive(PrimitiveType.Cube);ramp.name="Recording outpost access ramp";SceneManager.MoveGameObjectToScene(ramp,s);ramp.transform.position=new Vector3(1,.085f,5.25f);ramp.transform.rotation=Quaternion.Euler(Mathf.Atan(.27f/2.5f)*Mathf.Rad2Deg,0,0);ramp.transform.localScale=new Vector3(1.8f,.1f,2.5f);
   // A held grip may begin before the item is hovered: acquire on contact, release to drop.
   foreach(var hand in rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Interactors.NearFarInteractor>(true))
    hand.selectActionTrigger=UnityEngine.XR.Interaction.Toolkit.Interactors.XRBaseInputInteractor.InputTriggerType.State;
@@ -64,9 +88,6 @@ public static class DEF_WorkshopRecordingComposer
   foreach(var directions in All<TextMesh>(s).Where(t=>t.text.Contains("WORKSHOP 44")&&t.text.Contains("CLINIC 80")))
    directions.GetComponent<MeshRenderer>().enabled=false;
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Simplified recording instructions"))UnityEngine.Object.DestroyImmediate(old);
-  var sign=new GameObject("Simplified recording instructions");SceneManager.MoveGameObjectToScene(sign,s);sign.transform.position=new Vector3(38.5f,1.7f,5f);
-  var text=sign.AddComponent<TextMesh>();text.characterSize=.012f;text.fontSize=48;text.anchor=TextAnchor.MiddleCenter;
-  text.text="WORKSHOP > DEFENSE RECORDING\nSimplified run: Power / Clinic omitted.\nStart: harvest one wreck (12 Scrap).\nFollow CURRENT OBJECTIVE at each station.\nKeep your crafted Ammo Box and RepairKit.\nUse the direct west walkway to Defense.\nA: Defense shop. Trigger: select / place.\nGrip: hold a supply; release to deliver.\nFailure restarts this recording run.";
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Earned Defense achievements"))UnityEngine.Object.DestroyImmediate(old);
   var shelf=new GameObject("Earned Defense achievements");SceneManager.MoveGameObjectToScene(shelf,s);shelf.transform.position=new Vector3(4.8f,0,5.5f);shelf.transform.rotation=Quaternion.Euler(0,180,0);
   var achievements=shelf.AddComponent<DEF_RecordingAchievements>();achievements.owner=p;

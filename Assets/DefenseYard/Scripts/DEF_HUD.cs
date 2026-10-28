@@ -88,7 +88,8 @@ public class DEF_HUD : MonoBehaviour
         threatText.text = "THREAT LEVEL  " + (wave != null ? Mathf.FloorToInt(wave.threat) : 0);
         startButton.interactable = ready && (!training || ReadyForWave) && !shopOpen && !guideOpen;
         startText.text = (state.playerHealth <= 0 || (wave != null && wave.AttemptFailed)) ? (DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? "RESTART RECORDING RUN [MENU]" : "RETRY DEFENSE  [MENU]") : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
-        shopBalance.text = state.scrap + " SCRAP AVAILABLE";
+        var recordingBalance=movementSafeMenus?FindAnyObjectByType<DEF_WorkshopRecordingSetup>():null;
+        shopBalance.text = recordingBalance!=null?recordingBalance.BalanceLabel:state.scrap + " SCRAP AVAILABLE";
         for (int i = 0; i < buyButtons.Length; i++)
         {
             var progression = DEF_Progression.Current;
@@ -139,6 +140,7 @@ public class DEF_HUD : MonoBehaviour
         if (welcome || paused) return;
         if (guideOpen && trainingStep == 4) trainingStep = 5;
         shopOpen = !shopOpen; guideOpen = false; DEF_VRInput.Instance?.CancelBuild(); SyncModal();
+        if(shopOpen&&movementSafeMenus){var recording=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();if(recording!=null&&!recording.OpenShopFromHead())CloseMenus();}
     }
     public void Buy(int index)
     {
@@ -146,7 +148,7 @@ public class DEF_HUD : MonoBehaviour
         var action = index == 0 ? DEF_Action.BasicSentry : index == 1 ? DEF_Action.Missile : index == 2 ? DEF_Action.Barricade : DEF_Action.Shock;
         if (!DEF_Progression.Allows(action)) return;
         if (state == null) return;
-        if (state.scrap < Prices[index]) { DEF_Progression.Current?.Reject("select defense", "there is not enough scrap", "Transfer Workshop scrap, then select this defense again."); return; }
+        if (state.scrap < Prices[index]) { DEF_Progression.Current?.Reject("select defense", "there is not enough Defense scrap", movementSafeMenus ? "Transfer Workshop scrap using the transfer button in this shop, then select this defense again." : "Transfer Workshop scrap, then select this defense again."); return; }
         CloseMenus(); DEF_VRInput.Instance?.SelectBuild((DEF_VRInput.PlaceMode)index);
         Notify("Aim outside the base. Right trigger places your " + Names[index].ToLowerInvariant() + ".");
     }

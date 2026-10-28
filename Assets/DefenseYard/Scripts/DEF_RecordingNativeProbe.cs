@@ -22,8 +22,8 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
  bool Walkable(Vector2Int cell)
  {
   var point=new Vector3(cell.x*.5f,.05f,cell.y*.5f);
-  if(!Physics.Raycast(point+Vector3.up*.4f,Vector3.down,out var floor,.6f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore)||Mathf.Abs(floor.point.y)>.15f)return false;
-  return !Physics.OverlapCapsule(point+Vector3.up*.3f,point+Vector3.up*1.5f,.25f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore).Any(c=>!c.transform.IsChildOf(walkRig.transform)&&!(c.GetComponentInParent<SCV_CraftedItem>() is SCV_CraftedItem item&&item.IsHeld));
+  if(!Physics.Raycast(point+Vector3.up*.4f,Vector3.down,out var floor,.6f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore)||floor.point.y<-.1f||floor.point.y>.4f)return false;
+  return !Physics.OverlapCapsule(floor.point+Vector3.up*.35f,floor.point+Vector3.up*1.55f,.25f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore).Any(c=>!c.transform.IsChildOf(walkRig.transform)&&!(c.GetComponentInParent<SCV_CraftedItem>() is SCV_CraftedItem item&&item.IsHeld));
  }
  IEnumerator WalkTo(Vector3 target)
  {
@@ -50,6 +50,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
  Button BoundButton(UnityEngine.Object target,string method)=>FindObjectsByType<Button>(FindObjectsInactive.Include).Single(b=>Enumerable.Range(0,b.onClick.GetPersistentEventCount()).Any(i=>b.onClick.GetPersistentTarget(i)==target&&b.onClick.GetPersistentMethodName(i)==method));
  IEnumerator PressUI(Button button,Canvas canvas,UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController device,Transform hand,bool approach=true)
  {
+  canvas=button.GetComponentInParent<Canvas>();
   Canvas.ForceUpdateCanvases();var rect=(RectTransform)button.transform;var center=rect.TransformPoint(rect.rect.center);
   if(approach)yield return WalkTo(center-canvas.transform.forward*1.2f);
   var aim=walkRig.transform.position+Vector3.up*1.2f+walkRig.Camera.transform.right*.25f;
@@ -63,6 +64,54 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   state.trigger=0;state=state.WithButton(SimButton.TriggerButton,false);UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return new WaitForSecondsRealtime(.12f);
   clickEvent.RemoveListener(observed);Check(clicked,"actual trigger press/release clicks "+buttonName);
   if(buttonName=="Build shop")Capture("open-shop-"+DEF_Progression.Current.State.Current,canvas.transform.position);
+ }
+ IEnumerator CarryAndTurn(SCV_CraftedItem kit,SCV_CraftedItem ammo,UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController rightDevice,Transform rightHand)
+ {
+  var leftHand=walkRig.GetComponentsInChildren<Transform>(true).Single(t=>t.name=="Left Controller");
+  var leftInteractor=leftHand.GetComponentInChildren<NearFarInteractor>(true);var rightInteractor=rightHand.GetComponentInChildren<NearFarInteractor>(true);
+  Check(walkRig.GetComponentsInChildren<MonoBehaviour>(true).Where(b=>b!=null&&b.GetType().Name=="ControllerInputActionManager").All(b=>b.enabled),"normal controller input managers remain active during carry tests");
+  var setup=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();var originalId=kit.UnitId;var originalLedger=kit.SourceLedger;var body=kit.GetComponent<Rigidbody>();
+  yield return new WaitForFixedUpdate();var originalPosition=body.position;var reservation=new object();
+  Check(kit.TryClaim(reservation),"genuine item can reserve for recovery safety test");body.position=new Vector3(originalPosition.x,-3,originalPosition.z);setup.SendMessage("FixedUpdate");
+  Check(body.position.y== -3&&kit.UnitId==originalId&&kit.SourceLedger==originalLedger,"recovery never moves a reserved genuine item");body.position=originalPosition;kit.Release(reservation);
+  body.position=new Vector3(originalPosition.x,-3,originalPosition.z);yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();
+  Check(body.position.y> -2&&kit.UnitId==originalId&&kit.SourceLedger==originalLedger&&!kit.Consumed,"off-route recovery preserves the same paid identity without consumption");
+  foreach(int mask in new[]{1,2,3}){
+   yield return WalkTo(kit.GetComponent<XRGrabInteractable>().colliders.First(c=>c!=null).bounds.center+Vector3.right*1.5f+Vector3.forward);
+   var leftTarget=kit.GetComponent<XRGrabInteractable>().colliders.First(c=>c!=null).bounds.center;
+   var rightItem=mask==3?ammo:kit;var rightTarget=rightItem.GetComponent<XRGrabInteractable>().colliders.First(c=>c!=null).bounds.center;
+   var leftPosition=walkRig.Camera.transform.position-walkRig.Camera.transform.right*.25f-Vector3.up*.3f;var rightPosition=walkRig.Camera.transform.position+walkRig.Camera.transform.right*.25f-Vector3.up*.3f;
+   var ls=new SimState{isTracked=true,trackingState=3,devicePosition=leftHand.parent.InverseTransformPoint(leftPosition),deviceRotation=Quaternion.Inverse(leftHand.parent.rotation)*Quaternion.LookRotation(leftTarget-leftPosition)};
+   var rs=new SimState{isTracked=true,trackingState=3,devicePosition=rightHand.parent.InverseTransformPoint(rightPosition),deviceRotation=Quaternion.Inverse(rightHand.parent.rotation)*Quaternion.LookRotation(rightTarget-rightPosition)};
+   UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForSecondsRealtime(.5f);
+   if((mask&1)!=0){ls.grip=1;ls=ls.WithButton(SimButton.GripButton);}if((mask&2)!=0){rs.grip=1;rs=rs.WithButton(SimButton.GripButton);}
+   UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForSecondsRealtime(.5f);
+   Check(((mask&1)==0||kit.GetComponent<XRGrabInteractable>().interactorsSelecting.Contains(leftInteractor))&&((mask&2)==0||rightItem.GetComponent<XRGrabInteractable>().interactorsSelecting.Contains(rightInteractor)),"real far grip selection for hand mask "+mask+" left="+leftInteractor.selectionRegion.Value+" right="+rightInteractor.selectionRegion.Value);
+   originalPosition=body.position;body.position=new Vector3(originalPosition.x,-3,originalPosition.z);setup.SendMessage("FixedUpdate");
+   Check(body.position.y== -3&&kit.IsHeld,"recovery never moves a held genuine item mask "+mask);body.position=originalPosition;
+   var position=walkRig.transform.position;float yaw=walkRig.transform.eulerAngles.y;
+   ls.primary2DAxis=new Vector2(0,.6f);rs.primary2DAxis=new Vector2(.8f,0);
+   for(int i=0;i<30;i++){UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForFixedUpdate();}
+   Check(Vector3.Distance(position,walkRig.transform.position)>.3f&&Mathf.Abs(Mathf.DeltaAngle(yaw,walkRig.transform.eulerAngles.y))>15,"sustained grip plus simultaneous real move and turn for hand mask "+mask);
+   Check(((mask&1)==0||leftInteractor.hasSelection)&&((mask&2)==0||rightInteractor.hasSelection),"held genuine outputs retained during move/turn mask "+mask);
+   ls.grip=rs.grip=0;ls=ls.WithButton(SimButton.GripButton,false);rs=rs.WithButton(SimButton.GripButton,false);
+   for(int i=0;i<5;i++){UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForFixedUpdate();}
+   Check(!kit.IsHeld&&!ammo.IsHeld&&!kit.Consumed&&!ammo.Consumed,"release while sticks deflected preserves real outputs mask "+mask);
+   ls.primary2DAxis=rs.primary2DAxis=Vector2.zero;UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForSecondsRealtime(.5f);
+   // After far release, approach the real dropped object and take it with near grip.
+   yield return new WaitForSecondsRealtime(2f);
+   yield return WalkTo(kit.transform.position);
+   ls.devicePosition=leftHand.parent.InverseTransformPoint(kit.GetComponent<XRGrabInteractable>().colliders.First(c=>c!=null).bounds.center);
+   UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);yield return new WaitForSecondsRealtime(.5f);
+   ls.grip=1;ls=ls.WithButton(SimButton.GripButton);UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);yield return new WaitForSecondsRealtime(.5f);
+   Check(kit.GetComponent<XRGrabInteractable>().interactorsSelecting.Contains(leftInteractor)&&leftInteractor.selectionRegion.Value.ToString()=="Near","far-to-near real re-grab after release mask "+mask);
+   position=walkRig.transform.position;yaw=walkRig.transform.eulerAngles.y;ls.primary2DAxis=new Vector2(0,.6f);rs.primary2DAxis=new Vector2(.8f,0);
+   for(int i=0;i<30;i++){UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForFixedUpdate();}
+   Check(Vector3.Distance(position,walkRig.transform.position)>.3f&&Mathf.Abs(Mathf.DeltaAngle(yaw,walkRig.transform.eulerAngles.y))>15,"near grip preserves simultaneous move and turn mask "+mask);
+   ls.grip=0;ls=ls.WithButton(SimButton.GripButton,false);UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);yield return new WaitForSecondsRealtime(.1f);
+   ls.primary2DAxis=rs.primary2DAxis=Vector2.zero;UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForSecondsRealtime(2f);
+   Check(!kit.Consumed&&!ammo.Consumed&&kit.transform.position.y> -2&&ammo.transform.position.y> -2,"released authentic supplies remain recoverable after locomotion mask "+mask);
+  }
  }
  void RayClick(Button button,Canvas canvas)
  {
@@ -143,22 +192,40 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   var items=FindObjectsByType<SCV_CraftedItem>(FindObjectsSortMode.None);
   var kit=items.Single(x=>x.Type==SCV_CraftedItem.ItemType.RepairKit);var ammo=items.Single(x=>x.Type==SCV_CraftedItem.ItemType.Ammo);
   Check(kit.SourceLedger==ledger&&ammo.SourceLedger==ledger&&!kit.Consumed&&!ammo.Consumed,"same two real item identities preserved");
+  yield return CarryAndTurn(kit,ammo,device,hand);
   yield return new WaitForSecondsRealtime(7.3f);
   SCV_DefenseSupplyLink link=null;float supplyDeadline=Time.realtimeSinceStartup+30;
   while((link=FindAnyObjectByType<SCV_DefenseSupplyLink>())==null&&Time.realtimeSinceStartup<supplyDeadline)yield return null;
   Check(link!=null,"supply terminal becomes reachable after its introduction");
   string priorFailure=p.LastFailure;
   Check(!DEF_Turret.TryPlace(13,10,false)&&DEF_GameState.I.scrap==0&&p.LastFailure!=priorFailure&&p.LastFailure.Contains("not enough scrap")&&p.LastFailure.Contains("Transfer Workshop scrap"),"fresh insufficient funds rejection gives actual cause and remedy");
-  var transfer=BoundButton(link,"DeliverScrap");yield return PressUI(transfer,transfer.GetComponentInParent<Canvas>(),device,hand);yield return PressUI(transfer,transfer.GetComponentInParent<Canvas>(),device,hand);
+  var recording=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();
+  var testWall=GameObject.CreatePrimitive(PrimitiveType.Cube);testWall.name="Probe temporary popup obstruction";testWall.transform.position=rig.Camera.transform.position+Vector3.ProjectOnPlane(rig.Camera.transform.forward,Vector3.up).normalized;testWall.transform.localScale=Vector3.one*.5f;Physics.SyncTransforms();hud.ToggleShop();yield return null;
+  Check(!hud.shopPanel.activeSelf&&hud.noticeText.text.Contains("clear space"),"obstructed popup refuses to open and explains face-walkway retry");Destroy(testWall);yield return null;Physics.SyncTransforms();
+  hud.ToggleShop();yield return null;
+  Check(recording.popupCanvas.renderMode==RenderMode.WorldSpace&&recording.popupCanvas.worldCamera==rig.Camera&&rig.Camera.stereoTargetEye==StereoTargetEyeMask.Both,"shop popup uses the tracked stereo world-space camera");
+  var popupOffset=recording.popupCanvas.transform.position-rig.Camera.transform.position;Check(popupOffset.magnitude>1&&popupOffset.magnitude<1.6f&&Vector3.Dot(popupOffset.normalized,Vector3.ProjectOnPlane(rig.Camera.transform.forward,Vector3.up).normalized)>.95f,"A shop popup anchors comfortably in current head direction");
+  var transfer=recording.transferScrapButton;yield return PressUI(transfer,recording.popupCanvas,device,hand);yield return PressUI(transfer,recording.popupCanvas,device,hand);yield return PressUI(hud.shopClose,recording.popupCanvas,device,hand);
   Check(DEF_GameState.I.scrap==4&&ledger.scrap==2,"real scrap transfer funds sentry: Defense="+DEF_GameState.I.scrap+" Workshop="+ledger.scrap);
+  yield return WalkTo(new Vector3(1,0,7));yield return WalkTo(new Vector3(1,0,3));
+  Check(walkRig.transform.position.y>.2f,"actual thumbstick path reaches raised outpost interior without Jump");
+  yield return WalkTo(new Vector3(1,0,7));
   priorFailure=p.LastFailure;Check(!DEF_Turret.TryPlace(10,10,false)&&DEF_GameState.I.scrap==4&&p.LastFailure!=priorFailure&&p.LastFailure.Contains("inside the base")&&p.LastFailure.Contains("outside the base"),"fresh inside-base rejection preserves scrap and gives cause/remedy");
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState().WithButton(SimButton.PrimaryButton));yield return null;yield return null;
   Check(Time.timeScale==1&&hud.shopPanel.activeInHierarchy,"actual A binding opens shop without physics freeze");
+  var stationaryPopup=recording.popupCanvas.transform.position;var stationaryRotation=recording.popupCanvas.transform.rotation;
+  for(int turnFrame=0;turnFrame<20;turnFrame++){UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState{isTracked=true,trackingState=3,primary2DAxis=new Vector2(.8f,0)});yield return new WaitForFixedUpdate();}
+  Check(Vector3.Distance(stationaryPopup,recording.popupCanvas.transform.position)<.001f&&Quaternion.Angle(stationaryRotation,recording.popupCanvas.transform.rotation)<.01f,"open popup stays world-fixed while player turns");
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState());yield return null;yield return null;
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState().WithButton(SimButton.PrimaryButton));yield return null;yield return null;
   Check(!hud.shopPanel.activeSelf&&Time.timeScale==1,"actual A closes its own modal safely");
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState());yield return null;yield return null;
-  hud.ToggleShop();yield return null;yield return PressUI(hud.buyButtons[0],canvas,device,hand);yield return null;
+  UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState().WithButton(SimButton.PrimaryButton));yield return null;yield return null;
+  popupOffset=recording.popupCanvas.transform.position-rig.Camera.transform.position;
+  Check(hud.shopPanel.activeInHierarchy&&Vector3.Dot(popupOffset.normalized,Vector3.ProjectOnPlane(rig.Camera.transform.forward,Vector3.up).normalized)>.95f,"real A reopen reanchors popup to current view");
+  UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState());yield return null;
+  Capture("view-popup",recording.popupCanvas.transform.position);
+  yield return PressUI(hud.buyButtons[0],canvas,device,hand);yield return null;
   Check(DEF_VRInput.Instance.BuildArmed&&!hud.shopPanel.activeSelf,"real UI button arms sentry and closes menu");
   int cancelScrap=DEF_GameState.I.scrap;yield return PressUI(hud.cancelBuild,canvas,device,hand);
   Check(!DEF_VRInput.Instance.BuildArmed&&DEF_GameState.I.scrap==cancelScrap,"actual selected-panel X cancels placement without spending scrap");

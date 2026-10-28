@@ -1,37 +1,33 @@
-# Workshop → Defense recording review checkpoint
+# Corrective recording candidate — 2026-10-28
 
-Branch: `daryl/mp2b-workshop-defense-recording`. Worktree: `workshop-defense-recording`. Main and the older recording branch remain unchanged. Local source candidate is ready for independent review; publication remains held for parent approval. No Android build or actual headset validation is claimed.
+Branch: `daryl/mp2b-workshop-defense-recording`. Main and the prior recording branch are unchanged. This is a local review candidate; the corrections have not been pushed. No Android build or real Quest validation is claimed.
 
-## Final native evidence
+## Reported failures and corrections
 
-2026-10-28 03:51:29 UTC: **360 passing assertions, zero failures/exceptions** in one uninterrupted Unity Editor Play acceptance run. Two fresh recording paths reach **earned Missile selection**, separated by a full scene reset while holding a genuinely recrafted kit. This is not the optional Missile splash/Juggernaut/final Complete ending.
+- Removed the unwanted floating short-run walkthrough board.
+- Kept normal ControllerInputActionManagers active, disabled recording-only attachment manipulation/scroll arbitration and grip locomotion providers, retained head-relative stick movement. Both sticks work while either/both hands hold outputs.
+- Genuine delivery supplies drop without snap-turn throw velocity. Below-route recovery returns the same paid representation to its last supported point, preserving identity; held/reserved/consumed items are not recovered.
+- A opens a stereo world-space shop 1.35 m in front of the current head direction. It remains world-fixed while looking/turning; close/reopen repositions it. Obstructed space refuses opening with a face-walkway retry instruction.
+- North doorway and shallow ramp provide real standing-capsule access onto the raised outpost floor without Jump.
+- Shop labels distinguish Workshop and Defense balances. Its transfer button uses the existing real two-scrap debit/credit transaction. No currency, supplies or mastery are preloaded.
 
-Exact log: `../workshop-native-final-360-pass.txt`.
-SHA256: `E0C77B42EB0F0E2CD2E678C95F4C6710BAE7AAB0D114258DA38E104C4B396683`.
-The Editor automatically returned to Edit Mode; no test/build process remains running. Earlier failing and 316-pass logs are preserved separately, not conflated with this result.
+## Completed native evidence
 
-Passed on actual scene objects: spawn floor/capsule clearance; one XR rig; disabled Jump/A collision; safe contiguous Workshop–Defense walking route; thumbstick locomotion; real Workshop controller-ray/trigger harvest/process/craft/transfer; A open/close; real selected-panel X cancellation without spending; ground-ray/trigger Sentry placement; zero starting ammo; actual XRI grip/carry/release of the same crafted kit and box; positive repair/refill; real first-wave combat; nonempty-wave Pause/Resume; actual walked barricade detour and Shock stun; earned Missile UI selection; three genuine trophies; held-item reset; empty fresh inventories and cleared trophies/mastery; correct post-reset Canvas camera bindings; second complete recording path.
+2026-10-28 05:17:27 UTC: **462 PASS, 0 FAIL, 0 exceptions**. Two complete fresh recording paths reach earned Missile selection, separated by a full reset while holding a genuine crafted kit. Editor returned to Edit Mode automatically.
 
-Reveal assertions inspect actual card roots, receiver colliders/renderers and HUD controls. The sentry stays at full health during repair introduction; damage/receiver access appear afterward. Whole advanced cards stay hidden until their introductions finish. Five fresh cause/remedy checks preserve resources/items. Some negative checks and advanced placements invoke production methods directly; they do not prove every manual controller attempt. No mastery receipts, kills, completed yards or supplies are fabricated.
+Log: `../workshop-native-corrective-462-pass.txt`
+SHA256: `FB1DBB1868713CF7ECE1FC5A1A215B0B400D52AE4A0B2DB88491A68FF13A166C`
 
-After the passing run, the ONLY production change was a wording correction from “has deliberate training damage” to “will receive training damage,” matching the tested delayed-damage behavior. Final Unity compilation is checked separately. No gameplay, geometry, input or economy changed after the passing run.
+New cases exercise real XRI Far selection with left/right/both grips; simultaneous move and turn; release with sticks deflected; subsequent Near re-grab; original paid identity recovery and held/reserved exclusion; obstruction rejection; actual UI transfer; world-fixed popup during turning and A reanchor; capsule locomotion onto raised floor. Existing full tests cover real crafting/delivery/combat, five catches, ordered introductions, trophies, and fresh post-reset run. Some negative/recovery fixtures and advanced placements invoke production methods directly. This is Editor native evidence, not Quest hardware evidence or final Juggernaut victory.
 
-## Rendered review
+## Final presentation correction after the full run
 
-Reviewed actual Play-scene renders from the player's position with a temporary diagnostic look direction:
-- `../recording-first-spawn.png`: clear world geometry and readable simplified-run instructions.
-- `../recording-first-open-shop-PlaceSentry.png`: only the Sentry card visible before advanced unlocks.
-- `../recording-first-open-shop-MissilePractice.png`: earned cards, readable costs, corrected nonpausing and physical-repair instructions.
-- `../recording-first-trophies.png`: three visible named earned objects from an accessible front position.
+The rendered popup exposed a clipped cloned transfer-label rectangle. Final changes stretch that child text to the existing button, use a two-line label, widen the balance text rectangle, and make HUD.Update the single balance-text writer. No input, transaction, geometry or mastery logic changed after the 462-pass run. Final runtime/editor compilation passed; scene composition saved and reloaded successfully.
 
-These are actual scene renders, not Quest captures. The separate `recording-final-shop-layout-preview.png` was an Edit Mode layout inspection and is not gameplay proof.
+`../recording-corrective-popup-layout.png` is an actual Edit Mode camera render of the saved corrected layout, explicitly a layout preview, not gameplay proof. Both balances and full transfer label are visible. `../recording-first-view-popup.png` preserves the earlier Play rendering that exposed the clipping. Fresh `../recording-first-spawn.png` confirms the unwanted walkthrough board is gone.
 
-## Scope and handoff
+## Review/publication scope
 
-One saved entry scene: `Assets/DefenseYard/Scenes/DEF_Workshop_Defense_Recording.unity`; it is the only enabled build scene. Workshop harvesting/crafting and physical transfers are real; Power/Clinic are explicitly omitted. No fixture preload. Failure recovery restarts the whole recording run. The short control/recording guide is `RECORDING_CONTROLS.md`.
+Exactly eight intended files: recording composer, recording setup, native probe, HUD, recording scene, controls, acceptance plan, this checkpoint. No new assets require meta files. Shared URP importer drift, hydrated LFS noise, logs, captures, APKs and private files remain excluded. Explicit source files pass whitespace checking; a targeted secret-signature scan found no matches.
 
-Source-only allowlist preserves existing metadata and excludes Library, generated importer/URP drift, LFS hydration noise, logs, screenshots, binaries and private files. Staged credential-pattern scan found zero matches. Existing unrelated working-tree hydration/import noise is not part of the candidate.
-
-Remaining checks: independent source review/publication decision, then real Quest Link smoke verification of hardware tracking, comfort, stereo readability and recorded error attempts. Optional final game victory is untested. No Android build for this branch; available disk remains about 12.6 GiB and no additional deletion is authorized.
-
-Final visual follow-up: four duplicate obsolete POWER/DEFENSE 0/WORKSHOP 44/CLINIC 80 TextMesh renderers are hidden only in this recording scene. The scene diff is exactly four renderer enabled flags; no collider, route, input or progression changed. Composer preserves the visibility rule. Compilation passed and the affected saved-scene spawn render was reviewed at ../recording-final-spawn-sign-cleanup.png. The 360-assertion functional evidence remains applicable; this visual-only change was not used to justify another full functional run. Unity's external-scene reload modal was resolved; the Editor is in Edit Mode.
+Remaining: independent review, publication approval for this correction, then user Quest smoke for comfort, stereo readability, carrying/turning and entry. The baseline 7ee6aaf prior 360-pass log missed the reported carrying combinations and is historical evidence only.
