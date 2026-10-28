@@ -89,16 +89,29 @@ public static class DEF_WorkshopRecordingComposer
    directions.GetComponent<MeshRenderer>().enabled=false;
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Simplified recording instructions"))UnityEngine.Object.DestroyImmediate(old);
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Earned Defense achievements"))UnityEngine.Object.DestroyImmediate(old);
-  var shelf=new GameObject("Earned Defense achievements");SceneManager.MoveGameObjectToScene(shelf,s);shelf.transform.position=new Vector3(4.8f,0,5.5f);shelf.transform.rotation=Quaternion.Euler(0,180,0);
+  // Move the one real receiver, including its trigger and runtime housing, into the outpost.
+  All<DEF_WorkshopAmmoReceiver>(s).Single().transform.position=new Vector3(1,1.35f,0);
+  foreach(var oldLabel in All<TMPro.TMP_Text>(s).Where(t=>t.text.Contains("DEFENSE AMMO INTAKE")&&t.text.Contains("Starts at")))oldLabel.gameObject.SetActive(false);
+  var shelf=new GameObject("Earned Defense achievements");SceneManager.MoveGameObjectToScene(shelf,s);shelf.transform.position=new Vector3(1,.27f,-1.9f);shelf.transform.rotation=Quaternion.Euler(0,180,0);
   var achievements=shelf.AddComponent<DEF_RecordingAchievements>();achievements.owner=p;
+  var gold=AssetDatabase.LoadAssetAtPath<Material>("Assets/DefenseYard/Materials/Safety Yellow.mat");
+  var dark=AssetDatabase.LoadAssetAtPath<Material>("Assets/DefenseYard/Materials/Dark Panels.mat");
+  GameObject Part(Transform parent,string name,PrimitiveType type,Vector3 position,Vector3 scale,Material material)
+  {var part=GameObject.CreatePrimitive(type);part.name=name;part.transform.SetParent(parent,false);part.transform.localPosition=position;part.transform.localScale=scale;part.GetComponent<Renderer>().sharedMaterial=material;UnityEngine.Object.DestroyImmediate(part.GetComponent<Collider>());return part;}
+  Part(shelf.transform,"Trophy shelf",PrimitiveType.Cube,new Vector3(0,.85f,0),new Vector3(2.8f,.12f,.55f),dark);
   GameObject Trophy(string title,float x)
   {
-   var stand=GameObject.CreatePrimitive(PrimitiveType.Cube);stand.name=title+" pedestal";stand.transform.SetParent(shelf.transform,false);stand.transform.localPosition=new Vector3(x,.65f,0);stand.transform.localScale=new Vector3(.4f,.15f,.4f);
-   var trophy=GameObject.CreatePrimitive(PrimitiveType.Sphere);trophy.name=title+" earned trophy";trophy.transform.SetParent(shelf.transform,false);trophy.transform.localPosition=new Vector3(x,.95f,0);trophy.transform.localScale=Vector3.one*.24f;UnityEngine.Object.DestroyImmediate(trophy.GetComponent<Collider>());
-   var label=new GameObject(title+" label");label.transform.SetParent(shelf.transform,false);label.transform.localPosition=new Vector3(x,1.25f,0);var tm=label.AddComponent<TextMesh>();tm.text=title;tm.characterSize=.015f;tm.fontSize=40;tm.anchor=TextAnchor.MiddleCenter;
+   var trophy=new GameObject(title+" earned trophy");trophy.transform.SetParent(shelf.transform,false);trophy.transform.localPosition=new Vector3(x,.91f,0);
+   Part(trophy.transform,"Award base",PrimitiveType.Cube,new Vector3(0,.04f,0),new Vector3(.36f,.08f,.32f),dark);
+   Part(trophy.transform,"Gold stem",PrimitiveType.Cylinder,new Vector3(0,.18f,0),new Vector3(.075f,.10f,.075f),gold);
+   Part(trophy.transform,"Cup bowl",PrimitiveType.Sphere,new Vector3(0,.35f,0),new Vector3(.32f,.25f,.32f),gold);
+   Part(trophy.transform,"Cup rim",PrimitiveType.Cylinder,new Vector3(0,.43f,0),new Vector3(.34f,.025f,.34f),gold);
+   Part(trophy.transform,"Cup opening",PrimitiveType.Cylinder,new Vector3(0,.456f,0),new Vector3(.26f,.003f,.26f),dark);
+   Part(trophy.transform,"Name plaque",PrimitiveType.Cube,new Vector3(0,.04f,-.17f),new Vector3(.7f,.15f,.025f),dark);
+   var label=new GameObject(title+" label");label.transform.SetParent(trophy.transform,false);label.transform.localPosition=new Vector3(0,.04f,-.19f);var tm=label.AddComponent<TextMesh>();tm.text=title;tm.characterSize=.012f;tm.fontSize=40;tm.anchor=TextAnchor.MiddleCenter;
    trophy.SetActive(false);return trophy;
   }
-  achievements.fieldMedic=Trophy("FIELD MEDIC",0);achievements.supplyLine=Trophy("SUPPLY LINE",.9f);achievements.waveDefender=Trophy("WAVE DEFENDER",1.8f);
+  achievements.fieldMedic=Trophy("FIELD MEDIC",-.9f);achievements.supplyLine=Trophy("SUPPLY LINE",0);achievements.waveDefender=Trophy("WAVE DEFENDER",.9f);
   foreach(var worldCanvas in All<Canvas>(s))if(worldCanvas.renderMode==RenderMode.WorldSpace){worldCanvas.worldCamera=rig.Camera;DEF_IntegrationStaging.EnsureTrackedUI(worldCanvas);}
   // The event camera alone does not make a Canvas follow tracking. Parent to the actual head.
   rect.SetParent(rig.Camera.transform,false);rect.localPosition=new Vector3(0,0,1.6f);rect.localRotation=Quaternion.identity;rect.localScale=Vector3.one*.001f;

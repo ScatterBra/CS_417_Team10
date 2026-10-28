@@ -8,6 +8,21 @@ public sealed class DEF_WorkshopRecordingSetup : MonoBehaviour
     public Transform xrOrigin;
     public Canvas popupCanvas;
     public UnityEngine.UI.Button transferScrapButton;
+    int repairTeachingSession=-1;
+    bool repairTeachingComplete;
+    // Presentation memory only. A combat retry cannot reintroduce completed teaching.
+    public bool RepairTeachingComplete
+    {
+        get
+        {
+            var owner=GetComponent<DEF_Progression>();
+            if(owner==null)return false;
+            if(repairTeachingSession!=owner.State.Session)
+            {repairTeachingSession=owner.State.Session;repairTeachingComplete=false;}
+            if(owner.State.Current>=DEF_ProgressionState.Stage.AmmoIntroduction)repairTeachingComplete=true;
+            return repairTeachingComplete;
+        }
+    }
     public bool OpenShopFromHead()
     {
         var rig=xrOrigin.GetComponent<Unity.XR.CoreUtils.XROrigin>();
@@ -57,6 +72,7 @@ public sealed class DEF_WorkshopRecordingSetup : MonoBehaviour
     }
     void LateUpdate()
     {
+        _=RepairTeachingComplete;
         if(hud!=null)hud.waveText.transform.parent.gameObject.SetActive(hud.waveText.gameObject.activeSelf||hud.waveStatus.gameObject.activeSelf);
         var presenter=FindAnyObjectByType<DEF_ProgressionPresenter>();
         if(presenter!=null)foreach(var text in new[]{presenter.goalText,presenter.introductionText,presenter.failureText})

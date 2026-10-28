@@ -18,6 +18,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
  UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController moveDevice;
  Unity.XR.CoreUtils.XROrigin walkRig;
  bool secondRun;
+ public bool presentationOnly;
  void OnDestroy(){if(ownedDevice!=null&&ownedDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(ownedDevice);if(moveDevice!=null&&moveDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(moveDevice);}
  bool Walkable(Vector2Int cell)
  {
@@ -280,6 +281,10 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();
   Check(p.State.Current==DEF_ProgressionState.Stage.AmmoIntroduction,"physical released kit overlap commits repair");
   yield return null;Check(awards.fieldMedic.activeSelf&&!awards.supplyLine.activeSelf,"positive real repair awards only Field Medic");
+  yield return null;
+  Check(FindAnyObjectByType<DEF_WorkshopRecordingSetup>().RepairTeachingComplete,"first genuine repair retires teaching for this run");
+  Check(!receiver.GetComponentsInChildren<Transform>(true).Single(t=>t.name=="Physical delivery instructions and feedback").gameObject.activeSelf,"successful repair hides the receiver teaching card");
+  Check(!DEF_Tutorials.Allowed("repair")&&!DEF_Tutorials.Allowed("repair-turret"),"later repair tutorials stay retired without disabling repair transactions");
   Check(!p.IsAllowed(DEF_Action.PhysicalAmmo),"ammo remains locked during introduction");
   var introAmmo=FindAnyObjectByType<DEF_WorkshopAmmoReceiver>();
   Check(introAmmo.GetComponentsInChildren<Collider>(true).All(c=>!c.enabled)&&introAmmo.GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff),"actual ammo receiver presentation and collision stay hidden during introduction");
@@ -305,6 +310,17 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   yield return new WaitForSecondsRealtime(4.3f);
   Capture("wave-ready-hud",rig.Camera.transform.position+rig.Camera.transform.forward*1.6f);
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveReady,"wave ready only after introduction");
+  if(presentationOnly)
+  {
+   Check(Vector3.Distance(FindAnyObjectByType<DEF_WorkshopAmmoReceiver>().transform.position,new Vector3(1,1.35f,0))<.01f,"same physical intake accepts inside the outpost at its new position");
+   Check(awards.fieldMedic.GetComponentsInChildren<Renderer>().Length>=6&&awards.supplyLine.GetComponentsInChildren<Renderer>().Length>=6,"earned trophies contain cup, stem, base and plaque geometry");
+   Capture("tidy-earned-shelf",awards.transform.position+Vector3.up*1.1f);
+   DontDestroyOnLoad(gameObject);p.BeginNewSession();yield return null;yield return null;yield return null;
+   var resetSetup=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();var resetAwards=FindAnyObjectByType<DEF_RecordingAchievements>();
+   Check(!resetSetup.RepairTeachingComplete,"full new run restores repair teaching");
+   Check(!resetAwards.fieldMedic.activeSelf&&!resetAwards.supplyLine.activeSelf&&!resetAwards.waveDefender.activeSelf,"full new run restores initially absent trophies");
+   yield break;
+  }
   yield return PressUI(hud.startButton,canvas,device,hand);yield return null;
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveActive,"actual UI starts wave");
   yield return new WaitForSecondsRealtime(1);yield return PressUI(hud.pauseButton,canvas,device,hand);yield return null;

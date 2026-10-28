@@ -35,9 +35,13 @@ public sealed class DEF_RecordingReceiverLabel : MonoBehaviour
     void LateUpdate()
     {
         var message=repair!=null?repair.LastMessage:ammo!=null?ammo.LastMessage:null;
-        if(string.IsNullOrEmpty(message))message="Hold grip to carry. Release the crafted item here.";
-        panel.SetText(repair!=null?"REPAIR KIT INTAKE":"CENTRAL AMMO INTAKE",message);
         var setup=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();
+        bool completed=repair!=null&&setup!=null&&setup.RepairTeachingComplete;
+        bool attemptedError=!string.IsNullOrEmpty(message)&&message.StartsWith("Cannot deliver repair:");
+        panel.Root.SetActive(!completed||attemptedError);
+        if(completed&&!attemptedError)return;
+        if(string.IsNullOrEmpty(message))message="Hold grip to carry. Release the crafted item here.";
+        panel.SetText(repair!=null?"REPAIR KIT":"AMMO INTAKE",message);
         var rig=setup!=null&&setup.xrOrigin!=null?setup.xrOrigin.GetComponent<Unity.XR.CoreUtils.XROrigin>():null;
         var camera=rig!=null?rig.Camera:Camera.main;
         if(camera!=null)panel.Root.transform.rotation=Quaternion.LookRotation(panel.Root.transform.position-camera.transform.position);

@@ -21,6 +21,8 @@ public class DEF_Tutorials : MonoBehaviour
     {
         var p = DEF_Progression.Current;
         if (p == null) return true;
+        if(p.workshopRecording&&(key=="repair"||key=="repair-turret"||key=="training-repair"))
+        {var setup=p.GetComponent<DEF_WorkshopRecordingSetup>();if(setup!=null&&setup.RepairTeachingComplete)return false;}
         if (p.State.IntroductionActive) return false;
         return key switch {
             "repair" or "repair-turret" or "training-repair" => p.IsAllowed(DEF_Action.Repair),

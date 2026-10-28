@@ -37,3 +37,10 @@ Remaining: independent review, publication approval for this correction, then us
 - Head-following world-space HUD, explicit Start Wave action, backed introduction/feedback cards, visible ammo intake, temporary repair errors, completed Workshop prompt removal, and outward-only clearance escape are included.
 - Subsequent presentation-only change enlarges receiver/spatial cards to 1.4 x 0.8 metres, title 1.1 TMP units, body 0.75-0.85. Longest 171-character rejection fits five lines at font 0.8 without overflow; two approach-angle render fixtures at 2.25 metres. No progression is granted by render fixtures.
 - This is desktop Unity input/physics and render evidence, not real Quest validation. Final victory/Juggernaut remains outside the tested endpoint. Quest comfort and text readability still require user smoke testing. No new APK built.
+
+## Scoped presentation cleanup after c557e01
+- Repair teaching retires after the existing authenticated first-repair milestone; the session-scoped presentation latch survives retries and resets only for a new run. Explicit rejected delivery feedback remains available.
+- The original ammo receiver/trigger now sits at (1, 1.35, 0) inside the outpost. The obsolete 30/60 sign is disabled. No item identity, transfer or combat logic changed.
+- Earned awards use cup/stem/base/plaque geometry on a shelf at (1, 0.27, -1.9), inside the south wall. Award conditions and initial hidden state are unchanged.
+- Focused native presentation traversal: 192 PASS, 0 FAIL, including real UI crafting, carrying, first repair dismissal, physical ammo acceptance at the moved intake and full-reset teaching/trophy restoration. Log SHA256 431F52AC320023D041661373EF41F80CC71FA924A6832197247F0D289004B040.
+- Final shelf-only position correction compiled and saved after that run. Entry/delivery layout captures use temporary display-only visibility, restored immediately; they do not represent newly earned gameplay. Real Quest appearance remains user verification.
