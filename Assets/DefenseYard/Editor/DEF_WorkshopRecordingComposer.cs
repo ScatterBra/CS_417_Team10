@@ -61,6 +61,8 @@ public static class DEF_WorkshopRecordingComposer
   foreach(var label in All<Text>(s))label.text=label.text
    .Replace("The yard pauses while you shop.","Movement continues while you shop.")
    .Replace("Right grip repairs 40 HP for 10 scrap","Release a crafted RepairKit to repair.");
+  foreach(var directions in All<TextMesh>(s).Where(t=>t.text.Contains("WORKSHOP 44")&&t.text.Contains("CLINIC 80")))
+   directions.GetComponent<MeshRenderer>().enabled=false;
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Simplified recording instructions"))UnityEngine.Object.DestroyImmediate(old);
   var sign=new GameObject("Simplified recording instructions");SceneManager.MoveGameObjectToScene(sign,s);sign.transform.position=new Vector3(38.5f,1.7f,5f);
   var text=sign.AddComponent<TextMesh>();text.characterSize=.012f;text.fontSize=48;text.anchor=TextAnchor.MiddleCenter;
