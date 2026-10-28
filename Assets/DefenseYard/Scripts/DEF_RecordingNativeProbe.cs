@@ -52,7 +52,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
  {
   canvas=button.GetComponentInParent<Canvas>();
   Canvas.ForceUpdateCanvases();var rect=(RectTransform)button.transform;var center=rect.TransformPoint(rect.rect.center);
-  if(approach)yield return WalkTo(center-canvas.transform.forward*1.2f);
+  if(approach&&!canvas.transform.IsChildOf(walkRig.Camera.transform))yield return WalkTo(center-canvas.transform.forward*1.2f);
   var aim=walkRig.transform.position+Vector3.up*1.2f+walkRig.Camera.transform.right*.25f;
   var state=new SimState{isTracked=true,trackingState=3,devicePosition=hand.parent.InverseTransformPoint(aim),deviceRotation=Quaternion.Inverse(hand.parent.rotation)*Quaternion.LookRotation(center-aim)};
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return new WaitForSecondsRealtime(.5f);
@@ -73,7 +73,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   var setup=FindAnyObjectByType<DEF_WorkshopRecordingSetup>();var originalId=kit.UnitId;var originalLedger=kit.SourceLedger;var body=kit.GetComponent<Rigidbody>();
   yield return new WaitForFixedUpdate();var originalPosition=body.position;var reservation=new object();
   Check(kit.TryClaim(reservation),"genuine item can reserve for recovery safety test");body.position=new Vector3(originalPosition.x,-3,originalPosition.z);setup.SendMessage("FixedUpdate");
-  Check(body.position.y== -3&&kit.UnitId==originalId&&kit.SourceLedger==originalLedger,"recovery never moves a reserved genuine item");body.position=originalPosition;kit.Release(reservation);
+  Check(Mathf.Abs(body.position.y+3)<.00001f&&kit.UnitId==originalId&&kit.SourceLedger==originalLedger,"recovery never moves a reserved genuine item");body.position=originalPosition;kit.Release(reservation);
   body.position=new Vector3(originalPosition.x,-3,originalPosition.z);yield return new WaitForFixedUpdate();yield return new WaitForFixedUpdate();
   Check(body.position.y> -2&&kit.UnitId==originalId&&kit.SourceLedger==originalLedger&&!kit.Consumed,"off-route recovery preserves the same paid identity without consumption");
   foreach(int mask in new[]{1,2,3}){
@@ -88,7 +88,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
    UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForSecondsRealtime(.5f);
    Check(((mask&1)==0||kit.GetComponent<XRGrabInteractable>().interactorsSelecting.Contains(leftInteractor))&&((mask&2)==0||rightItem.GetComponent<XRGrabInteractable>().interactorsSelecting.Contains(rightInteractor)),"real far grip selection for hand mask "+mask+" left="+leftInteractor.selectionRegion.Value+" right="+rightInteractor.selectionRegion.Value);
    originalPosition=body.position;body.position=new Vector3(originalPosition.x,-3,originalPosition.z);setup.SendMessage("FixedUpdate");
-   Check(body.position.y== -3&&kit.IsHeld,"recovery never moves a held genuine item mask "+mask);body.position=originalPosition;
+   Check(Mathf.Abs(body.position.y+3)<.00001f&&kit.IsHeld,"recovery never moves a held genuine item mask "+mask);body.position=originalPosition;
    var position=walkRig.transform.position;float yaw=walkRig.transform.eulerAngles.y;
    ls.primary2DAxis=new Vector2(0,.6f);rs.primary2DAxis=new Vector2(.8f,0);
    for(int i=0;i<30;i++){UnityEngine.InputSystem.InputSystem.QueueStateEvent(moveDevice,ls);UnityEngine.InputSystem.InputSystem.QueueStateEvent(rightDevice,rs);yield return new WaitForFixedUpdate();}
@@ -167,7 +167,12 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(!rig.GetComponentsInChildren<MonoBehaviour>(true).Any(b=>b!=null&&b.GetType().Name=="JumpProvider"&&b.enabled),"Jump disabled; no A collision");
   var canvas=hud.GetComponent<Canvas>();
   Check(canvas.renderMode==RenderMode.WorldSpace&&canvas.worldCamera==rig.Camera,"saved world canvas camera assigned");
-  Check(Vector3.Distance(canvas.transform.position,new Vector3(0,1.8f,5.5f))<.01f,"actual serialized exterior Canvas position survives reload: "+canvas.transform.position);
+  Check(canvas.transform.parent==rig.Camera.transform&&Vector3.Distance(canvas.transform.localPosition,new Vector3(0,0,1.6f))<.01f,"saved HUD follows the actual tracked camera at a fixed local distance");
+  var originalHeadPosition=rig.Camera.transform.localPosition;var originalHeadRotation=rig.Camera.transform.localRotation;
+  rig.Camera.transform.localPosition+=new Vector3(.15f,.1f,.2f);rig.Camera.transform.localRotation=Quaternion.Euler(10,35,0);yield return null;
+  Check(Vector3.Distance(canvas.transform.position,rig.Camera.transform.TransformPoint(new Vector3(0,0,1.6f)))<.001f&&Quaternion.Angle(canvas.transform.rotation,rig.Camera.transform.rotation)<.01f,"HUD follows head translation and rotation without a world-space lag");
+  Capture("tracked-hud-pose",rig.Camera.transform.position+rig.Camera.transform.forward*1.6f);
+  rig.Camera.transform.localPosition=originalHeadPosition;rig.Camera.transform.localRotation=originalHeadRotation;yield return null;
   Check(canvas.GetComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>()!=null,"tracked UI raycaster exists");
   var missingCameras=FindObjectsByType<Canvas>(FindObjectsInactive.Include).Where(c=>c.gameObject.scene==rig.gameObject.scene&&c.renderMode==RenderMode.WorldSpace&&c.worldCamera!=rig.Camera).Select(c=>c.name).ToArray();
   Check(missingCameras.Length==0,"all world Canvas event cameras bound: "+string.Join(",",missingCameras));
@@ -250,6 +255,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(introTurret.health<introTurret.maxHealth&&introReceiver.GetComponent<BoxCollider>().enabled,"training damage and physical receiver reveal only after repair introduction");
   var receiver=FindObjectsByType<DEF_WorkshopRepairReceiver>(FindObjectsSortMode.None).Single(x=>x.target is DEF_Turret);
   Check(!receiver.TryDeliver(ammo)&&!ammo.Consumed&&receiver.LastMessage.Contains("not a RepairKit"),"wrong-item repair catch preserves real ammo and explains correct item");
+  yield return null;Capture("repair-rejection-card",receiver.transform.position+Vector3.up*.85f);
   Check(receiver.GetComponent<DEF_RecordingReceiverLabel>()!=null,"repair intake has local visible feedback");
   var interactor=hand.GetComponentInChildren<NearFarInteractor>(true);
   var grab=kit.GetComponent<XRGrabInteractable>();
@@ -297,6 +303,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   yield return null;Check(awards.supplyLine.activeSelf&&!awards.waveDefender.activeSelf,"positive physical refill awards Supply Line, not wave trophy");
   Check(!hud.startButton.gameObject.activeSelf,"actual Start wave control stays hidden during wave introduction");
   yield return new WaitForSecondsRealtime(4.3f);
+  Capture("wave-ready-hud",rig.Camera.transform.position+rig.Camera.transform.forward*1.6f);
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveReady,"wave ready only after introduction");
   yield return PressUI(hud.startButton,canvas,device,hand);yield return null;
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveActive,"actual UI starts wave");
@@ -304,6 +311,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(Time.timeScale==0&&hud.pausePanel.activeInHierarchy,"explicit Pause freezes the active wave while XR shop remains nonpausing");
   var pausedEnemies=DEF_Zombie.all.ToDictionary(z=>z,z=>z.transform.position);float pausedHealth=DEF_GameState.I.playerHealth;int pausedAmmo=DEF_GameState.I.ammo;
   Check(pausedEnemies.Count>0,"pause regression observes a genuinely live enemy, not an empty wave");
+  Check(!hud.startButton.interactable,"Start Wave is disabled during active combat");
   yield return new WaitForSecondsRealtime(.5f);
   Check(DEF_GameState.I.playerHealth==pausedHealth&&DEF_GameState.I.ammo==pausedAmmo&&pausedEnemies.All(pair=>pair.Key!=null&&Vector3.Distance(pair.Value,pair.Key.transform.position)<.001f),"paused combat cannot move enemies, spend ammo or damage base");
   yield return PressUI(hud.resumeButton,canvas,device,hand,false);yield return null;

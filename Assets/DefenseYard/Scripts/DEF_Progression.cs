@@ -102,7 +102,7 @@ public sealed class DEF_Progression : MonoBehaviour
         S.RepairIntroduction or S.AmmoIntroduction or S.WaveIntroduction => "Read the introduction; the next action unlocks after it finishes.",
         S.Repair => "Release a crafted RepairKit in the training sentry receiver to restore integrity.",
         S.Ammo => "Physically deliver a crafted Ammo Box to refill Defense.",
-        S.WaveReady => "Start the first wave when ready.",
+        S.WaveReady => workshopRecording ? "READY: aim at START WAVE on your HUD and press trigger. Or press left Menu." : "Start the first wave when ready.",
         S.WaveActive => "Clear wave1 while keeping the base alive.",
         S.FirstWaveComplete => "Read the Barricade and Shock introduction before their controls appear.",
         S.AdvancedPractice => "Start a practice wave. Place a barricade across a moving enemy route and let it walk the detour. Also stun a live enemy with Shock.",

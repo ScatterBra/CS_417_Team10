@@ -74,7 +74,7 @@ public class DEF_WorkshopAmmoReceiver : MonoBehaviour
                 return Reject("this box or ledger is busy. Release the box and retry after the current delivery.");
             if(delivery!=null && delivery.Matches && destination==committedDestination && ledger==committedLedger)
                 owner.Refilled(added,receipt);
-            Feedback("Ammo delivered: +"+added+" Defense rounds; 1 physical box and 1 Workshop ammo consumed.");
+            Feedback("Ammo delivered: +"+added+" rounds. Read the wave introduction, then choose START WAVE on your HUD.");
             return true;
         }
         finally { delivering=false;delivery?.Dispose(); }

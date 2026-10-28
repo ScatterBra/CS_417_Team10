@@ -37,6 +37,10 @@ public static class DEF_RepairValidation
             ledger.ResetRepairInventory(1);var first=Kit(ledger);int receipts=0;float receiptBefore=0,receiptAfter=0;
             intake.PhysicalRepairAccepted+=(target,before,after,id)=>{receipts++;receiptBefore=before;receiptAfter=after;};
             Check(intake.TryDeliver(first)&&ledger.repairKits==0&&turret.health==80&&first==null&&receipts==1&&receiptBefore==40&&receiptAfter==80,"physical turret repair commits exact kit ledger and positive HP receipt");
+            var successMessage=intake.LastMessage;
+            var idleCollider=Make("Ambient collider after success").AddComponent<BoxCollider>();
+            typeof(DEF_WorkshopRepairReceiver).GetMethod("OnTriggerStay",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(intake,new object[]{idleCollider});
+            Check(!string.IsNullOrEmpty(successMessage)&&intake.LastMessage==successMessage,"ambient overlap preserves active successful repair feedback");
             Check(!intake.TryDeliver(first)&&!competitor.TryDeliver(first)&&turret.health==80&&receipts==1,"duplicate and competing receiver cannot repeat consumed repair");
             ledger.ResetRepairInventory(1);var full=Kit(ledger);turret.health=100;
             Check(!intake.TryDeliver(full)&&ledger.repairKits==1&&full!=null,"full health preserves exact kit and ledger");
@@ -45,6 +49,23 @@ public static class DEF_RepairValidation
             ledger.ResetRepairInventory(1);var wrongLedger=Kit(other);turret.health=50;
             Check(!intake.TryDeliver(wrongLedger)&&ledger.repairKits==1&&other.repairKits==1,"wrong source ledger rejected without consuming either area");
             var wrong=Make("Ammo fixture").AddComponent<SCV_CraftedItem>();Check(!intake.TryDeliver(wrong)&&ledger.repairKits==1,"wrong item rejected");
+            void Trigger(string callback, Collider collider)=>typeof(DEF_WorkshopRepairReceiver).GetMethod(callback,System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(intake,new object[]{collider});
+            Set(intake,"feedbackExpires",Time.unscaledTime-1f);
+            var ambient=Make("Unrelated floor or hand collider").AddComponent<BoxCollider>();
+            Trigger("OnTriggerEnter",ambient);Trigger("OnTriggerStay",ambient);
+            Check(intake.LastMessage==null&&ledger.repairKits==1,"ambient colliders do not create repair rejection feedback");
+            var wrongCollider=wrong.gameObject.AddComponent<BoxCollider>();
+            Trigger("OnTriggerEnter",wrongCollider);
+            Check(intake.LastMessage!=null&&intake.LastMessage.Contains("not a RepairKit"),"actual wrong crafted item still reports rejection");
+            Set(intake,"feedbackExpires",Time.unscaledTime-1f);Trigger("OnTriggerStay",wrongCollider);
+            Check(intake.LastMessage==null&&ledger.repairKits==1,"unchanged overlap does not refresh expired wrong-item rejection");
+            intake.feedbackText=Make("Receiver feedback fixture").AddComponent<TextMeshPro>();
+            intake.feedbackText.text="expired feedback";
+            typeof(DEF_WorkshopRepairReceiver).GetMethod("Update",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(intake,null);
+            Check(intake.feedbackText.text==string.Empty,"expired optional TMP feedback clears on Update");
+            Trigger("OnTriggerExit",wrongCollider);Trigger("OnTriggerEnter",wrongCollider);
+            Check(intake.LastMessage!=null,"new presentation after exit reports rejection again");
+            Trigger("OnTriggerExit",wrongCollider);
             var stale=Kit(ledger);
             ledger.enabled=false;Check(!intake.TryDeliver(stale)&&ledger.repairKits==1&&stale!=null,"offline ledger preserves kit and target");ledger.enabled=true;
             turret.enabled=false;Check(!intake.TryDeliver(stale)&&ledger.repairKits==1,"offline target preserves kit");turret.enabled=true;
@@ -73,8 +94,11 @@ public static class DEF_RepairValidation
             hand.interactionManager=manager;grab.interactionManager=manager;manager.RegisterInteractor((IXRInteractor)hand);manager.RegisterInteractable((IXRInteractable)grab);
             manager.SelectEnter((IXRSelectInteractor)hand,(IXRSelectInteractable)grab);
             Check(grab.isSelected&&!intake.TryDeliver(held)&&!DEF_RepairDelivery.TryRepair(ledger,null,turret,10,false,out _,out _)&&ledger.repairKits==1,"held kit excluded from physical and remote transfers (XRI lifecycle fixture)");
+            Trigger("OnTriggerEnter",held.GetComponent<BoxCollider>());
+            Check(ledger.repairKits==1&&held!=null,"held overlap does not consume a kit");
             manager.SelectExit((IXRSelectInteractor)hand,(IXRSelectInteractable)grab);
-            Check(intake.TryDeliver(held)&&turret.health==100,"released kit can repair once");
+            Trigger("OnTriggerStay",held.GetComponent<BoxCollider>());
+            Check(held==null&&ledger.repairKits==0&&turret.health==100,"release while overlapping retries and repairs once");
             ledger.ResetRepairInventory(1);turret.health=50;var multi=Kit(ledger);var child=Make("second kit collider");child.transform.SetParent(multi.transform,false);var c2=child.AddComponent<BoxCollider>();
             typeof(DEF_WorkshopRepairReceiver).GetMethod("OnTriggerEnter",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(intake,new object[]{multi.GetComponent<BoxCollider>()});typeof(DEF_WorkshopRepairReceiver).GetMethod("OnTriggerStay",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(intake,new object[]{c2});
             Check(ledger.repairKits==0&&turret.health==90,"duplicate collider callback entry/stay consumes one kit (not a physics simulation)");
@@ -91,13 +115,21 @@ public static class DEF_RepairValidation
             // Production progression fixture: only designated physical receiver may advance repair.
             var gate=state.gameObject.AddComponent<DEF_Progression>();var presenter=Make("Repair presenter").AddComponent<DEF_ProgressionPresenter>();
             presenter.introductionText=Make("Repair intro").AddComponent<TextMeshPro>();presenter.goalText=Make("Repair goal").AddComponent<TextMeshPro>();
+            presenter.failureText=Make("Transient failure").AddComponent<TextMeshPro>();
             Set(gate,"presenter",presenter);Set(gate,"repairLedger",ledger);
+            presenter.Present(gate);presenter.ShowFailure("test failure");Set(presenter,"failureExpires",Time.unscaledTime-1f);
+            presenter.ShowFailure("test failure");typeof(DEF_ProgressionPresenter).GetMethod("Update",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(presenter,null);
+            Check(presenter.failureText.text==string.Empty,"global repeated failure expires without refreshing its display");
+            Set(presenter,"lastFailureCall",Time.unscaledTime-1f);presenter.ShowFailure("test failure");
+            Check(presenter.failureText.text=="test failure","same explicit failure displays again after a quiet gap");
+            presenter.ShowFailure("different failure");Check(presenter.failureText.text=="different failure","distinct global failure remains visible");
             gate.State.AcceptPrerequisite(DEF_ProgressionState.Prerequisite.Power6,1,"p");gate.State.AcceptPrerequisite(DEF_ProgressionState.Prerequisite.Clinic10,1,"c");gate.State.AcceptPrerequisite(DEF_ProgressionState.Prerequisite.Workshop14,1,"w");
             typeof(DEF_Progression).GetMethod("Placed",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Invoke(gate,new object[]{turret});
             gate.State.CompleteIntroduction(1,1,gate.State.Introduction);
             Check(!turret.TryRepair()&&gate.State.Current==DEF_ProgressionState.Stage.Repair,"scrap repair cannot satisfy configured physical-kit progression");
             var designated=turret.GetComponentInChildren<DEF_WorkshopRepairReceiver>();ledger.ResetRepairInventory(1);
             Check(designated.TryDeliver(Kit(ledger))&&gate.State.Current==DEF_ProgressionState.Stage.AmmoIntroduction,"designated exact physical kit positive repair advances to ammo introduction");
+            Check(presenter.failureText.text==string.Empty,"successful progression clears the old global failure display");
         }
         catch(Exception error){results.Add("FAIL exception "+error);}
         finally{foreach(var go in roots)if(go!=null)UnityEngine.Object.DestroyImmediate(go);DEF_GameState.I=old;UnityEditor.SceneManagement.EditorSceneManager.CloseScene(testScene,true);UnityEngine.SceneManagement.SceneManager.SetActiveScene(previousScene);System.IO.File.WriteAllLines("../repair-editmode-results.txt",results);Debug.Log(string.Join("\n",results));}

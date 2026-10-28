@@ -31,3 +31,9 @@ The rendered popup exposed a clipped cloned transfer-label rectangle. Final chan
 Exactly eight intended files: recording composer, recording setup, native probe, HUD, recording scene, controls, acceptance plan, this checkpoint. No new assets require meta files. Shared URP importer drift, hydrated LFS noise, logs, captures, APKs and private files remain excluded. Explicit source files pass whitespace checking; a targeted secret-signature scan found no matches.
 
 Remaining: independent review, publication approval for this correction, then user Quest smoke for comfort, stereo readability, carrying/turning and entry. The baseline 7ee6aaf prior 360-pass log missed the reported carrying combinations and is historical evidence only.
+## 2026-10-28 UI/receiver/path correction
+- Native two-run acceptance: 448 PASS, 0 FAIL, through earned Missile selection after full held-item reset. Log SHA256: 794B56BEA5DE11DDB38C9365984D39F5D099ABB3B69EDD69199E1CA748CBC729.
+- Focused repair validation: 38 PASS. Clearance escape validation: 66 PASS. Runtime/editor compilation passed.
+- Head-following world-space HUD, explicit Start Wave action, backed introduction/feedback cards, visible ammo intake, temporary repair errors, completed Workshop prompt removal, and outward-only clearance escape are included.
+- Subsequent presentation-only change enlarges receiver/spatial cards to 1.4 x 0.8 metres, title 1.1 TMP units, body 0.75-0.85. Longest 171-character rejection fits five lines at font 0.8 without overflow; two approach-angle render fixtures at 2.25 metres. No progression is granted by render fixtures.
+- This is desktop Unity input/physics and render evidence, not real Quest validation. Final victory/Juggernaut remains outside the tested endpoint. Quest comfort and text readability still require user smoke testing. No new APK built.

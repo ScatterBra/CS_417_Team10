@@ -158,29 +158,30 @@ public class SCV_ProgressionManager : MonoBehaviour
         if (objectiveText == null)
             return;
 
+        if(defenseRecording) objectiveText.gameObject.SetActive(currentStage != WorkshopStage.WorkshopComplete);
         switch (currentStage)
         {
             case WorkshopStage.HarvestSalvage:
                 objectiveText.text =
-                    "CURRENT OBJECTIVE\n" +
+                    "WORKSHOP OBJECTIVE\n" +
                     "HARVEST A SALVAGE WRECK";
                 break;
 
             case WorkshopStage.ProcessPart:
                 objectiveText.text =
-                    "CURRENT OBJECTIVE\n" +
+                    "WORKSHOP OBJECTIVE\n" +
                     "PROCESS 2 SCRAP INTO 1 PART";
                 break;
 
             case WorkshopStage.CraftSupplies:
                 objectiveText.text =
-                    "CURRENT OBJECTIVE\n" +
+                    "WORKSHOP OBJECTIVE\n" +
                     "CRAFT AMMO AND A REPAIR KIT";
                 break;
 
             case WorkshopStage.WorkshopComplete:
                 objectiveText.text =
-                    "CURRENT OBJECTIVE\n" +
+                    "WORKSHOP OBJECTIVE\n" +
                     (defenseRecording ? "CRAFTING READY: Keep your kit and ammo. Transfer 4 Scrap, then carry supplies to Defense." : "SUPPLY THE DEFENSE YARD");
                 break;
         }

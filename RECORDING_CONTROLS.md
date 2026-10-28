@@ -6,6 +6,7 @@ This separate branch omits Power and Clinic prerequisites. It does **not** compl
 
 Open `Assets/DefenseYard/Scenes/DEF_Workshop_Defense_Recording.unity`. Start Quest Link before Play. This is the headset scene: do not enable a desktop simulator or add another rig. The saved scene is also the branch's only enabled build scene.
 
+- Health, resources and the current objective follow the tracked head in stereo world space. The shop remains anchored where opened.
 - Left stick: move; right stick: turn, including while either or both grips hold supplies.
 - Point the right controller at a button; squeeze and release its trigger to click.
 - Right **A**: open/close Defense build shop, after Workshop readiness. It appears in front of your current view and stays in that position until closed. Reopen to reposition it. Jump is disabled; the outpost has a north doorway and ramp.
@@ -26,7 +27,7 @@ Open `Assets/DefenseYard/Scenes/DEF_Workshop_Defense_Recording.unity`. Start Que
 5. Select the Sentry **4 SCRAP** button. Aim at clear east-side ground near `(7, 0, 1)` and place it; it costs 4 Defense Scrap and starts with **zero** ammo. The north ramp near `(1, 0, 6)` enters the raised outpost without jumping, though building takes place outside it.
 6. Read the repair introduction: the Sentry remains at full health until it finishes, then training damage and the receiver appear. Retrieve the SAME crafted RepairKit from Workshop. Carry it to the placed Sentry's receiver. Show the held-item instruction, then release it inside. Show integrity increasing and **FIELD MEDIC** appearing. This is the second connection.
 7. Read the ammo introduction. Retrieve the SAME crafted Ammo Box. Release it at the Defense ammo intake near `(5, 1, 5)`. Show the positive refill and **SUPPLY LINE** trophy. One box supplies up to 10 rounds. This is the third connection.
-8. Read the first-wave introduction, then **Start wave**. The recording encounter comes from the east. Let the Sentry defeat it; show the real clear and **WAVE DEFENDER** trophy.
+8. Read the first-wave introduction, then aim at the green **START WAVE [MENU]** button below the camera-following objective and press trigger. The left controller Menu button is also a shortcut. The recording encounter comes from the east. Let the Sentry defeat it; show the real clear and **WAVE DEFENDER** trophy.
 9. Read **BARRICADE AND SHOCK** before using either. Start the next practice wave. You can equip the barricade before starting the wave, then place it across a visible moving enemy's route so it actually walks around it; place Shock beside the route so it stuns a live enemy. A path recalculation alone does not count.
 10. Read **MISSILE SENTRY** when both outcomes are earned. After the wave clears, open the shop and show the unlocked Missile Sentry card and its **20 SCRAP** button. This is the currently tested recording endpoint, **not** the game's final Complete state.
 

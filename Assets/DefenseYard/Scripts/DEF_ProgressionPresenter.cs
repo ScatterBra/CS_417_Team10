@@ -12,18 +12,27 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     int session, attempt, introduction;
     float finishAt;
     bool presenting;
+    string displayedFailure;
+    float failureExpires;
+    float lastFailureCall=float.NegativeInfinity;
+    int failureSession=-1,failureAttempt=-1,failureStage=-1;
     public bool Ready => introductionText != null && goalText != null;
     public void Present(DEF_Progression progression)
     {
         owner = progression;
         if (!Ready) return;
         var state = owner.State;
+        if(failureSession!=state.Session||failureAttempt!=state.Attempt||failureStage!=(int)state.Current)
+        {
+            failureSession=state.Session;failureAttempt=state.Attempt;failureStage=(int)state.Current;
+            displayedFailure=null;if(failureText!=null)failureText.text=string.Empty;
+        }
         Set(repairContent, owner.IsAllowed(DEF_Action.Repair));
         Set(ammoContent, owner.IsAllowed(DEF_Action.PhysicalAmmo));
         Set(waveContent, owner.IsAllowed(DEF_Action.StartWave) || owner.IsAllowed(DEF_Action.Combat));
         Set(advancedContent, owner.IsAllowed(DEF_Action.Barricade));
         Set(missileContent,owner.IsAllowed(DEF_Action.Missile));
-        goalText.text = (owner.workshopRecording ? "SIMPLIFIED WORKSHOP TO DEFENSE RECORDING\nPower/Clinic omitted; actual crafting and deliveries required.\n" : "") + owner.NextGoal;
+        goalText.text = (owner.workshopRecording ? "NEXT: WORKSHOP TO DEFENSE (SIMPLIFIED)\n" : "") + owner.NextGoal;
         bool intro = state.IntroductionActive;
         introductionText.gameObject.SetActive(intro);
         if (!intro) { presenting = false; return; }
@@ -38,11 +47,21 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     }
     void Update()
     {
+        if(failureText!=null&&Time.unscaledTime>=failureExpires)failureText.text=string.Empty;
         if (!presenting || !Ready || !introductionText.gameObject.activeInHierarchy || Time.unscaledTime < finishAt) return;
         presenting = false;
         owner.IntroductionFinished(this, session, attempt, introduction);
     }
-    public void ShowFailure(string message) { if (failureText != null) failureText.text = message; }
+    public void ShowFailure(string message)
+    {
+        // Repeated polling of the same rejected action must not pin its card forever.
+        // A different failure or successful progression context permits a fresh card.
+        bool polling=displayedFailure==message&&Time.unscaledTime-lastFailureCall<.5f;
+        lastFailureCall=Time.unscaledTime;
+        if(polling)return;
+        displayedFailure=message;failureExpires=Time.unscaledTime+4f;
+        if(failureText!=null)failureText.text=message;
+    }
     static void Set(GameObject[] objects, bool active)
     { if (objects != null) foreach (var obj in objects) if (obj != null) obj.SetActive(active); }
 }

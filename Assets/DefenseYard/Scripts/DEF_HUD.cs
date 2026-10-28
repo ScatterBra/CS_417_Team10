@@ -107,7 +107,7 @@ public class DEF_HUD : MonoBehaviour
             scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
-            startButton.interactable = !shopOpen && !guideOpen;
+            startButton.interactable = gates.IsAllowed(DEF_Action.StartWave) && !shopOpen && !guideOpen;
             bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
             waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
             zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);
@@ -215,7 +215,7 @@ public class DEF_HUD : MonoBehaviour
             scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
-            startButton.interactable = !shopOpen && !guideOpen;
+            startButton.interactable = gates.IsAllowed(DEF_Action.StartWave) && !shopOpen && !guideOpen;
             bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
             waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
             zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);

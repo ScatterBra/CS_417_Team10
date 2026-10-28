@@ -113,11 +113,23 @@ public class DEF_Pathfinder : MonoBehaviour
             // A defense can be built under a moving zombie; let it leave that cell.
             if (x==startX && z==startZ) continue;
             Vector3 center = grid.transform.InverseTransformPoint(grid.TileCenter(x,z));
+            if (EscapesClearanceMargin(a-center,b-center,grid.tileSize*0.5f,half)) continue;
             float enter=0f, exit=1f;
             if (IntersectAxis(a.x,b.x-a.x,center.x-half,center.x+half,ref enter,ref exit) &&
                 IntersectAxis(a.z,b.z-a.z,center.z-half,center.z+half,ref enter,ref exit)) return false;
         }
         return true;
+    }
+
+    static bool EscapesClearanceMargin(Vector3 from, Vector3 to, float cellHalf, float expandedHalf)
+    {
+        if (Mathf.Abs(from.x)>expandedHalf || Mathf.Abs(from.z)>expandedHalf) return false;
+        bool outsideX=Mathf.Abs(from.x)>cellHalf, outsideZ=Mathf.Abs(from.z)>cellHalf;
+        if (!outsideX && !outsideZ) return false;
+        float outwardX=(to.x-from.x)*Mathf.Sign(from.x);
+        float outwardZ=(to.z-from.z)*Mathf.Sign(from.z);
+        if ((outsideX && outwardX<0f) || (outsideZ && outwardZ<0f)) return false;
+        return (outsideX && outwardX>0f) || (outsideZ && outwardZ>0f);
     }
 
     static bool IntersectAxis(float origin,float direction,float low,float high,ref float enter,ref float exit)

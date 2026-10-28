@@ -57,6 +57,10 @@ public sealed class DEF_WorkshopRecordingSetup : MonoBehaviour
     }
     void LateUpdate()
     {
+        if(hud!=null)hud.waveText.transform.parent.gameObject.SetActive(hud.waveText.gameObject.activeSelf||hud.waveStatus.gameObject.activeSelf);
+        var presenter=FindAnyObjectByType<DEF_ProgressionPresenter>();
+        if(presenter!=null)foreach(var text in new[]{presenter.goalText,presenter.introductionText,presenter.failureText})
+            if(text!=null&&text.transform.parent.name.StartsWith("Recording "))text.transform.parent.gameObject.SetActive(text.gameObject.activeSelf&&!string.IsNullOrEmpty(text.text));
         if(Time.unscaledTime<nextCanvasScan)return;
         nextCanvasScan=Time.unscaledTime+.25f;
         foreach(var receiver in FindObjectsByType<DEF_WorkshopRepairReceiver>())

@@ -100,6 +100,23 @@ public static class DEF_WorkshopRecordingComposer
   }
   achievements.fieldMedic=Trophy("FIELD MEDIC",0);achievements.supplyLine=Trophy("SUPPLY LINE",.9f);achievements.waveDefender=Trophy("WAVE DEFENDER",1.8f);
   foreach(var worldCanvas in All<Canvas>(s))if(worldCanvas.renderMode==RenderMode.WorldSpace){worldCanvas.worldCamera=rig.Camera;DEF_IntegrationStaging.EnsureTrackedUI(worldCanvas);}
+  // The event camera alone does not make a Canvas follow tracking. Parent to the actual head.
+  rect.SetParent(rig.Camera.transform,false);rect.localPosition=new Vector3(0,0,1.6f);rect.localRotation=Quaternion.identity;rect.localScale=Vector3.one*.001f;
+  var presenter=All<DEF_ProgressionPresenter>(s).Single();var presenterRect=(RectTransform)presentation.transform;
+  presenterRect.SetParent(rig.Camera.transform,false);presenterRect.localPosition=new Vector3(0,0,1.55f);presenterRect.localRotation=Quaternion.identity;presenterRect.localScale=Vector3.one*.001f;
+  void ReadableCard(TMPro.TMP_Text text,string name,Vector2 position,Vector2 size,int fontSize)
+  {
+   var old=presentation.transform.Find(name);var card=old!=null?old.gameObject:new GameObject(name,typeof(RectTransform),typeof(Image));card.transform.SetParent(presentation.transform,false);
+   var cr=(RectTransform)card.transform;cr.anchorMin=cr.anchorMax=cr.pivot=new Vector2(.5f,.5f);cr.anchoredPosition=position;cr.sizeDelta=size;
+   var image=card.GetComponent<Image>();image.color=new Color(.025f,.045f,.06f,.97f);image.raycastTarget=false;
+   text.transform.SetParent(card.transform,false);var tr=text.rectTransform;tr.anchorMin=Vector2.zero;tr.anchorMax=Vector2.one;tr.offsetMin=new Vector2(24,12);tr.offsetMax=new Vector2(-24,-12);
+   text.fontSize=fontSize;text.color=Color.white;text.alignment=TMPro.TextAlignmentOptions.Center;text.raycastTarget=false;text.textWrappingMode=TMPro.TextWrappingModes.Normal;text.overflowMode=TMPro.TextOverflowModes.Truncate;
+  }
+  ReadableCard(presenter.goalText,"Recording current goal card",new Vector2(0,-225),new Vector2(1000,150),25);
+  ReadableCard(presenter.introductionText,"Recording introduction card",Vector2.zero,new Vector2(1000,300),30);
+  ReadableCard(presenter.failureText,"Recording feedback card",new Vector2(0,230),new Vector2(1000,140),24);
+  var startRect=(RectTransform)hud.startButton.transform;startRect.anchoredPosition=new Vector2(610,-765);startRect.sizeDelta=new Vector2(380,70);
+  hud.startText.rectTransform.sizeDelta=new Vector2(360,70);hud.startText.fontSize=25;hud.startButton.GetComponent<Image>().color=new Color(.1f,.8f,.55f,1);
   foreach(var component in All<Component>(s))if(component!=null && PrefabUtility.IsPartOfPrefabInstance(component))PrefabUtility.RecordPrefabInstancePropertyModifications(component);
   EditorSceneManager.MarkSceneDirty(s);EditorSceneManager.SaveScene(s);AssetDatabase.SaveAssets();
   Debug.Log("Recording scene saved; native acceptance still required: "+Path);
