@@ -17,6 +17,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
  UnityEngine.InputSystem.InputDevice ownedDevice;
  UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController moveDevice;
  Unity.XR.CoreUtils.XROrigin walkRig;
+ bool secondRun;
  void OnDestroy(){if(ownedDevice!=null&&ownedDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(ownedDevice);if(moveDevice!=null&&moveDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(moveDevice);}
  bool Walkable(Vector2Int cell)
  {
@@ -47,15 +48,21 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(Vector2.Distance(new Vector2(walkRig.transform.position.x,walkRig.transform.position.z),new Vector2(goal.x*.5f,goal.y*.5f))<.5f,"actual thumbstick locomotion reaches interaction: "+walkRig.transform.position);
  }
  Button BoundButton(UnityEngine.Object target,string method)=>FindObjectsByType<Button>(FindObjectsInactive.Include).Single(b=>Enumerable.Range(0,b.onClick.GetPersistentEventCount()).Any(i=>b.onClick.GetPersistentTarget(i)==target&&b.onClick.GetPersistentMethodName(i)==method));
- IEnumerator PressUI(Button button,Canvas canvas,UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController device,Transform hand)
+ IEnumerator PressUI(Button button,Canvas canvas,UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation.XRSimulatedController device,Transform hand,bool approach=true)
  {
   Canvas.ForceUpdateCanvases();var rect=(RectTransform)button.transform;var center=rect.TransformPoint(rect.rect.center);
-  yield return WalkTo(center-canvas.transform.forward*1.2f);
+  if(approach)yield return WalkTo(center-canvas.transform.forward*1.2f);
   var aim=walkRig.transform.position+Vector3.up*1.2f+walkRig.Camera.transform.right*.25f;
   var state=new SimState{isTracked=true,trackingState=3,devicePosition=hand.parent.InverseTransformPoint(aim),deviceRotation=Quaternion.Inverse(hand.parent.rotation)*Quaternion.LookRotation(center-aim)};
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return new WaitForSecondsRealtime(.5f);
-  state.trigger=1;state=state.WithButton(SimButton.TriggerButton);UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return null;yield return null;
-  state.trigger=0;state=state.WithButton(SimButton.TriggerButton,false);UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return null;yield return null;
+  var interactor=hand.GetComponentInChildren<NearFarInteractor>(true);bool hovering=false;float hoverDeadline=Time.realtimeSinceStartup+5;GameObject hitObject=null;
+  while(Time.realtimeSinceStartup<hoverDeadline){if(interactor.TryGetCurrentUIRaycastResult(out var hit)){hitObject=hit.gameObject;hovering=hitObject!=null&&(hitObject==button.gameObject||hitObject.transform.IsChildOf(button.transform));}if(hovering)break;yield return null;}
+  Check(hovering&&button.IsActive()&&button.IsInteractable(),"actual ray hovers ready button "+button.name+"; hit="+(hitObject!=null?hitObject.name:"none"));
+  string buttonName=button.name;var clickEvent=button.onClick;bool clicked=false;UnityEngine.Events.UnityAction observed=()=>clicked=true;clickEvent.AddListener(observed);
+  state.trigger=1;state=state.WithButton(SimButton.TriggerButton);UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return new WaitForSecondsRealtime(.12f);
+  state.trigger=0;state=state.WithButton(SimButton.TriggerButton,false);UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,state);yield return new WaitForSecondsRealtime(.12f);
+  clickEvent.RemoveListener(observed);Check(clicked,"actual trigger press/release clicks "+buttonName);
+  if(buttonName=="Build shop")Capture("open-shop-"+DEF_Progression.Current.State.Current,canvas.transform.position);
  }
  void RayClick(Button button,Canvas canvas)
  {
@@ -68,17 +75,27 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   ExecuteEvents.Execute(button.gameObject,data,ExecuteEvents.pointerClickHandler);
  }
  static string ResultPath=>System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath,"../../workshop-native-play-results.txt"));
+ // Render the real scene from the current player's position, looking at the inspected object.
+ // This is a diagnostic camera view, not a claim of headset capture or simulated head input.
+ void Capture(string name,Vector3 target)
+ {
+  var camera=walkRig.Camera;var oldRotation=camera.transform.rotation;var oldTarget=camera.targetTexture;
+  var previous=RenderTexture.active;var texture=new RenderTexture(1280,720,24);var pixels=new Texture2D(1280,720,TextureFormat.RGB24,false);
+  try{Canvas.ForceUpdateCanvases();camera.transform.LookAt(target);camera.targetTexture=texture;camera.Render();RenderTexture.active=texture;pixels.ReadPixels(new Rect(0,0,1280,720),0,0);pixels.Apply();System.IO.File.WriteAllBytes(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(ResultPath),"recording-"+(secondRun?"second-":"first-")+name+".png"),pixels.EncodeToPNG());}
+  finally{camera.transform.rotation=oldRotation;camera.targetTexture=oldTarget;RenderTexture.active=previous;texture.Release();Destroy(texture);Destroy(pixels);}
+ }
  void Check(bool condition,string label){results.Add((condition?"PASS ":"FAIL ")+label);System.IO.File.WriteAllLines(ResultPath,results);if(!condition)throw new Exception(label);}
  IEnumerator Start()
  {
   yield return new WaitForSecondsRealtime(2);
-  var sequence=Run();bool failed=false;
-  while(true){object current=null;bool more=false;try{more=sequence.MoveNext();if(more)current=sequence.Current;}catch(Exception e){results.Add("EXCEPTION "+e);failed=true;}if(failed||!more)break;yield return current;}
+  var sequences=new Stack<IEnumerator>();sequences.Push(Run());bool failed=false;
+  while(sequences.Count>0){object current=null;bool more=false;try{var sequence=sequences.Peek();more=sequence.MoveNext();if(more)current=sequence.Current;else sequences.Pop();}catch(Exception e){results.Add("EXCEPTION "+e);failed=true;}if(failed)break;if(!more)continue;if(current is IEnumerator nested)sequences.Push(nested);else yield return current;}
   System.IO.File.WriteAllLines(System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.dataPath,"../../workshop-native-play-results.txt")),results);
   if(Application.isBatchMode)UnityEditor.EditorApplication.Exit(failed?1:0);else if(!failed)UnityEditor.EditorApplication.isPlaying=false;
  }
  IEnumerator Run()
  {
+  if(secondRun){if(ownedDevice!=null&&ownedDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(ownedDevice);if(moveDevice!=null&&moveDevice.added)UnityEngine.InputSystem.InputSystem.RemoveDevice(moveDevice);}
   var p=DEF_Progression.Current;var hud=DEF_HUD.Instance;var rig=FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
   walkRig=rig;
   var description=new UnityEngine.InputSystem.Layouts.InputDeviceDescription{product="XRSimulatedController",capabilities=new UnityEngine.InputSystem.XR.XRDeviceDescriptor{deviceName="Recording Right Controller",characteristics=UnityEngine.XR.InputDeviceCharacteristics.Right|UnityEngine.XR.InputDeviceCharacteristics.Controller|UnityEngine.XR.InputDeviceCharacteristics.TrackedDevice|UnityEngine.XR.InputDeviceCharacteristics.HeldInHand}.ToJson()};
@@ -97,13 +114,15 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(rig.transform.position.y>=floor.point.y-.02f,"spawn feet not below floor");
   var obstruction=Physics.OverlapCapsule(rig.transform.position+Vector3.up*.3f,rig.transform.position+Vector3.up*1.6f,.22f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore).Where(c=>!c.transform.IsChildOf(rig.transform)).ToArray();
   Check(obstruction.Length==0,"standing capsule clearance: "+string.Join(",",obstruction.Select(c=>c.name)));
+  for(int z=-2;z<=2;z++)Check(!Physics.CheckCapsule(new Vector3(20.5f,.35f,z),new Vector3(20.5f,1.55f,z),.3f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore),"saved east entrance clears standing capsule at z="+z);
   Check(!rig.GetComponentsInChildren<MonoBehaviour>(true).Any(b=>b!=null&&b.GetType().Name=="JumpProvider"&&b.enabled),"Jump disabled; no A collision");
   var canvas=hud.GetComponent<Canvas>();
   Check(canvas.renderMode==RenderMode.WorldSpace&&canvas.worldCamera==rig.Camera,"saved world canvas camera assigned");
-  Check(Vector3.Distance(canvas.transform.position,new Vector3(1,1.8f,3.7f))<.01f,"actual serialized Canvas position survives reload: "+canvas.transform.position);
+  Check(Vector3.Distance(canvas.transform.position,new Vector3(0,1.8f,5.5f))<.01f,"actual serialized exterior Canvas position survives reload: "+canvas.transform.position);
   Check(canvas.GetComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>()!=null,"tracked UI raycaster exists");
-  var missingCameras=FindObjectsByType<Canvas>(FindObjectsInactive.Include).Where(c=>c.gameObject.scene==gameObject.scene&&c.renderMode==RenderMode.WorldSpace&&c.worldCamera!=rig.Camera).Select(c=>c.name).ToArray();
+  var missingCameras=FindObjectsByType<Canvas>(FindObjectsInactive.Include).Where(c=>c.gameObject.scene==rig.gameObject.scene&&c.renderMode==RenderMode.WorldSpace&&c.worldCamera!=rig.Camera).Select(c=>c.name).ToArray();
   Check(missingCameras.Length==0,"all world Canvas event cameras bound: "+string.Join(",",missingCameras));
+  Capture("spawn",new Vector3(38.5f,1.7f,5));
   var wreck=FindAnyObjectByType<SCV_HarvestableWreck>();Check(wreck!=null,"real spawned salvage");
   var ledger=FindAnyObjectByType<SCV_ResourceManager>();
   int clicks=0;while(wreck!=null&&wreck.ScrapRemaining>0&&clicks++<10){var harvest=BoundButton(wreck,"Harvest");yield return PressUI(harvest,harvest.GetComponentInParent<Canvas>(),device,hand);yield return null;}
@@ -141,7 +160,10 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,new SimState());yield return null;yield return null;
   hud.ToggleShop();yield return null;yield return PressUI(hud.buyButtons[0],canvas,device,hand);yield return null;
   Check(DEF_VRInput.Instance.BuildArmed&&!hud.shopPanel.activeSelf,"real UI button arms sentry and closes menu");
-  var groundPoint=FindAnyObjectByType<DEF_GridManager>().TileCenter(13,10);var aimPosition=groundPoint+new Vector3(0,2,-1);
+  int cancelScrap=DEF_GameState.I.scrap;yield return PressUI(hud.cancelBuild,canvas,device,hand);
+  Check(!DEF_VRInput.Instance.BuildArmed&&DEF_GameState.I.scrap==cancelScrap,"actual selected-panel X cancels placement without spending scrap");
+  yield return PressUI(hud.shopButton,canvas,device,hand);yield return PressUI(hud.buyButtons[0],canvas,device,hand);
+  var groundPoint=FindAnyObjectByType<DEF_GridManager>().TileCenter(13,10);yield return WalkTo(groundPoint+new Vector3(0,0,4));var aimPosition=walkRig.transform.position+Vector3.up*1.2f+walkRig.Camera.transform.right*.25f;
   var placementState=new SimState{isTracked=true,trackingState=3,devicePosition=hand.parent.InverseTransformPoint(aimPosition),deviceRotation=Quaternion.Inverse(hand.parent.rotation)*Quaternion.LookRotation(groundPoint-aimPosition)};
   UnityEngine.InputSystem.InputSystem.QueueStateEvent(device,placementState);yield return new WaitForSecondsRealtime(.5f);
   Check(DEF_VRInput.Instance.TryGetAimHit(out var groundHit)&&groundHit.collider==FindAnyObjectByType<DEF_GridManager>().groundCollider,"controller ray reaches actual build ground");
@@ -152,7 +174,13 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   DEF_VRInput.Instance.CancelBuild();
   Check(p.State.Current==DEF_ProgressionState.Stage.RepairIntroduction,"placement introduces repair before use");
   Check(!p.IsAllowed(DEF_Action.Repair),"repair remains locked during intro");
+  var introReceiver=FindObjectsByType<DEF_WorkshopRepairReceiver>(FindObjectsSortMode.None).Single(x=>x.target is DEF_Turret);
+  var introTurret=(DEF_Turret)introReceiver.target;
+  Check(introTurret.health==introTurret.maxHealth&&!introReceiver.GetComponent<BoxCollider>().enabled,"repair intro precedes both deliberate damage and receiver collision");
+  yield return null;
+  Check(introTurret.health==introTurret.maxHealth&&introReceiver.GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff)&&!hud.buyButtons[1].transform.parent.gameObject.activeSelf&&!hud.buyButtons[2].transform.parent.gameObject.activeSelf&&!hud.buyButtons[3].transform.parent.gameObject.activeSelf,"rendered introduction frame keeps repair and actual advanced card content hidden");
   yield return new WaitForSecondsRealtime(4.3f);
+  Check(introTurret.health<introTurret.maxHealth&&introReceiver.GetComponent<BoxCollider>().enabled,"training damage and physical receiver reveal only after repair introduction");
   var receiver=FindObjectsByType<DEF_WorkshopRepairReceiver>(FindObjectsSortMode.None).Single(x=>x.target is DEF_Turret);
   Check(!receiver.TryDeliver(ammo)&&!ammo.Consumed&&receiver.LastMessage.Contains("not a RepairKit"),"wrong-item repair catch preserves real ammo and explains correct item");
   Check(receiver.GetComponent<DEF_RecordingReceiverLabel>()!=null,"repair intake has local visible feedback");
@@ -180,6 +208,8 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(p.State.Current==DEF_ProgressionState.Stage.AmmoIntroduction,"physical released kit overlap commits repair");
   yield return null;Check(awards.fieldMedic.activeSelf&&!awards.supplyLine.activeSelf,"positive real repair awards only Field Medic");
   Check(!p.IsAllowed(DEF_Action.PhysicalAmmo),"ammo remains locked during introduction");
+  var introAmmo=FindAnyObjectByType<DEF_WorkshopAmmoReceiver>();
+  Check(introAmmo.GetComponentsInChildren<Collider>(true).All(c=>!c.enabled)&&introAmmo.GetComponentsInChildren<Renderer>(true).All(r=>r.forceRenderingOff),"actual ammo receiver presentation and collision stay hidden during introduction");
   yield return new WaitForSecondsRealtime(4.3f);
   var intake=FindAnyObjectByType<DEF_WorkshopAmmoReceiver>();
   var ammoGrab=ammo.GetComponent<XRGrabInteractable>();
@@ -198,17 +228,30 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   for(int step=0;step<10;step++)yield return new WaitForFixedUpdate();
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveIntroduction,"same physical ammo reaches real intake");
   yield return null;Check(awards.supplyLine.activeSelf&&!awards.waveDefender.activeSelf,"positive physical refill awards Supply Line, not wave trophy");
+  Check(!hud.startButton.gameObject.activeSelf,"actual Start wave control stays hidden during wave introduction");
   yield return new WaitForSecondsRealtime(4.3f);
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveReady,"wave ready only after introduction");
   yield return PressUI(hud.startButton,canvas,device,hand);yield return null;
   Check(p.State.Current==DEF_ProgressionState.Stage.WaveActive,"actual UI starts wave");
+  yield return new WaitForSecondsRealtime(1);yield return PressUI(hud.pauseButton,canvas,device,hand);yield return null;
+  Check(Time.timeScale==0&&hud.pausePanel.activeInHierarchy,"explicit Pause freezes the active wave while XR shop remains nonpausing");
+  var pausedEnemies=DEF_Zombie.all.ToDictionary(z=>z,z=>z.transform.position);float pausedHealth=DEF_GameState.I.playerHealth;int pausedAmmo=DEF_GameState.I.ammo;
+  Check(pausedEnemies.Count>0,"pause regression observes a genuinely live enemy, not an empty wave");
+  yield return new WaitForSecondsRealtime(.5f);
+  Check(DEF_GameState.I.playerHealth==pausedHealth&&DEF_GameState.I.ammo==pausedAmmo&&pausedEnemies.All(pair=>pair.Key!=null&&Vector3.Distance(pair.Value,pair.Key.transform.position)<.001f),"paused combat cannot move enemies, spend ammo or damage base");
+  yield return PressUI(hud.resumeButton,canvas,device,hand,false);yield return null;
+  Check(Time.timeScale==1&&!hud.pausePanel.activeSelf,"actual XR Resume click restores gameplay");
   float deadline=Time.realtimeSinceStartup+120;
   while(p.State.Current==DEF_ProgressionState.Stage.WaveActive&&Time.realtimeSinceStartup<deadline)yield return null;
   Check(p.State.Current==DEF_ProgressionState.Stage.FirstWaveComplete,"real turret combat clears first wave alive");
   yield return null;Check(awards.waveDefender.activeSelf,"normal first-wave clear awards third visible trophy");
+  yield return WalkTo(new Vector3(3.9f,0,7.5f));
+  Capture("trophies",awards.supplyLine.transform.position+Vector3.up*.2f);
   Check(!p.IsAllowed(DEF_Action.Barricade)&&!p.IsAllowed(DEF_Action.Shock),"advanced actions hidden during their introduction");
+  Check(!hud.buyButtons[2].transform.parent.gameObject.activeSelf&&!hud.buyButtons[3].transform.parent.gameObject.activeSelf,"actual Barricade and Shock pictures and descriptions remain hidden during introduction");
   yield return new WaitForSecondsRealtime(4.3f);
   Check(p.State.Current==DEF_ProgressionState.Stage.AdvancedPractice,"advanced practice follows the completed introduction");
+  Check(hud.buyButtons[2].transform.parent.gameObject.activeSelf&&hud.buyButtons[3].transform.parent.gameObject.activeSelf,"actual advanced cards reveal after introduction");
   int beforeOccupied=DEF_GameState.I.scrap;priorFailure=p.LastFailure;Check(!DEF_Turret.TryPlace(13,10,false)&&DEF_GameState.I.scrap==beforeOccupied&&p.LastFailure!=priorFailure&&p.LastFailure.Contains("occupied")&&p.LastFailure.Contains("empty valid ground"),"fresh occupied-tile rejection preserves scrap and gives cause/remedy");
   yield return PressUI(hud.startButton,canvas,device,hand);yield return null;
   float spawnDeadline=Time.realtimeSinceStartup+15;while(DEF_Zombie.all.Count==0&&Time.realtimeSinceStartup<spawnDeadline)yield return null;
@@ -231,6 +274,14 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(shockPlaced,"real Shock placed beside observed live detour with earned scrap");
   float controlDeadline=Time.realtimeSinceStartup+90;while(p.State.Current==DEF_ProgressionState.Stage.AdvancedPractice&&Time.realtimeSinceStartup<controlDeadline)yield return null;
   Check(p.State.Current==DEF_ProgressionState.Stage.MissileIntroduction||p.State.Current==DEF_ProgressionState.Stage.MissilePractice,"real enemy detour and real Shock stun unlock Missile introduction");
+  if(p.State.Current==DEF_ProgressionState.Stage.MissileIntroduction)Check(!hud.buyButtons[1].transform.parent.gameObject.activeSelf,"actual Missile picture and description remain hidden during its introduction");
+  float missileDeadline=Time.realtimeSinceStartup+90;while((p.State.IntroductionActive||DEF_WaveManager.I.phase!=DEF_WaveManager.Phase.Cleared)&&Time.realtimeSinceStartup<missileDeadline)yield return null;
+  Check(p.IsAllowed(DEF_Action.Missile)&&DEF_WaveManager.I.phase==DEF_WaveManager.Phase.Cleared,"Missile becomes available after its introduction and genuine practice-wave clear");
+  yield return PressUI(hud.shopButton,canvas,device,hand);yield return PressUI(hud.buyButtons[1],canvas,device,hand);
+  Check(DEF_VRInput.Instance.BuildArmed&&DEF_VRInput.Instance.mode==DEF_VRInput.PlaceMode.BoomTurret,"earned Missile affordance is selectable through actual XR UI");
+  DEF_VRInput.Instance.CancelBuild();
+  Capture("earned-missile-ui",canvas.transform.position);
+  if(secondRun){Check(true,"second complete playable run reaches earned Missile after full reset with fresh items and evidence");yield break;}
   // Craft a second authentic kit solely to exercise reset while actually held.
   wreck=FindAnyObjectByType<SCV_HarvestableWreck>();Check(wreck!=null,"a real salvage source remains for reset regression");
   while(wreck!=null&&wreck.ScrapRemaining>0){wreck.Harvest();yield return null;}
@@ -245,6 +296,7 @@ public sealed class DEF_RecordingNativeProbe : MonoBehaviour
   Check(resetKit==null&&fresh!=p&&fresh.State.Current==DEF_ProgressionState.Stage.TeamPrerequisites,"full reset destroys held item and clears mastery");
   Check(freshLedger.scrap==0&&freshLedger.parts==0&&freshLedger.ammo==0&&freshLedger.repairKits==0&&DEF_GameState.I.scrap==0,"full reset clears both inventories without reviving supplies");
   Check(!freshAwards.fieldMedic.activeSelf&&!freshAwards.supplyLine.activeSelf&&!freshAwards.waveDefender.activeSelf,"full reset clears all trophies");
+  secondRun=true;yield return Run();
  }
 }
 #endif

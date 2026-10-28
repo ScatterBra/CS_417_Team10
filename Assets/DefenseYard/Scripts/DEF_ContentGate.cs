@@ -22,6 +22,8 @@ public sealed class DEF_ContentGate : MonoBehaviour
             return false;
         }
     }
+    void Awake(){Apply();}
+    void OnEnable(){Apply();}
     void LateUpdate(){Apply();}
     public void Apply()
     {

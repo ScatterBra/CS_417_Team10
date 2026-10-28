@@ -108,6 +108,10 @@ namespace Deadzone.Power
                 rt.anchoredPosition = new Vector2(16f, -16f);
                 rt.sizeDelta = new Vector2(UnitsWide, unitsHigh + 60);
                 canvas = holder.AddComponent<Canvas>();
+                // This sub-canvas belongs to the desktop overlay, including after scene reload.
+                // Do not leave its default WorldSpace mode awaiting a later scene scan.
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.worldCamera = Camera.main;
                 canvas.overrideSorting = true;
                 canvas.sortingOrder = 10;
                 holder.AddComponent<GraphicRaycaster>();
@@ -234,6 +238,10 @@ namespace Deadzone.Power
             // Outside the Power area (shared scene) the menu is closed and Y does nothing.
             bool inside = PWR_AreaGate.PlayerInside;
             if (!xr && canvas.enabled != inside) canvas.enabled = inside;
+            // Disabling a nested overlay Canvas makes Unity treat it as its own WorldSpace root.
+            // Assign after that transition, before returning outside the area; never depend on
+            // another scene component's periodic scan or a camera from the previous scene.
+            if (canvas.worldCamera != Camera.main) canvas.worldCamera = Camera.main;
             if (!inside)
             {
                 if (xr) Close();

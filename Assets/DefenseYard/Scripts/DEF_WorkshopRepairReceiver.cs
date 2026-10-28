@@ -12,7 +12,7 @@ public sealed class DEF_WorkshopRepairReceiver : MonoBehaviour
     public string LastMessage { get; private set; }
     public event Action<MonoBehaviour,float,float,string> PhysicalRepairAccepted;
     bool delivering;
-    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); GetComponent<BoxCollider>().isTrigger=true;}
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>(); GetComponent<BoxCollider>().isTrigger=true;GetComponent<DEF_ContentGate>().Apply();}
     void OnTriggerEnter(Collider other){if(other!=null)TryDeliver(other.GetComponentInParent<SCV_CraftedItem>());}
     void OnTriggerStay(Collider other){if(other!=null)TryDeliver(other.GetComponentInParent<SCV_CraftedItem>());}
     public bool TryDeliver(SCV_CraftedItem item)

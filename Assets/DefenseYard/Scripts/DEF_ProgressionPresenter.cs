@@ -29,7 +29,7 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         if (!intro) { presenting = false; return; }
         if (presenting && session == state.Session && attempt == state.Attempt && introduction == state.Introduction) return;
         session = state.Session; attempt = state.Attempt; introduction = state.Introduction;
-        introductionText.text = state.Current == S.RepairIntroduction ? "REPAIR TRAINING\nYour placed sentry has deliberate training damage. Release a crafted RepairKit inside its receiver to restore integrity." :
+        introductionText.text = state.Current == S.RepairIntroduction ? "REPAIR TRAINING\nYour placed sentry will receive training damage. Release a crafted RepairKit inside its receiver to restore integrity." :
             state.Current == S.AmmoIntroduction ? "AMMO TRAINING\nBring a crafted Workshop Ammo Box to the Defense intake. One box adds up to10 rounds." :
             state.Current==S.FirstWaveComplete ? "BARRICADE AND SHOCK\nPlace a barricade across a moving enemy route and observe it walk the detour. Also stun a live enemy with Shock. Both are required before Missile unlocks." :
             state.Current==S.MissileIntroduction ? "MISSILE SENTRY\nDamage at least two distinct enemies with one explosion. Then sustain a Juggernaut wave using two defense types, a physical repair and refill." :

@@ -134,8 +134,7 @@ public sealed class DEF_Progression : MonoBehaviour
         if(!attemptDefenses.Contains(turret))attemptDefenses.Add(turret);
         if(!retryScrap.HasValue){retryScrap=Mathf.Min(GetComponent<DEF_GameState>().maxScrap,GetComponent<DEF_GameState>().scrap+turret.cost);retryAmmo=GetComponent<DEF_GameState>().ammo;}
         if (turret.explosive || !State.Place(State.Session, State.Attempt, turret.GetEntityId().ToString())) {RegisterAdvanced(turret);return;}
-        // This is an explicit tutorial baseline, not an unrelated startup mutation.
-        turret.health = Mathf.Max(1, turret.maxHealth - Mathf.Clamp(trainingDamage, 1, turret.maxHealth - 1));
+        // Deliberate training damage is revealed only after the repair introduction finishes.
         var receiverObject = new GameObject("Physical RepairKit intake");
         receiverObject.transform.SetParent(turret.transform, false); receiverObject.transform.localPosition = Vector3.up;
         trainingRepairReceiver = receiverObject.AddComponent<DEF_WorkshopRepairReceiver>();
@@ -194,7 +193,13 @@ public sealed class DEF_Progression : MonoBehaviour
     internal void WaveCleared(int wave, float baseHealth)
     { if (State.ClearWave(State.Session, State.Attempt, wave, baseHealth)) Refresh(); }
     internal void IntroductionFinished(DEF_ProgressionPresenter source, int session, int attempt, int intro)
-    { if (source == presenter && source.isActiveAndEnabled && State.CompleteIntroduction(session, attempt, intro)) Refresh(); }
+    {
+        bool repairIntroduction=State.Current==S.RepairIntroduction;
+        if(source!=presenter || !source.isActiveAndEnabled || !State.CompleteIntroduction(session,attempt,intro))return;
+        if(repairIntroduction && trainingRepairReceiver!=null && trainingRepairReceiver.target is DEF_Turret turret)
+            turret.health=Mathf.Max(1,turret.maxHealth-Mathf.Clamp(trainingDamage,1,turret.maxHealth-1));
+        Refresh();
+    }
     public void BeginDefenseRetry() { DEF_WaveManager.I?.TryRetryDefense(); }
     internal void ResetDefenseAttempt()
     {
@@ -228,6 +233,8 @@ public sealed class DEF_Progression : MonoBehaviour
     void Refresh()
     {
         if (presenter != null) presenter.Present(this);
+        foreach(var gate in FindObjectsByType<DEF_ContentGate>(FindObjectsInactive.Include))
+            if(gate.gameObject.scene==gameObject.scene)gate.Apply();
         var input=DEF_VRInput.Instance;
         if(input!=null && input.BuildArmed && !IsAllowed(input.mode==DEF_VRInput.PlaceMode.Turret?DEF_Action.BasicSentry:input.mode==DEF_VRInput.PlaceMode.BoomTurret?DEF_Action.Missile:input.mode==DEF_VRInput.PlaceMode.Barricade?DEF_Action.Barricade:DEF_Action.Shock))input.CancelBuild();
     }

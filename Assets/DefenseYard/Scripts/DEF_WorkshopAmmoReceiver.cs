@@ -15,7 +15,7 @@ public class DEF_WorkshopAmmoReceiver : MonoBehaviour
     private readonly System.Collections.Generic.HashSet<Collider> contacts = new();
     private bool delivering;
 
-    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>();  GetComponent<BoxCollider>().isTrigger = true; }
+    void Awake() { if (GetComponent<DEF_ContentGate>() == null) gameObject.AddComponent<DEF_ContentGate>();  GetComponent<BoxCollider>().isTrigger = true; GetComponent<DEF_ContentGate>().Apply(); }
     void OnDisable() { contacts.Clear(); }
     void OnTriggerEnter(Collider other)
     {

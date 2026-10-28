@@ -11,6 +11,7 @@ public sealed class DEF_RecordingReceiverLabel : MonoBehaviour
         repair=GetComponent<DEF_WorkshopRepairReceiver>();ammo=GetComponent<DEF_WorkshopAmmoReceiver>();
         var go=new GameObject("Physical delivery instructions and feedback");go.transform.SetParent(transform,false);go.transform.localPosition=Vector3.up*.65f;
         label=go.AddComponent<TextMesh>();label.fontSize=40;label.characterSize=.009f;label.anchor=TextAnchor.MiddleCenter;
+        GetComponent<DEF_ContentGate>()?.Apply();
     }
     void LateUpdate()
     {

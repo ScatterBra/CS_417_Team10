@@ -189,6 +189,12 @@ public class DEF_VRInput : MonoBehaviour
         bool pressedGrip = grip.IsPressed();
         bool pressedPrimary = primary.IsPressed();
         bool pressedMenu = menu.IsPressed();
+        if (BuildArmed && pressedTrigger && !previousTrigger && hasHit && !groundHit && DEF_Progression.Current != null)
+        {
+            bool occupied=hit.collider.GetComponentInParent<DEF_Turret>()!=null || hit.collider.GetComponentInParent<DEF_Barricade>()!=null || hit.collider.GetComponentInParent<DEF_ShockTrap>()!=null;
+            bool insideBase=DEF_BaseStructure.Instance!=null && DEF_BaseStructure.Instance.Contains(hit.point,.5f);
+            DEF_Progression.Current.Reject("place defense",occupied?"the tile is occupied":insideBase?"the tile is inside the base":"this surface is not buildable ground",occupied?"Choose an empty valid ground tile.":"Aim at clear ground outside the base.");
+        }
         // Shop toggle is handled before modal suppression so A can close it.
         if (!DEF_HUD.BlockingWorldInput && BuildArmed && pressedTrigger && !previousTrigger && groundHit && grid != null &&
             grid.WorldToTile(hit.point, out int x, out int z))

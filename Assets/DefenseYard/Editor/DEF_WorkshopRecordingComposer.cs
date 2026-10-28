@@ -25,13 +25,20 @@ public static class DEF_WorkshopRecordingComposer
   var canvas=hud.GetComponent<Canvas>();if(canvas==null)throw new Exception("HUD Canvas missing");
   if(PrefabUtility.IsPartOfPrefabInstance(canvas.gameObject))PrefabUtility.UnpackPrefabInstance(PrefabUtility.GetOutermostPrefabInstanceRoot(canvas.gameObject),PrefabUnpackMode.Completely,InteractionMode.AutomatedAction);
   canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=rig.Camera;
-  var rect=(RectTransform)canvas.transform;rect.anchorMin=rect.anchorMax=Vector2.zero;rect.pivot=new Vector2(.5f,.5f);rect.sizeDelta=new Vector2(1600,900);rect.localScale=Vector3.one*.001f;rect.rotation=Quaternion.identity;rect.anchoredPosition3D=new Vector3(1,1.8f,3.7f);
+  var rect=(RectTransform)canvas.transform;rect.anchorMin=rect.anchorMax=Vector2.zero;rect.pivot=new Vector2(.5f,.5f);rect.sizeDelta=new Vector2(1600,900);rect.localScale=Vector3.one*.001f;rect.rotation=Quaternion.Euler(0,180,0);rect.anchoredPosition3D=new Vector3(0,1.8f,5.5f);
   DEF_IntegrationStaging.EnsureTrackedUI(canvas);
   var presentation=All<DEF_ProgressionPresenter>(s).Single().goalText.GetComponentInParent<Canvas>();
-  if(presentation!=canvas){var pr=(RectTransform)presentation.transform;pr.localScale=Vector3.one*.001f;pr.anchoredPosition3D=new Vector3(3,1.8f,3.7f);pr.rotation=Quaternion.identity;presentation.worldCamera=rig.Camera;EditorUtility.SetDirty(pr);}
+  if(presentation!=canvas){var pr=(RectTransform)presentation.transform;pr.localScale=Vector3.one*.001f;pr.anchoredPosition3D=new Vector3(-2,1.8f,5.5f);pr.rotation=Quaternion.Euler(0,180,0);presentation.worldCamera=rig.Camera;EditorUtility.SetDirty(pr);}
   EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(Path,true)};
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Direct Workshop Defense walkway"))UnityEngine.Object.DestroyImmediate(old);
   var walkway=GameObject.CreatePrimitive(PrimitiveType.Cube);walkway.name="Direct Workshop Defense walkway";SceneManager.MoveGameObjectToScene(walkway,s);walkway.transform.position=new Vector3(25.5f,-.1f,0);walkway.transform.localScale=new Vector3(12,.2f,6);
+  foreach(var old in All<Transform>(s).Where(t=>t.name.StartsWith("Recording east gate segment ")).ToArray())UnityEngine.Object.DestroyImmediate(old.gameObject);
+  var eastWallParts=All<Transform>(s).Where(t=>(t.name=="Wall"||t.name=="Coping"||t.name=="Fence rail")&&Mathf.Abs(t.position.x-20.5f)<.05f&&Mathf.Abs(t.position.z)<.05f&&t.localScale.x>=40).ToArray();
+  if(eastWallParts.Length!=5)throw new Exception("Expected the measured east Wall, Coping and three fence rails before composing the recording entrance.");
+  foreach(var original in eastWallParts){original.gameObject.SetActive(false);if(PrefabUtility.IsPartOfPrefabInstance(original.gameObject))PrefabUtility.RecordPrefabInstancePropertyModifications(original.gameObject);
+   foreach(int side in new[]{-1,1}){var segment=UnityEngine.Object.Instantiate(original.gameObject,original.parent);segment.name="Recording east gate segment "+original.name+" "+side;segment.SetActive(true);var scale=segment.transform.localScale;scale.x=(original.localScale.x-7)*.5f;segment.transform.localScale=scale;var position=original.position;position.z=side*(3.5f+scale.x*.5f);segment.transform.position=position;}}
+  foreach(var post in All<Transform>(s).Where(t=>t.name=="Fence post"&&Mathf.Abs(t.position.x-20.5f)<.05f&&Mathf.Abs(t.position.z)<3.5f)){post.gameObject.SetActive(false);if(PrefabUtility.IsPartOfPrefabInstance(post.gameObject))PrefabUtility.RecordPrefabInstancePropertyModifications(post.gameObject);}
+  Physics.SyncTransforms();for(int z=-2;z<=2;z++)if(Physics.CheckCapsule(new Vector3(20.5f,.35f,z),new Vector3(20.5f,1.55f,z),.3f,Physics.DefaultRaycastLayers,QueryTriggerInteraction.Ignore))throw new Exception("Recording entrance still has an obstructed standing capsule at z="+z);
   var setup=p.GetComponent<DEF_WorkshopRecordingSetup>()??p.gameObject.AddComponent<DEF_WorkshopRecordingSetup>();setup.hud=hud;setup.interfaceCanvas=canvas;setup.xrOrigin=rig.transform;
   foreach(var b in rig.GetComponentsInChildren<MonoBehaviour>(true))if(b!=null&&b.GetType().Name=="JumpProvider")b.enabled=false;
   // A held grip may begin before the item is hovered: acquire on contact, release to drop.
@@ -49,12 +56,17 @@ public static class DEF_WorkshopRecordingComposer
   foreach(var t in All<TMPro.TMP_Text>(s)){
    if(t.text.Contains("RESTORE OUTPOST")||t.text.Contains("AMMO DEPOT")||t.text.Contains("REPAIR STATION"))t.gameObject.SetActive(false);
   }
+  // These owner HUD labels are serialized legacy UI.Text, not TMP. Keep the recording
+  // instructions consistent with nonpausing shops and authentic physical repair.
+  foreach(var label in All<Text>(s))label.text=label.text
+   .Replace("The yard pauses while you shop.","Movement continues while you shop.")
+   .Replace("Right grip repairs 40 HP for 10 scrap","Release a crafted RepairKit to repair.");
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Simplified recording instructions"))UnityEngine.Object.DestroyImmediate(old);
   var sign=new GameObject("Simplified recording instructions");SceneManager.MoveGameObjectToScene(sign,s);sign.transform.position=new Vector3(38.5f,1.7f,5f);
   var text=sign.AddComponent<TextMesh>();text.characterSize=.012f;text.fontSize=48;text.anchor=TextAnchor.MiddleCenter;
   text.text="WORKSHOP > DEFENSE RECORDING\nSimplified run: Power / Clinic omitted.\nStart: harvest one wreck (12 Scrap).\nFollow CURRENT OBJECTIVE at each station.\nKeep your crafted Ammo Box and RepairKit.\nUse the direct west walkway to Defense.\nA: Defense shop. Trigger: select / place.\nGrip: hold a supply; release to deliver.\nFailure restarts this recording run.";
   foreach(var old in s.GetRootGameObjects().Where(g=>g.name=="Earned Defense achievements"))UnityEngine.Object.DestroyImmediate(old);
-  var shelf=new GameObject("Earned Defense achievements");SceneManager.MoveGameObjectToScene(shelf,s);shelf.transform.position=new Vector3(5,0,3.7f);
+  var shelf=new GameObject("Earned Defense achievements");SceneManager.MoveGameObjectToScene(shelf,s);shelf.transform.position=new Vector3(4.8f,0,5.5f);shelf.transform.rotation=Quaternion.Euler(0,180,0);
   var achievements=shelf.AddComponent<DEF_RecordingAchievements>();achievements.owner=p;
   GameObject Trophy(string title,float x)
   {

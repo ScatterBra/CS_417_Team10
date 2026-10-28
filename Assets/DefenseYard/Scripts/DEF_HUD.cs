@@ -83,7 +83,7 @@ public class DEF_HUD : MonoBehaviour
         var wave = DEF_WaveManager.I;
         waveText.text = "WAVE " + state.waveNumber.ToString("00");
         bool ready = wave != null && (wave.phase == DEF_WaveManager.Phase.Idle || wave.phase == DEF_WaveManager.Phase.Cleared);
-        waveStatus.text = state.playerHealth <= 0 ? "BASE BREACHED" : ready ? "PREPARE YOUR DEFENSE" : "DEFEND ALL FOUR SIDES";
+        waveStatus.text = state.playerHealth <= 0 ? "BASE BREACHED" : ready ? "PREPARE YOUR DEFENSE" : DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? "DEFEND THE EAST APPROACH" : "DEFEND ALL FOUR SIDES";
         zombieText.text = DEF_Zombie.all.Count + "  ZOMBIES";
         threatText.text = "THREAT LEVEL  " + (wave != null ? Mathf.FloorToInt(wave.threat) : 0);
         startButton.interactable = ready && (!training || ReadyForWave) && !shopOpen && !guideOpen;
@@ -92,7 +92,7 @@ public class DEF_HUD : MonoBehaviour
         for (int i = 0; i < buyButtons.Length; i++)
         {
             var progression = DEF_Progression.Current;
-            if (progression != null) buyButtons[i].gameObject.SetActive(progression.IsAllowed(i == 0 ? DEF_Action.BasicSentry : i == 1 ? DEF_Action.Missile : i == 2 ? DEF_Action.Barricade : DEF_Action.Shock));
+            if (progression != null) { bool available=progression.IsAllowed(i == 0 ? DEF_Action.BasicSentry : i == 1 ? DEF_Action.Missile : i == 2 ? DEF_Action.Barricade : DEF_Action.Shock); buyButtons[i].gameObject.SetActive(available); buyButtons[i].transform.parent.gameObject.SetActive(available); }
             buyButtons[i].interactable = progression != null || state.scrap >= Prices[i];
             buyLabels[i].text = state.scrap >= Prices[i] ? Prices[i] + " SCRAP" : "NEED " + (Prices[i] - state.scrap) + " MORE SCRAP";
         }
@@ -115,7 +115,7 @@ public class DEF_HUD : MonoBehaviour
         var input = DEF_VRInput.Instance;
         bool selected = input != null && input.BuildArmed && !BlockingWorldInput;
         selectedPanel.SetActive(selected);
-        if (selected) { int i = (int)input.mode; selectedText.text = Names[i] + "  /  " + Prices[i] + " SCRAP\n<size=17>Right trigger: place  ·  Close button: cancel</size>"; selectedPicture.sprite = itemPictures[i]; }
+        if (selected) { int i = (int)input.mode; selectedText.text = Names[i] + "  /  " + Prices[i] + " SCRAP\n<size=17>Right trigger: place  ·  Selected-panel X: cancel</size>"; selectedPicture.sprite = itemPictures[i]; }
         contextText.text = BlockingWorldInput || (gates != null && !gates.IsAllowed(DEF_Action.Repair)) ? "" : TargetReadout();
         objectivePanel.SetActive(training && !guideOpen && !shopOpen);
         objectiveText.text = trainingStep == 0 ? "01 / GET YOUR BEARINGS\n<size=18>" + (moved ? "OK" : "•") + " Left stick: move   " + (looked ? "OK" : "•") + " Turn your head: look</size>" :
@@ -167,7 +167,7 @@ public class DEF_HUD : MonoBehaviour
     }
     public void CloseMenus() { if (guideOpen && trainingStep == 4) trainingStep = 5; shopOpen = guideOpen = false; suppressUntil = Time.frameCount + 2; SyncModal(); }
     void TogglePause() { if (shopOpen || guideOpen) return; paused = !paused; suppressUntil = Time.frameCount + 2; SyncModal(); }
-    void SyncModal() { shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = movementSafeMenus ? 1 : (shopOpen || guideOpen || paused ? 0 : 1); }
+    void SyncModal() { shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = paused || (!movementSafeMenus && (shopOpen || guideOpen)) ? 0 : 1; }
     public void FinishTraining() { if (!training) return; training = false; Notify("Training complete. Defend the outpost."); }
     public void RecordPlacement(GameObject defense)
     {

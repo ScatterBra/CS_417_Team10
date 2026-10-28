@@ -289,7 +289,7 @@ public class DEF_WaveManager : MonoBehaviour
         lastCount = 0;
         stallTimer = 0f;
         phase = Phase.Spawning;
-        DEF_HUD.Instance?.Notify("WAVE " + s.waveNumber.ToString("00") + " INCOMING  /  Defend all four sides");
+        DEF_HUD.Instance?.Notify("WAVE " + s.waveNumber.ToString("00") + (DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? " INCOMING  /  Defend the east approach" : " INCOMING  /  Defend all four sides"));
         DEF_Audio.PlayUI("wave_start", 0.7f);
         if (spawnPoints.Count > 0)
             DEF_Tutorials.Show("wave", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 3f - Vector3.up : transform.position, (DEF_Progression.Current!=null && DEF_Progression.Current.workshopRecording ? "RECORDING WAVE\nInfected use the east approach. Defend the east window." : "WAVE ALARM\nInfected approach from all four sides. Turn and defend each window."));
