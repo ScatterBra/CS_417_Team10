@@ -16,7 +16,7 @@ public static class DEF_IntegratedReleaseValidation
         DEF_IntegratedPresentationValidation.Run();
         DEF_CellDockValidation.Run();
         DEF_QuestXRValidation.Validate();
-        var scene = EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/Scenes/Deadzone_Final.unity");
         int rigs = 0;
         foreach (var root in scene.GetRootGameObjects()) rigs += root.GetComponentsInChildren<Unity.XR.CoreUtils.XROrigin>(true).Length;
         if (rigs != 1) throw new Exception("Integrated scene must have exactly one XR Origin.");

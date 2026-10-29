@@ -153,7 +153,7 @@ Exact local status inventory at checkpoint (includes untracked source/metas):
  M Assets/SCV_ScrapyardWorkshop/Scripts/SCV_RepairReceiver.cs
  M Assets/SCV_ScrapyardWorkshop/Scripts/SCV_ResourceManager.cs
  M Assets/SCV_ScrapyardWorkshop/Scripts/SCV_Workbench.cs
- M Assets/Scenes/SCV_ScrapyardWorkshop_LOCAL_TEST.unity
+ M Assets/Development/Scenes/Workshop/SCV_ScrapyardWorkshop_LOCAL_TEST.unity
  M Assets/Settings/PC_RPAsset.asset
  M Assets/Settings/UniversalRenderPipelineGlobalSettings.asset
 ?? Assets/DefenseYard/Editor/DEF_AffordanceValidation.cs
@@ -188,14 +188,14 @@ Exact local status inventory at checkpoint (includes untracked source/metas):
 ?? Assets/DefenseYard/MP2B_ANDROID_PREFLIGHT.md.meta
 ?? Assets/DefenseYard/MP2B_EVIDENCE_CHECKLIST.md
 ?? Assets/DefenseYard/MP2B_EVIDENCE_CHECKLIST.md.meta
-?? Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity
-?? Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity.meta
-?? Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity
-?? Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity.meta
-?? Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity
-?? Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity.meta
-?? Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity
-?? Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity.meta
+?? Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity
+?? Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity.meta
+?? Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity
+?? Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity.meta
+?? Assets/Development/Scenes/Defense/DEF_QuestPackaging_Demo.unity
+?? Assets/Development/Scenes/Defense/DEF_QuestPackaging_Demo.unity.meta
+?? Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity
+?? Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity.meta
 ?? Assets/DefenseYard/Scripts/DEF_ContentGate.cs
 ?? Assets/DefenseYard/Scripts/DEF_ContentGate.cs.meta
 ?? Assets/DefenseYard/Scripts/DEF_PrerequisiteSource.cs

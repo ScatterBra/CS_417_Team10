@@ -12,7 +12,7 @@ public static class DEF_StationRoutes
     {
         if(Application.isPlaying)throw new Exception("Edit Mode only");
         var s=SceneManager.GetActiveScene();
-        if(!new[]{"DEF_Full_Desktop_Demo","DEF_Clinic_Integration_Staging","DEF_Clinic_Integration_Quest"}.Contains(s.name))throw new Exception("Open an isolated full integration copy");
+        if(!new[]{"DEF_Full_Desktop_Demo","DEF_Clinic_Integration_Staging","Deadzone_Final"}.Contains(s.name))throw new Exception("Open an isolated full integration copy");
         Generate(s);Physics.SyncTransforms();EditorSceneManager.MarkSceneDirty(s);EditorSceneManager.SaveScene(s);
     }
     public static void Generate(Scene s)

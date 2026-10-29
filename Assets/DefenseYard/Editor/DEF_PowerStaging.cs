@@ -11,13 +11,13 @@ using Unity.XR.CoreUtils;
 
 public static class DEF_PowerStaging
 {
-    public const string Output = "Assets/DefenseYard/Scenes/DEF_Power_Integration_Staging.unity";
-    const string Temporary = "Assets/DefenseYard/Scenes/DEF_Power_Source_Temporary.unity";
+    public const string Output = "Assets/Development/Scenes/Defense/DEF_Power_Integration_Staging.unity";
+    const string Temporary = "Assets/Development/Scenes/Defense/DEF_Power_Source_Temporary.unity";
     static T[] All<T>(Scene scene) where T:Component => scene.GetRootGameObjects().SelectMany(x=>x.GetComponentsInChildren<T>(true)).ToArray();
     public static void PrepareDesktopBatch()
     {
         if(!Application.isBatchMode || Application.isPlaying)throw new Exception("Batch Edit Mode only");
-        const string path="Assets/DefenseYard/Scenes/DEF_Power_Desktop_Demo.unity";
+        const string path="Assets/Development/Scenes/Defense/DEF_Power_Desktop_Demo.unity";
         if(File.Exists(path))throw new Exception("Desktop test scene already exists; inspect before overwrite");
         if(!AssetDatabase.CopyAsset(Output,path))throw new Exception("Desktop copy failed");
         var scene=EditorSceneManager.OpenScene(path);
@@ -35,8 +35,8 @@ public static class DEF_PowerStaging
     public static void SetDesktopPowerStartBatch()
     {
         if(!Application.isBatchMode || Application.isPlaying)throw new Exception("Batch Edit Mode only");
-        var scene=EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_Power_Desktop_Demo.unity");
-        var original=EditorSceneManager.OpenScene("Assets/PowerYard/Scenes/PWR.unity",OpenSceneMode.Additive);
+        var scene=EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DEF_Power_Desktop_Demo.unity");
+        var original=EditorSceneManager.OpenScene("Assets/Development/Scenes/Power/PWR.unity",OpenSceneMode.Additive);
         try
         {
             var source=All<XROrigin>(original).Single();var target=All<XROrigin>(scene).Single();
@@ -49,8 +49,8 @@ public static class DEF_PowerStaging
     {
         if(!Application.isBatchMode || Application.isPlaying) throw new Exception("Batch Edit Mode only");
         if(File.Exists(Output) || File.Exists(Temporary)) throw new Exception("Inspect existing staging before regenerating");
-        if(!AssetDatabase.CopyAsset("Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity",Output) ||
-           !AssetDatabase.CopyAsset("Assets/PowerYard/Scenes/PWR.unity",Temporary)) throw new Exception("Copy failed");
+        if(!AssetDatabase.CopyAsset("Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity",Output) ||
+           !AssetDatabase.CopyAsset("Assets/Development/Scenes/Power/PWR.unity",Temporary)) throw new Exception("Copy failed");
         var destination=EditorSceneManager.OpenScene(Output);
         var power=EditorSceneManager.OpenScene(Temporary,OpenSceneMode.Additive);
         try

@@ -1,5 +1,12 @@
 # CS 417 Team 10
 
+## Open the final game
+
+**`Assets/Scenes/Deadzone_Final.unity`** — Unity **6000.5.6f1**.
+
+This is the integrated Workshop, Power, Clinic, and Defense scene and the only enabled build scene.
+Standalone scenes and development demos live under `Assets/Development/Scenes/`; they are not the final game.
+
 ## Team Members
 
 - Alleline He
@@ -7,9 +14,9 @@
 - Felix Romero
 - Suhaas Kowthalam Jois
 
-## Defense Yard
+## Defense Yard (standalone development scene)
 
-Open `Assets/DefenseYard/Scenes/DefenseYard.unity` in Unity **6000.5.6f1**.
+For Defense-only development, open `Assets/Development/Scenes/Defense/DefenseYard.unity`.
 Defend a ground-level outpost from all four sides with sentries, barricades, and
 shock traps. The opening training and field guide explain building, supply
 collection, repairs, and waves. Scene objects and UI are editable prefab instances.

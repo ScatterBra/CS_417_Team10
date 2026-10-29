@@ -14,7 +14,7 @@ public static class DEF_AuditValidation
     public static void RunBatch()
     {
         if (!Application.isBatchMode || Application.isPlaying) throw new Exception("Batch Edit Mode only");
-        EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity");
+        EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity");
         RunAll();
         var names=new[]{"repair","progression","ammo-dualmode","audit","runtime-edge","felix-compat","affordance","walkthrough"};
         foreach(var name in names) {
@@ -32,7 +32,7 @@ public static class DEF_AuditValidation
     public static void OpenDemo()
     {
         if(EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity");
+            EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity");
     }
     [MenuItem("Defense Yard/MP2B/Run Audit Regression Edit Mode Checks")]
     public static void Run()

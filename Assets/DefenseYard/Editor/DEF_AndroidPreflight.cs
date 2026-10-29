@@ -30,7 +30,7 @@ public static class DEF_AndroidPreflight
         }
         foreach(var scene in EditorBuildSettings.scenes)report.Add("Global build scene "+scene.enabled+": "+scene.path);
         var assets=AssetDatabase.FindAssets("t:Prefab",new[]{"Assets/DefenseYard"}).Select(AssetDatabase.GUIDToAssetPath).ToList();
-        var scenes=AssetDatabase.FindAssets("t:Scene",new[]{"Assets/DefenseYard/Scenes"}).Select(AssetDatabase.GUIDToAssetPath).ToArray();assets.AddRange(scenes);
+        var scenes=AssetDatabase.FindAssets("t:Scene",new[]{"Assets/Scenes", "Assets/Development/Scenes/Defense"}).Select(AssetDatabase.GUIDToAssetPath).ToArray();assets.AddRange(scenes);
         int missing=0,objects=0;
         void Check(GameObject root,string path)
         {

@@ -1,6 +1,6 @@
 # Clinic (Suhaas) - Handoff Note
 
-Owner prefix: `MED_` - No namespace (the Clinic code is global, unlike `Deadzone.Power`) - Scene: `Scenes/MED_Clinic.unity`
+Owner prefix: `MED_` - No namespace (the Clinic code is global, unlike `Deadzone.Power`) - Development scene: `Assets/Development/Scenes/Clinic/MED_Clinic.unity`
 
 ## What it produces
 - **Health.** The Clinic's output is the player's restored health (`MED_PlayerResources.Health`, 0-100): the

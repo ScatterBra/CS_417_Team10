@@ -1,6 +1,6 @@
 # Power Station (PowerYard) — Handoff Note
 
-Owner prefix: `PWR_` · Namespace: `Deadzone.Power` · Scene: `Scenes/PWR.unity`
+Owner prefix: `PWR_` · Namespace: `Deadzone.Power` · Development scene: `Assets/Development/Scenes/Power/PWR.unity`
 
 ## What it produces
 - **Charged Cell** (`Prefabs/PWR_ChargedCell`): a physical, grabbable item ejected by the Cell Charger when

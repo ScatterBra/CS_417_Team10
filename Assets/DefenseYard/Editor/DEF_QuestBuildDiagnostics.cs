@@ -41,7 +41,7 @@ public static class DEF_QuestBuildDiagnostics
     public static void InspectScenes()
     {
         var lines=new List<string>();
-        foreach(var path in new[]{"Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity","Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity","Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity"}) {
+        foreach(var path in new[]{"Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity","Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity","Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity"}) {
             var scene=UnityEngine.SceneManagement.SceneManager.GetSceneByPath(path); bool opened=!scene.isLoaded;
             if(opened)scene=UnityEditor.SceneManagement.EditorSceneManager.OpenScene(path,UnityEditor.SceneManagement.OpenSceneMode.Additive);
             lines.Add(path);

@@ -12,7 +12,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 public static class DEF_IntegrationStaging
 {
-    const string Path="Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity";
+    const string Path="Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity";
     static T[] All<T>(Scene s) where T:Component => s.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<T>(true)).ToArray();
     static void Ref(UnityEngine.Object o,string field,UnityEngine.Object value) {var so=new SerializedObject(o);so.FindProperty(field).objectReferenceValue=value;so.ApplyModifiedPropertiesWithoutUndo();}
     [MenuItem("Defense Yard/MP2B/Compose Isolated Integration Staging (No Play)")]
@@ -25,13 +25,13 @@ public static class DEF_IntegrationStaging
         try {
             if(destination.GetRootGameObjects().Length!=1 || destination.GetRootGameObjects()[0].name!="Directional Light")throw new Exception("Staging is no longer the pristine canonical copy; refusing overwrite");
             Scene Copy(string source,string suffix) {
-                string temp="Assets/DefenseYard/Scenes/DEF_StagingTemporary"+suffix+".unity";
+                string temp="Assets/Development/Scenes/Defense/DEF_StagingTemporary"+suffix+".unity";
                 if(File.Exists(temp))throw new Exception("Temporary scene exists; inspect before reuse: "+temp);
                 if(!AssetDatabase.CopyAsset(source,temp))throw new Exception("Copy failed");copies.Add(temp);
                 var scene=EditorSceneManager.OpenScene(temp,OpenSceneMode.Additive);opened.Add(scene);return scene;
             }
-            var workshop=Copy("Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity","Workshop");
-            var defense=Copy("Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity","Defense");
+            var workshop=Copy("Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity","Workshop");
+            var defense=Copy("Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity","Defense");
             var rig=All<XROrigin>(workshop).Single();var oldRig=All<XROrigin>(defense).Single();
             var state=All<DEF_GameState>(defense).Single();var oldState=All<DEF_GameState>(workshop).Single();
             var ledger=All<SCV_ResourceManager>(workshop).Single();var readiness=All<DEF_WorkshopReadiness>(workshop).Single();

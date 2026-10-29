@@ -35,14 +35,14 @@ public static class DEF_ClinicStaging
         spawner.ApplyModifiedPropertiesWithoutUndo();
         EditorSceneManager.MarkSceneDirty(scene);
     }
-    const string Output="Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity";
-    const string Temporary="Assets/DefenseYard/Scenes/DEF_Clinic_Source_Temporary.unity";
+    const string Output="Assets/Development/Scenes/Defense/DEF_Clinic_Integration_Staging.unity";
+    const string Temporary="Assets/Development/Scenes/Defense/DEF_Clinic_Source_Temporary.unity";
     static T[] All<T>(Scene s)where T:Component=>s.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<T>(true)).ToArray();
     [MenuItem("Defense Yard/MP2B/Prepare Full Desktop Demo No Play")]
     public static void Desktop()
     {
         if(Application.isPlaying)throw new Exception("Edit Mode only");
-        const string path="Assets/DefenseYard/Scenes/DEF_Full_Desktop_Demo.unity";
+        const string path="Assets/Development/Scenes/Defense/DEF_Full_Desktop_Demo.unity";
         if(File.Exists(path))throw new Exception("Inspect existing desktop copy before overwrite");
         if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())return;
         if(!AssetDatabase.CopyAsset(Output,path))throw new Exception("Desktop copy failed");
@@ -67,7 +67,7 @@ public static class DEF_ClinicStaging
         if(Application.isPlaying)throw new Exception("Edit Mode only");
         if(File.Exists(Output)||File.Exists(Temporary))throw new Exception("Inspect existing Clinic staging before regenerating");
         if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())return;
-        if(!AssetDatabase.CopyAsset(DEF_PowerStaging.Output,Output)||!AssetDatabase.CopyAsset("Assets/Suhaas/Scenes/MED_Clinic.unity",Temporary))throw new Exception("Scene copy failed");
+        if(!AssetDatabase.CopyAsset(DEF_PowerStaging.Output,Output)||!AssetDatabase.CopyAsset("Assets/Development/Scenes/Clinic/MED_Clinic.unity",Temporary))throw new Exception("Scene copy failed");
         var destination=EditorSceneManager.OpenScene(Output);var clinic=EditorSceneManager.OpenScene(Temporary,OpenSceneMode.Additive);
         try
         {

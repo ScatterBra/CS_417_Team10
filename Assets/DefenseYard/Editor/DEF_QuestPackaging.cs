@@ -11,8 +11,8 @@ using UnityEngine.SceneManagement;
 using TMPro;
 public static class DEF_QuestPackaging
 {
-    const string Source="Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity";
-    const string ScenePath="Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity";
+    const string Source="Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity";
+    const string ScenePath="Assets/Development/Scenes/Defense/DEF_QuestPackaging_Demo.unity";
     const string TestId="com.darylokeke.cs417.mp2btest";
     [MenuItem("Defense Yard/MP2B/Prepare Quest Packaging Copy (No Play)")]
     public static void Prepare()
@@ -50,7 +50,7 @@ public static class DEF_QuestPackaging
     {
         if(Application.isPlaying || EditorApplication.isCompiling) throw new Exception("Wait for Edit Mode compilation");
         if(!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) throw new Exception("Preparation cancelled");
-        foreach(var path in new[]{"Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Staging.unity","Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity","Assets/DefenseYard/Scenes/DEF_Full_Desktop_Demo.unity"})
+        foreach(var path in new[]{"Assets/Development/Scenes/Defense/DEF_Clinic_Integration_Staging.unity","Assets/Scenes/Deadzone_Final.unity","Assets/Development/Scenes/Defense/DEF_Full_Desktop_Demo.unity"})
         {
             if(!File.Exists(path)) throw new Exception("Required integrated source scene missing: "+path);
             EditorSceneManager.OpenScene(path);
@@ -74,7 +74,7 @@ public static class DEF_QuestPackaging
             var report="../"+name+"-editmode-results.txt";
             if(!File.Exists(report)||File.ReadAllLines(report).Any(l=>l.StartsWith("FAIL ")))throw new Exception("Missing or failed suite: "+name);
         }
-        BuildScene("Assets/DefenseYard/Scenes/DEF_Clinic_Integration_Quest.unity");
+        BuildScene("Assets/Scenes/Deadzone_Final.unity");
     }
     static void BuildScene(string buildScene)
     {
@@ -87,7 +87,7 @@ public static class DEF_QuestPackaging
             var all=inspected.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<MonoBehaviour>(true)).ToArray();
             int missing=inspected.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Transform>(true)).Sum(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject));
             if(missing!=0 || all.Count(c=>c!=null&&c.GetType().Name=="XROrigin")!=1 || all.Any(c=>c!=null&&c.GetType().Name.Contains("Simulator")))throw new Exception("Headset preflight: missing="+missing+" rigs="+all.Count(c=>c!=null&&c.GetType().Name=="XROrigin")+" simulator="+string.Join(",",all.Where(c=>c!=null&&c.GetType().Name.Contains("Simulator")).Select(c=>c.GetType().Name+"@"+c.name)));
-            if(buildScene.Contains("Clinic_Integration")) {
+            if((buildScene == "Assets/Scenes/Deadzone_Final.unity" || buildScene.Contains("Clinic_Integration"))) {
                 var power=all.OfType<DEF_PowerReadiness>().Single();var clinic=all.OfType<DEF_ClinicReadiness>().Single();
                 if(power.director==null||power.charger==null||power.floodlight==null||clinic.patient==null||clinic.buildingsRoot==null||clinic.medicineRecipe==null||clinic.benchDefinition==null||clinic.stationDefinition==null)throw new Exception("Authentic station references missing.");
                 var training=all.OfType<DEF_ClinicTraining>().Single();
@@ -123,7 +123,7 @@ public static class DEF_QuestPackaging
         try {
             CheckHeadroom(folder,"Temp",Path.GetTempPath());
             DEF_QuestXRValidation.Validate();
-            if(buildScene.Contains("Clinic_Integration")){var quest=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.RenderPipelineAsset>("Assets/DefenseYard/DEF_Quest_Pipeline.asset");if(quest==null)throw new Exception("Prepare integrated release copy first: Quest pipeline missing");UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline=quest;QualitySettings.renderPipeline=quest;}
+            if((buildScene == "Assets/Scenes/Deadzone_Final.unity" || buildScene.Contains("Clinic_Integration"))){var quest=AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.RenderPipelineAsset>("Assets/DefenseYard/DEF_Quest_Pipeline.asset");if(quest==null)throw new Exception("Prepare integrated release copy first: Quest pipeline missing");UnityEngine.Rendering.GraphicsSettings.defaultRenderPipeline=quest;QualitySettings.renderPipeline=quest;}
             EditorUserBuildSettings.selectedBuildTargetGroup=BuildTargetGroup.Android;
             PlayerSettings.SetApplicationIdentifier(target,TestId);
             PlayerSettings.productName="INCOMPLETE MP2B Packaging Demo";

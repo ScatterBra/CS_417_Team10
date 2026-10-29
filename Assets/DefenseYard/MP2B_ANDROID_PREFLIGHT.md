@@ -39,7 +39,7 @@ Proposed separate test recipe is in MP2B_ANDROID_DEMO_BUILD_PLAN.json. It is a r
 
 A separate authorized build-only operation completed at approximately 20:37 UTC. Unity BuildReport result: **Succeeded**, duration 13m10.224s, **1 error and 1,013 warnings**. This is a qualified packaging success, not a clean validation or gameplay pass.
 
-- Explicit only scene: Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity, copied from the locked progression demo. Removed XR Interaction Simulator object; verified one real XR Origin remains. Added INCOMPLETE DEMO label. Missing Power/Clinic readiness stays unassigned and locked. This replaces the earlier proposed supply-demo recipe.
+- Explicit only scene: Assets/Development/Scenes/Defense/DEF_QuestPackaging_Demo.unity, copied from the locked progression demo. Removed XR Interaction Simulator object; verified one real XR Origin remains. Added INCOMPLETE DEMO label. Missing Power/Clinic readiness stays unassigned and locked. This replaces the earlier proposed supply-demo recipe.
 - Output: Builds/DefensePackagingTest/20261025-202439/INCOMPLETE-MP2B-DEMO.apk, **156,805,878 bytes**. BuildReport totalSize 1,497,758,124 includes build outputs and is not APK file size. Backup/debug directories are not delivery artifacts.
 - aapt confirms com.darylokeke.cs417.mp2btest (distinct from production com.suhaas.clinic), label INCOMPLETE MP2B Packaging Demo, version0.1.0/code1, ARM64 only, minAPI32/targetAPI36.
 - SHA256: 66D203DD22A11AC771C180EA4CB4D8782624A12748553405F21CE7FFC0E890AB. Existing SDK apksigner verifies v2 signature, one signer.
@@ -71,7 +71,7 @@ Evidence: quest-build-diagnostics.txt, quest-build-messages-first.tsv and per-ou
 
 ## Local integration staging prepared
 
-Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity starts from the exact canonical Integration c5157dd8f8eb76a4e089b21dc4f06322cf3b3e4d scene (Directional Light only), then combines copies of the local compatible Workshop demo and locked Defense demo. No canonical or source scene was overwritten. DEF_IntegrationStaging.cs refuses to overwrite an already composed staging scene.
+Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity starts from the exact canonical Integration c5157dd8f8eb76a4e089b21dc4f06322cf3b3e4d scene (Directional Light only), then combines copies of the local compatible Workshop demo and locked Defense demo. No canonical or source scene was overwritten. DEF_IntegrationStaging.cs refuses to overwrite an already composed staging scene.
 
 The Workshop and Felix customized XR hierarchy are shifted +40m X as a provisional separated layout; Defense keeps its grid origin. The single real XR rig retains Felix wrist hierarchy and action configuration. Removed duplicate desktop camera, simulator, second rig/interaction manager, duplicate EventSystem, Workshop test Defense state and test barricade. Defense VR input is bound to Felix Right Controller, its ray interactor and rig camera. Actual controller behavior remains untested.
 

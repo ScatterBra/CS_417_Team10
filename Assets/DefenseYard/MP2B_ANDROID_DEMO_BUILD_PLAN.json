@@ -1,6 +1,6 @@
 {
   "status": "PACKAGED_INCOMPLETE_DEMO_NOT_RUNTIME_VERIFIED",
-  "scene": "Assets/DefenseYard/Scenes/DEF_QuestPackaging_Demo.unity",
+  "scene": "Assets/Development/Scenes/Defense/DEF_QuestPackaging_Demo.unity",
   "target": "Android",
   "architecture": "ARM64",
   "backend": "IL2CPP",

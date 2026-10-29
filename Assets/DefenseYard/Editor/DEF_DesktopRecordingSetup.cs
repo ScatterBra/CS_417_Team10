@@ -10,13 +10,13 @@ using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 // Preparation only. Never starts Play, records, or supplies prerequisite evidence.
 public static class DEF_DesktopRecordingSetup
 {
-    public const string Output="Assets/DefenseYard/Scenes/DEF_Desktop_Recording_Demo.unity";
-    const string Source="Assets/DefenseYard/Scenes/DEF_Integration_Staging.unity";
+    public const string Output="Assets/Development/Scenes/Defense/DEF_Desktop_Recording_Demo.unity";
+    const string Source="Assets/Development/Scenes/Defense/DEF_Integration_Staging.unity";
     const string Simulator="Assets/Samples/XR Interaction Toolkit/3.5.1/XR Interaction Simulator/XR Interaction Simulator.prefab";
     public static void PrepareBatch()
     {
         if(!Application.isBatchMode || Application.isPlaying)throw new Exception("Batch Edit Mode only");
-        EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity");
+        EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity");
         DEF_IntegrationStaging.UpdateStagingInput();Prepare();
     }
     [MenuItem("Defense Yard/MP2B/Prepare Separate Desktop Recording Demo (No Play)")]

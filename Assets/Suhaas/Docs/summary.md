@@ -6,7 +6,7 @@ Zombie survival VR game (CS 417, Team 10). This log covers the **Clinic station*
 - XR Interaction Toolkit 3.5.1, XR Plugin Management 4.7.0. No XR loader enabled for PC.
 - All Clinic assets live under `Assets/Suhaas/` and are prefixed `MED_`.
 - Folder structure: `Assets/Suhaas/{Scenes, Prefabs, Scripts, Materials, Audio, Textures, Docs}`.
-- Test scene: `Assets/Suhaas/Scenes/MED_Clinic.unity` (XR rig + XR Device Simulator, no headset needed).
+- Test scene: `Assets/Development/Scenes/Clinic/MED_Clinic.unity` (XR rig + XR Device Simulator, no headset needed).
 - **Design decision:** the XR rig stays in the scene; only the station content lives in the `MED_ClinicStation` prefab. Player-side data (`MED_PlayerResources`) and the HUD are also scene objects, not part of the station prefab.
 
 ## (b) Step log
@@ -20,7 +20,7 @@ Created:
 - Prefab `MED_ClinicStation.prefab` (15 x 15 m room).
 - Scene `MED_Clinic.unity`: directional light, MED_ClinicStation at origin, XR Origin (XR Rig) at MED_PlayerSpawn, XR Device Simulator, one XR Interaction Manager, one EventSystem.
 
-Files affected: `Packages/manifest.json`, `Packages/packages-lock.json`, `Assets/Suhaas/Scenes/MED_Clinic.unity`, `Assets/Suhaas/Prefabs/MED_ClinicStation.prefab`, `Assets/Suhaas/Materials/MED_Wall.mat`, `MED_Floor.mat`, `Assets/Suhaas/Docs/summary.md`; package-generated `Assets/Samples/**`, `Assets/XRI/**`.
+Files affected: `Packages/manifest.json`, `Packages/packages-lock.json`, `Assets/Development/Scenes/Clinic/MED_Clinic.unity`, `Assets/Suhaas/Prefabs/MED_ClinicStation.prefab`, `Assets/Suhaas/Materials/MED_Wall.mat`, `MED_Floor.mat`, `Assets/Suhaas/Docs/summary.md`; package-generated `Assets/Samples/**`, `Assets/XRI/**`.
 
 ### Step 2 - 2026-10-14 - Resource/Stat framework, floating HUD, health test tools
 Created:

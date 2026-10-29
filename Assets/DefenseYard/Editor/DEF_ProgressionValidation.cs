@@ -20,7 +20,7 @@ public static class DEF_ProgressionValidation
     public static void CreateDemo()
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DefenseYard.unity");
+        EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DefenseYard.unity");
         var state = UnityEngine.Object.FindAnyObjectByType<DEF_GameState>();
         if (state == null) throw new Exception("Defense scene has no GameState");
         var controller = state.gameObject.AddComponent<DEF_Progression>();
@@ -49,7 +49,7 @@ public static class DEF_ProgressionValidation
             hud.shopButton.gameObject.SetActive(false); hud.startButton.gameObject.SetActive(false);
             hud.guideButton.gameObject.SetActive(false); hud.guidePanel.SetActive(false); hud.objectivePanel.SetActive(false);
         }
-        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), "Assets/DefenseYard/Scenes/DEF_Progression_Locked_Demo.unity");
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), "Assets/Development/Scenes/Defense/DEF_Progression_Locked_Demo.unity");
     }
     [MenuItem("Defense Yard/MP2B/Run Progression Edit Mode Checks")]
     public static void Run()

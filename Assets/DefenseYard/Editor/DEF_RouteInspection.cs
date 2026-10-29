@@ -12,7 +12,7 @@ public static class DEF_RouteInspection
     {
         if(Application.isPlaying)throw new Exception("Edit Mode only");
         var scene=SceneManager.GetActiveScene();
-        if(!scene.name.StartsWith("DEF_"))throw new Exception("Open isolated Defense integration scene");
+        if(scene.name != "Deadzone_Final" && !scene.name.StartsWith("DEF_"))throw new Exception("Open isolated Defense integration scene");
         var report=new StringBuilder("Scene: "+scene.path+"\nWorld-space collider geometry; not a traversal pass.\n");
         foreach(var c in scene.GetRootGameObjects().SelectMany(r=>r.GetComponentsInChildren<Collider>(true)))
         {

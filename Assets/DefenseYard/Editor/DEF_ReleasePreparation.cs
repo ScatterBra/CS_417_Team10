@@ -12,7 +12,7 @@ public static class DEF_ReleasePreparation
     public static void Prepare()
     {
         if(Application.isPlaying)throw new Exception("Edit Mode only");
-        var s=SceneManager.GetActiveScene();if(!new[]{"DEF_Full_Desktop_Demo","DEF_Clinic_Integration_Staging","DEF_Clinic_Integration_Quest"}.Contains(s.name))throw new Exception("Open isolated full integration copy");
+        var s=SceneManager.GetActiveScene();if(!new[]{"DEF_Full_Desktop_Demo","DEF_Clinic_Integration_Staging","Deadzone_Final"}.Contains(s.name))throw new Exception("Open isolated full integration copy");
         var all=s.GetRootGameObjects().SelectMany(g=>g.GetComponentsInChildren<MonoBehaviour>(true)).ToArray();
         var readiness=all.OfType<DEF_ClinicReadiness>().Single();
         var training=all.OfType<DEF_ClinicTraining>().SingleOrDefault();if(training==null)training=readiness.gameObject.AddComponent<DEF_ClinicTraining>();

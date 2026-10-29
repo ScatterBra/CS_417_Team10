@@ -18,7 +18,7 @@ public static class DEF_AmmoValidation
     static bool TryCreateDemo()
     {
         if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return false;
-        EditorSceneManager.OpenScene("Assets/Scenes/SCV_ScrapyardWorkshop_LOCAL_TEST.unity");
+        EditorSceneManager.OpenScene("Assets/Development/Scenes/Workshop/SCV_ScrapyardWorkshop_LOCAL_TEST.unity");
         var ledger = UnityEngine.Object.FindFirstObjectByType<SCV_ResourceManager>();
         var state = UnityEngine.Object.FindFirstObjectByType<DEF_GameState>();
         state.ammo = 30;
@@ -52,7 +52,7 @@ public static class DEF_AmmoValidation
         var so = new SerializedObject(link);
         so.FindProperty("ammoIntake").objectReferenceValue = receiver;
         so.ApplyModifiedPropertiesWithoutUndo();
-        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), "Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity");
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), "Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity");
         AssetDatabase.SaveAssets();
         return true;
     }
@@ -72,7 +72,7 @@ public static class DEF_AmmoValidation
         {
             SessionState.SetBool(Flag, false);
             if (Application.isBatchMode) EditorApplication.Exit(SessionState.GetInt(Flag + ".Exit", 1));
-            else EditorApplication.delayCall += () => EditorSceneManager.OpenScene("Assets/DefenseYard/Scenes/DEF_WorkshopAmmo_Demo.unity");
+            else EditorApplication.delayCall += () => EditorSceneManager.OpenScene("Assets/Development/Scenes/Defense/DEF_WorkshopAmmo_Demo.unity");
         }
     }
     static void Check(bool condition, string name)
