@@ -86,6 +86,8 @@ namespace Deadzone.Power
                 if (l != null) originalIntensity[l] = l.intensity;
             if (TryGetComponent(out PWR_AreaGate gate)) gate.Evaluate();
             UpdateLighting();
+            // Shared scene with a Defense Yard: that's where the Charged Cell goes.
+            PWR_DefenseCellDock.EnsureInScene();
             // After PWR_PlayerRig.WaitForXRStartup (up to 2 s) so the menu anchor exists.
             Invoke(nameof(ShowIntro), 2.5f);
         }
@@ -228,7 +230,7 @@ namespace Deadzone.Power
             StationComplete = true;
             var mgr = PWR_TutorialManager.Instance;
             if (mgr != null)
-                mgr.ShowMessage("STATION ONLINE\nPower is restored. Level complete!\nNext: complete Clinic and Workshop to unlock Defense training.",
+                mgr.ShowMessage("STATION ONLINE\nPower is restored. Level complete!\nNext: " + PWR_Progression.GoalFor(PWR_Stage.Online),
                     charger.transform, new Vector3(0f, 1.2f, 0f), 0f);
             StationCompleted?.Invoke();
         }
