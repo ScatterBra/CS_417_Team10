@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 namespace Deadzone.Power
 {
     /// <summary>
-    /// Build mode controls. VR: pick an item in the build menu (Y opens it above the right hand), aim the right controller at the floor,
+    /// Build mode controls. VR: pick an item in the build menu (Y opens it in front of you in the integrated scene), aim the right controller at the floor,
     /// pull the trigger to place, flick the right thumbstick left/right to rotate 90°, B to cancel.
     /// Demolish (menu button): aim at something you built and pull the trigger.
     /// Desktop: 1-5 select, X demolish, mouse to aim, left click place/demolish, R rotate, Q/Esc cancel.
@@ -18,6 +18,7 @@ namespace Deadzone.Power
         private readonly InputAction[] hotkeys = new InputAction[9];
         private bool stickCentered = true;
         private float ignorePlaceUntil;
+        private bool waitForPlaceRelease;
 
         private void Awake()
         {
@@ -95,6 +96,22 @@ namespace Deadzone.Power
                 if (bs.IsActive) bs.Select(null);
                 if (rig != null) rig.SetTurnEnabled(true);
                 return;
+            }
+
+            if (rig != null && rig.XRActive)
+            {
+                if (PWR_WristPanel.BlockingXRWorldInput || DEF_HUD.BlockingWorldInput)
+                {
+                    waitForPlaceRelease = true;
+                    bs.HidePreview();
+                    rig.SetTurnEnabled(true);
+                    return;
+                }
+                if (waitForPlaceRelease)
+                {
+                    if (!place.IsPressed()) waitForPlaceRelease = false;
+                    return;
+                }
             }
 
             for (int i = 0; i < hotkeys.Length && i < bs.buildables.Count; i++)

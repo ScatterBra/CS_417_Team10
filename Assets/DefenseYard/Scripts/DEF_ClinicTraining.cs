@@ -11,6 +11,14 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     public Transform buildingsRoot;
     public TextMesh directions;
     public int Step {get;private set;}=7;
+    // One presentation source for the world sign and the existing head-follow Clinic HUD.
+    public string CurrentInstruction { get; private set; } = "Read the Clinic introduction.";
+    public bool IsIntroducing => pendingStep != 0;
+    void SetDirections(string text)
+    {
+        CurrentInstruction = text;
+        if (directions != null && directions.text != text) directions.text = text;
+    }
     readonly HashSet<MED_ResourceType> harvested=new();
     bool randomFound,unloaded,placed,subscribed;
     float revealUntil;
@@ -41,16 +49,31 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     void Unload(MED_SupplyCart source,MED_PlayerResources p,MED_ResourceType resource,bool empty){if(p==patient&&source.gameObject.scene==gameObject.scene&&Step==8&&pendingStep==0){unloaded=true;CheckEight();}}
     void CheckEight(){if(randomFound&&unloaded)Reveal(9,"Place a PrepBench on a green valid grid location, then craft Medicine: 2 Herbs and 1 Water.");}
     void Built(MED_Building b){if(Step==9&&pendingStep==0&&b.Definition==benchDefinition&&b.transform.IsChildOf(buildingsRoot)&&b.Cells.Length>0)placed=true;}
-    void Craft(MED_PrepBench b,MED_PlayerResources p,MED_Recipe recipe){if(Step==9&&pendingStep==0&&placed&&p==patient&&recipe==medicineRecipe&&b.transform.IsChildOf(buildingsRoot))Reveal(10,"Stock the TreatmentStation with crafted Medicine. Stand on its pad and treat until patient health reaches 100.");}
-    void Reveal(int next,string text){pendingStep=next;revealUntil=Time.unscaledTime+4;if(directions)directions.text=text;}
+    void Craft(MED_PrepBench b,MED_PlayerResources p,MED_Recipe recipe){if(Step==9&&pendingStep==0&&placed&&p==patient&&recipe==medicineRecipe&&b.transform.IsChildOf(buildingsRoot))Reveal(10,"Place the TreatmentStation model, stock it with crafted Medicine, then stand on its pad, grip TREAT once and stay on the pad until treatment finishes.");}
+    void Reveal(int next,string text){pendingStep=next;revealUntil=Time.unscaledTime+4;SetDirections(text);}
     void Update()
     {
         if(pendingStep!=0&&Time.unscaledTime>=revealUntil){
-            if(pendingStep==8&&(wildSpawner==null||!wildSpawner.EnsureLearningSource())){if(directions)directions.text="Random resource unavailable. Free a Clinic grid cell or restart the full run; Step8 remains locked.";revealUntil=Time.unscaledTime+1;return;}
+            if(pendingStep==8&&(wildSpawner==null||!wildSpawner.EnsureLearningSource())){SetDirections("Random resource unavailable. Free a Clinic grid cell or restart the full run; Step8 remains locked.");revealUntil=Time.unscaledTime+1;return;}
             Step=pendingStep;pendingStep=0;}
         foreach(var mini in FindObjectsByType<MED_BuildingMini>(FindObjectsInactive.Include,FindObjectsSortMode.None))if(mini.gameObject.scene==gameObject.scene){if(!mini.gameObject.activeSelf)mini.gameObject.SetActive(true);mini.ApplyLock();}
-        if(directions&&Step==10&&pendingStep==0){var readiness=GetComponent<DEF_ClinicReadiness>();if(readiness!=null)directions.text=readiness.PendingReason;}
-        if(directions&&Step==7&&pendingStep==0)directions.text="CLINIC: Harvest Herbs with Sickle, Water with Bucket, and supplies with Crowbar.";
+        if(Step==10&&pendingStep==0)
+        {
+            var readiness=GetComponent<DEF_ClinicReadiness>();
+            string reason = readiness != null ? readiness.PendingReason : "Heal the Clinic patient to 100 with freshly crafted Medicine.";
+            // Health alone never proves completion: always retain the authenticated source's reason.
+            SetDirections(patient != null && patient.IsHealthFull ? reason :
+                (readiness == null || readiness.station == null ? "Place a TreatmentStation model. " : "") +
+                "50 to 100 needs 3 Medicine total. Grip REFILL for each unit; stand on the pad, grip TREAT once and stay there.\n" + reason);
+        }
+        if(Step==7&&pendingStep==0)
+            SetDirections("Harvest Herbs with Sickle, Water with Bucket, and Alcohol or Gauze with Crowbar. Hold the tool with GRIP; touch its tip to the resource and swing or hold TRIGGER.");
+        if(Step==8&&pendingStep==0)
+            SetDirections((randomFound ? "Random resource harvested. " : "Find and harvest a randomly placed resource. ") +
+                (unloaded ? "Cart unloaded." : "Grip a cart resource button to unload at least one item."));
+        if(Step==9&&pendingStep==0)
+            SetDirections(placed ? "Grip the Medicine recipe card at your PrepBench: 2 Herbs + 1 Water. Wait for crafting to finish." :
+                "Grip the PrepBench model on the shelf. Aim at a green grid location and release to build; then grip its Medicine recipe card.");
     }
     public void RestartFullRun(){Time.timeScale=1;SceneManager.LoadScene(gameObject.scene.path);}
 }

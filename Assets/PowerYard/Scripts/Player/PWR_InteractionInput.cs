@@ -16,6 +16,7 @@ namespace Deadzone.Power
 
         private InputAction useRight, useLeft, useKey, grabKey;
         private PWR_Grabbable desktopHeld;
+        private bool waitForTriggerRelease;
 
         public PWR_Grabbable DesktopHeld => desktopHeld;
 
@@ -44,6 +45,16 @@ namespace Deadzone.Power
 
             if (rig != null && rig.XRActive)
             {
+                if (PWR_WristPanel.BlockingXRWorldInput || DEF_HUD.BlockingWorldInput)
+                {
+                    waitForTriggerRelease = true;
+                    return;
+                }
+                if (waitForTriggerRelease)
+                {
+                    if (!useRight.IsPressed() && !useLeft.IsPressed()) waitForTriggerRelease = false;
+                    return;
+                }
                 if (useRight.WasPressedThisFrame() && !building && !rig.IsHolding(true))
                     UseAlong(rig.ControllerRay(true), null);
                 if (useLeft.WasPressedThisFrame() && !rig.IsHolding(false))

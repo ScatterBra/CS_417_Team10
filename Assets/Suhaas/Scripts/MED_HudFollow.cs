@@ -21,7 +21,12 @@ public class MED_HudFollow : MonoBehaviour
 
     void LateUpdate()
     {
-        if (cam == null) cam = Camera.main;
+        var currentCamera = Camera.main;
+        if (currentCamera != cam)
+        {
+            cam = currentCamera;
+            snapped = false; // Rebind after desktop-to-XR startup or camera replacement.
+        }
         if (cam == null) return;
         var head = cam.transform;
 

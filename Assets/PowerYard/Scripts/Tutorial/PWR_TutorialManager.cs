@@ -20,6 +20,7 @@ namespace Deadzone.Power
 
         public static event Action<string> TutorialShown;
 
+        private readonly Dictionary<string, GameObject> popups = new Dictionary<string, GameObject>();
         private readonly HashSet<string> shown = new HashSet<string>();
         private readonly List<string> order = new List<string>();
 
@@ -49,10 +50,18 @@ namespace Deadzone.Power
             if (string.IsNullOrEmpty(id) || shown.Contains(id) || anchor == null) return false;
             shown.Add(id);
             order.Add(id);
-            ShowMessage(message, anchor, offset, displaySeconds);
+            popups[id] = ShowMessage(message, anchor, offset, displaySeconds);
             Debug.Log($"[PWR] Tutorial '{id}': {message}");
             TutorialShown?.Invoke(id);
             return true;
+        }
+
+        /// <summary>Dismisses a visible tutorial without resetting its one-time history.</summary>
+        public void Dismiss(string id)
+        {
+            if (!popups.TryGetValue(id, out var popup)) return;
+            if (popup != null) { popup.SetActive(false); Destroy(popup); }
+            popups.Remove(id);
         }
 
         /// <summary>Shows a popup next to the anchor. lifetime &lt;= 0 keeps it up.</summary>

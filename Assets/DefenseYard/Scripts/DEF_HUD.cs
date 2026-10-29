@@ -7,7 +7,8 @@ public class DEF_HUD : MonoBehaviour
 {
     public static DEF_HUD Instance { get; private set; }
     public static bool TrainingActive => Instance != null && Instance.training;
-    public static bool BlockingWorldInput => Instance != null && (Instance.shopOpen || Instance.guideOpen || Instance.paused || Time.frameCount <= Instance.suppressUntil);
+    public static bool BlockingWorldInput => Deadzone.Power.PWR_WristPanel.BlockingXRWorldInput ||
+        (Instance != null && (Instance.shopOpen || Instance.guideOpen || Instance.paused || Time.frameCount <= Instance.suppressUntil));
     public bool ReadyForWave => trainingStep >= 5;
     public Text healthText, waveText, waveStatus, zombieText, threatText, ammoText, scrapText, contextText, noticeText, selectedText, objectiveText, guideTitle, guideBody, guideIndex, guideNextText, guideSkipText, shopBalance, startText;
     public Image healthFill, selectedPicture, guidePicture;
@@ -143,6 +144,11 @@ public class DEF_HUD : MonoBehaviour
         if (welcome || paused) return;
         if (guideOpen && trainingStep == 4) trainingStep = 5;
         if (!shopOpen && xrPresentation != null && !xrPresentation.TryPositionShop()) return;
+        if (!shopOpen && xrPresentation != null && DEF_VRInput.Active)
+        {
+            Deadzone.Power.PWR_WristPanel.Instance?.Close();
+            Deadzone.Power.PWR_BuildSystem.Instance?.Select(null);
+        }
         shopOpen = !shopOpen; guideOpen = false; DEF_VRInput.Instance?.CancelBuild(); SyncModal();
     }
     public void Buy(int index)

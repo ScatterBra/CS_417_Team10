@@ -38,6 +38,8 @@ namespace Deadzone.Power
 
         private readonly Dictionary<Light, float> originalIntensity = new Dictionary<Light, float>();
         private PWR_BuildSystem buildSystem;
+        private bool introShown;
+        private float introReadyAt;
 
         // The scene's own lighting, restored whenever the player is outside the Power area.
         private UnityEngine.Rendering.AmbientMode originalAmbientMode;
@@ -89,17 +91,22 @@ namespace Deadzone.Power
             // Shared scene with a Defense Yard: that's where the Charged Cell goes.
             PWR_DefenseCellDock.EnsureInScene();
             // After PWR_PlayerRig.WaitForXRStartup (up to 2 s) so the menu anchor exists.
-            Invoke(nameof(ShowIntro), 2.5f);
+            introReadyAt = Time.unscaledTime + 2.5f;
         }
 
         private void ShowIntro()
         {
-            var anchor = hudAnchor != null ? hudAnchor
-                : PWR_WristPanel.Instance != null && PWR_WristPanel.Instance.Anchor != null ? PWR_WristPanel.Instance.Anchor
-                : Camera.main != null ? Camera.main.transform : transform;
-            Tutorial("wrist_menu",
-                "Press Y on your left controller to open the build menu above your right hand. Point at it with your left controller and pull the trigger. Press Y again to close it.\n(Desktop: 1-5 select, X demolish, R rotate, click to place)",
-                anchor, new Vector3(0f, 0.25f, 0f));
+            var cam = Camera.main;
+            var mgr = PWR_TutorialManager.Instance;
+            if (cam == null || mgr == null || PWR_WristPanel.Instance == null || PWR_WristPanel.Instance.Anchor == null) return;
+            // Y may have opened the menu before this delayed introduction became ready.
+            if (PWR_WristPanel.Instance.IsXRMenuOpen) return;
+            bool integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
+            string location = integrated ? "in front of you" : "above your right hand";
+            introShown = mgr.ShowOnce("wrist_menu",
+                "POWER STATION — Press Y on your LEFT controller to open the build menu " + location +
+                ". With an empty hand, point at a button and pull the trigger. Y closes the menu.\n(Desktop: 1-5 select, X demolish, R rotate, click to place)",
+                cam.transform, cam.transform.forward * 1.2f) || mgr.HasShown("wrist_menu");
         }
 
         /// <summary>
@@ -140,6 +147,9 @@ namespace Deadzone.Power
         private void Update()
         {
             UpdateLighting();
+            // Do not spend the one-time introduction while the player is still in Workshop.
+            if (!introShown && Time.unscaledTime >= introReadyAt && PWR_AreaGate.PlayerInside)
+                ShowIntro();
 
             if (bankHint != null && buildSystem != null && buildSystem.CountBuilt("BatteryBank") > 0)
                 bankHint.SetActive(false);

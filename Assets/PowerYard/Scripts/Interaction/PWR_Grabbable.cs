@@ -35,6 +35,11 @@ namespace Deadzone.Power
 
         public void UseSelf()
         {
+            // XRI activation is separate from PWR_InteractionInput. Keep grabbing/releasing
+            // intact, but do not strike/use a held tool while a menu owns the XR trigger.
+            var rig = PWR_PlayerRig.Instance;
+            if (rig != null && rig.XRActive &&
+                (PWR_WristPanel.BlockingXRWorldInput || DEF_HUD.BlockingWorldInput)) return;
             if (TryGetComponent(out PWR_Interactable interactable)) interactable.Use(null);
         }
 

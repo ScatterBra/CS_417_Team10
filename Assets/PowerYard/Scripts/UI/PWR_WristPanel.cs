@@ -11,10 +11,9 @@ namespace Deadzone.Power
 {
     /// <summary>
     /// The player's wrist menu: resource list, build menu and build status. In VR it is hidden until Y on
-    /// the left controller opens it; it then floats just above the right controller facing the player
-    /// (the left wrist holds the shared outpost panel), lightly smoothed so hand tremor doesn't shake
-    /// the buttons under the left controller ray (or a fingertip poke). While placing, the build status
-    /// floats above the ghost instead. On desktop it is a screen overlay with hotkey hints.
+    /// the left controller opens it. In the integrated scene it stays fixed in front of the player,
+    /// like the Defense shop. Standalone retains the smoothed right-wrist panel. While placing,
+    /// build status floats above the ghost instead. Desktop keeps its hotkey overlay.
     /// </summary>
     public class PWR_WristPanel : MonoBehaviour
     {
@@ -31,6 +30,14 @@ namespace Deadzone.Power
         public Transform Anchor { get; private set; }
 
         public bool IsOpen => canvas != null && canvas.gameObject.activeSelf;
+        public bool IsXRMenuOpen => xr && XRActiveNow && IsOpen;
+        private static bool XRActiveNow => PWR_PlayerRig.Instance != null && PWR_PlayerRig.Instance.XRActive;
+        // A button may close the menu before another component processes this frame's trigger.
+        public static bool BlockingXRWorldInput => Instance != null && Instance.xr && XRActiveNow &&
+            (Instance.IsOpen || Time.unscaledTime < Instance.ignoreWorldInputUntil);
+        private float ignoreWorldInputUntil;
+        private bool integrated;
+        private float nextNoticeTime;
 
         const float UnitsWide = 420f;
         const int Padding = 10;
@@ -83,14 +90,15 @@ namespace Deadzone.Power
             var bs = PWR_BuildSystem.Instance;
             int buttonCount = (bs != null ? bs.buildables.Count : 0) + 2; // + Demolish, Cancel
             xr = rig != null && rig.XRActive && rig.rightController != null;
+            integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
 
             if (xr)
             {
                 int rows = (buttonCount + 1) / 2;
                 float gridHeight = rows * XrButtonHeight + (rows - 1) * XrButtonSpacing;
-                float unitsHigh = 2 * Padding + 40 + GoalHeight + 5 * 30 + gridHeight + 50 + 4 * 6;
+                float unitsHigh = 2 * Padding + 40 + 30 + GoalHeight + 5 * 30 + gridHeight + 50 + 4 * 6;
                 canvas = PWR_UIFactory.CreateWorldCanvas("PWR_BuildMenu", null, new Vector2(UnitsWide, unitsHigh),
-                    worldWidth / UnitsWide, true);
+                    (integrated ? 0.56f : worldWidth) / UnitsWide, true);
                 uiRoot = canvas.gameObject;
                 // PWR_BuildInput checks for this collider so a trigger pull on the menu doesn't also place.
                 var box = canvas.gameObject.AddComponent<BoxCollider>();
@@ -138,6 +146,7 @@ namespace Deadzone.Power
             var layout = PWR_UIFactory.CreateVerticalLayout(canvas.transform, 6, Padding);
             var title = PWR_UIFactory.CreateLayoutText(layout, "<b>POWER STATION</b>", 28, xr ? 40 : 36);
             title.color = PWR_UIFactory.AccentColor;
+            if (xr) PWR_UIFactory.CreateLayoutText(layout, "Y: close  |  Empty hand: aim + trigger", 18, 30);
             goalText = PWR_UIFactory.CreateLayoutText(layout, "", 18, GoalHeight);
             resourceText = PWR_UIFactory.CreateLayoutText(layout, "", 22, xr ? 5 * 30 : 10 * 30);
 
@@ -184,9 +193,64 @@ namespace Deadzone.Power
         public void Open()
         {
             if (!xr || canvas == null) return;
+            if (!PWR_AreaGate.PlayerInside)
+            {
+                MenuNotice("Enter the Power Station, then press Y to open its build menu.");
+                return;
+            }
+            if (integrated && !TryPositionMenu()) return;
+            if (integrated)
+            {
+                DEF_HUD.Instance?.CloseMenus();
+                DEF_VRInput.Instance?.CancelBuild();
+                PWR_BuildSystem.Instance?.Select(null);
+            }
+            // The arrival card occupies the same viewing space; never hide buttons behind it.
+            PWR_TutorialManager.Instance?.Dismiss("wrist_menu");
             canvas.gameObject.SetActive(true);
-            FollowHand(1f); // appear in place, no catch-up from the old spot
+            if (!integrated) FollowHand(1f);
             Refresh();
+        }
+
+        private bool TryPositionMenu()
+        {
+            var cam = Camera.main;
+            if (cam == null) { MenuNotice("Power menu is waiting for the headset camera. Try Y again."); return false; }
+            var rig = PWR_PlayerRig.Instance;
+            Vector3 forward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+            if (forward.sqrMagnitude < 0.5f && rig != null && rig.origin != null)
+                forward = Vector3.ProjectOnPlane(rig.origin.forward, Vector3.up).normalized;
+            if (forward.sqrMagnitude < 0.5f) forward = Vector3.forward;
+            Vector3 position = cam.transform.position + forward * 1.25f - Vector3.up * 0.08f;
+            Quaternion rotation = Quaternion.LookRotation(forward, Vector3.up);
+            var rect = (RectTransform)canvas.transform;
+            var halfSize = new Vector3(0.28f, rect.sizeDelta.y * rect.lossyScale.y * 0.5f, 0.03f);
+            foreach (var collider in Physics.OverlapBox(position, halfSize, rotation, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (BlocksMenu(collider, rig)) return MenuBlocked();
+            foreach (var hit in Physics.RaycastAll(cam.transform.position, forward, 1.25f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                if (BlocksMenu(hit.collider, rig)) return MenuBlocked();
+            canvas.worldCamera = cam;
+            canvas.transform.SetPositionAndRotation(position, rotation);
+            return true;
+        }
+
+        private static bool BlocksMenu(Collider collider, PWR_PlayerRig rig) =>
+            !(rig != null && rig.origin != null && collider.transform.IsChildOf(rig.origin)) &&
+            collider.GetComponentInParent<PWR_Grabbable>() == null && collider.GetComponentInParent<SCV_CraftedItem>() == null;
+
+        private bool MenuBlocked()
+        {
+            MenuNotice("Power menu needs clear space. Face the open walkway and press Y again.");
+            return false;
+        }
+
+        private void MenuNotice(string message)
+        {
+            if (Time.unscaledTime < nextNoticeTime) return;
+            nextNoticeTime = Time.unscaledTime + 1f;
+            var cam = Camera.main;
+            if (cam != null) PWR_Feedback.Show(cam.transform.position + cam.transform.forward * 1.2f, message, PWR_Feedback.Info);
+            else Debug.LogWarning("[PWR] " + message);
         }
 
         /// <summary>
@@ -206,7 +270,9 @@ namespace Deadzone.Power
 
         public void Close()
         {
-            if (xr && canvas != null) canvas.gameObject.SetActive(false);
+            if (!xr || canvas == null || !IsOpen) return;
+            ignoreWorldInputUntil = Time.unscaledTime + 0.35f;
+            canvas.gameObject.SetActive(false);
         }
 
         private void HandleSelectionChanged(PWR_BuildableDef def)
@@ -253,6 +319,12 @@ namespace Deadzone.Power
         private void LateUpdate()
         {
             var rig = PWR_PlayerRig.Instance;
+            if (xr && canvas != null && !XRActiveNow)
+            {
+                Close();
+                DestroyMenu();
+                CreateMenu();
+            }
             if (!xr && canvas != null && rig != null && rig.XRActive)
             {
                 rig.ResolveControllers();
@@ -263,12 +335,16 @@ namespace Deadzone.Power
                 }
             }
             if (canvas == null) return; // still waiting for the XR startup check
-            // Outside the Power area (shared scene) the menu is closed and Y does nothing.
+            // Keep area gating, but explain why Y cannot open the menu outside the station.
             bool inside = PWR_AreaGate.PlayerInside;
             if (!xr && canvas.enabled != inside) canvas.enabled = inside;
             if (!inside)
             {
-                if (xr) Close();
+                if (xr)
+                {
+                    Close();
+                    if (toggle.WasPressedThisFrame()) MenuNotice("Enter the Power Station, then press Y to open its build menu.");
+                }
                 if (statusLabel != null && statusLabel.gameObject.activeSelf) statusLabel.gameObject.SetActive(false);
                 return;
             }
@@ -279,7 +355,7 @@ namespace Deadzone.Power
                     if (IsOpen) Close();
                     else Open();
                 }
-                if (IsOpen) FollowHand(1f - Mathf.Exp(-followSharpness * Time.deltaTime));
+                if (IsOpen && !integrated) FollowHand(1f - Mathf.Exp(-followSharpness * Time.deltaTime));
                 UpdateStatusLabel(Camera.main);
             }
             refresh -= Time.deltaTime;
