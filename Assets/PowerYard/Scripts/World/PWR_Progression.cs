@@ -42,7 +42,11 @@ namespace Deadzone.Power
                 case PWR_Stage.SupplyLine: return "Lay belts from the Delivery Chute to the Receiving Bin and collect the supplies.";
                 case PWR_Stage.CraftBattery: return "Craft a Battery (Fuse + Electrolyte) at the Workbench.";
                 case PWR_Stage.ChargeCell: return "Charge the Battery in the Cell Charger. Keep the generators fuelled.";
-                default: return "Complete Clinic and Workshop to unlock Defense training.";
+                default:
+                    var dock = PWR_DefenseCellDock.Instance;
+                    return dock != null && !dock.IsDocked
+                        ? "Take the Charged Cell to the Cell Dock in the Defense Yard. Complete Clinic and Workshop to unlock Defense training."
+                        : "Complete Clinic and Workshop to unlock Defense training.";
             }
         }
 

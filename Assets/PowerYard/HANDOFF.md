@@ -14,6 +14,18 @@ picked up the Charged Cell (either order).
 - Finer-grained: `PWR_CellCharger.Completed` (cell ejected), `PWR_CellCharger.CellCollected` (cell first
   picked up), `PWR_Floodlight.BulbInstalled` (replacement bulb installed).
 
+## Power → Defense link (Cell Dock)
+`PWR_DefenseCellDock` is the Charged Cell's destination in a shared scene. If the scene has a Defense Yard
+(`DEF_GameState`) and nobody placed a dock, `PWR_LevelDirector` spawns one 1.6 m east of the Defense ammo
+intake. To choose the spot yourself, put an empty GameObject with `PWR_DefenseCellDock` in the scene.
+- The player carries the Charged Cell along the station routes and lets go of it inside the dock. Only the
+  exact cell from `PWR_CellCharger.ChargedCell` is accepted, and only once `StationComplete` is true;
+  anything else gets an explanation.
+- Once docked, the cell stays there and every `DEF_ShockTrap` (also ones built later) gets
+  `rechargeSeconds` 7 → 4. An arc and a "+Overcharged" popup show each trap being boosted.
+- `PWR_DefenseCellDock.Instance.IsDocked` / static event `CellDocked` if Defense wants to react.
+- The dock has no solid colliders (one trigger only), so it never blocks shots, arcs or zombies.
+
 ## Progression (MP2B)
 `PWR_Progression` (added at runtime by `PWR_LevelDirector`) gates the station in five thresholds:
 Floodlight lit → generators + barrels/crates + Refine Oil · first generator running → pads/belts + scrap +
