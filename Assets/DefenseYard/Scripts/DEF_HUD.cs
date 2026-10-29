@@ -18,6 +18,8 @@ public class DEF_HUD : MonoBehaviour
     public Button[] buyButtons;
     public Text[] buyLabels;
     bool shopOpen, guideOpen, paused, training = true;
+    DEF_IntegratedXRPresentation xrPresentation;
+    bool lastXRActive;
     int trainingStep, guidePage, suppressUntil;
     bool moved, looked, welcome = true;
     float flash, noticeUntil;
@@ -37,6 +39,8 @@ public class DEF_HUD : MonoBehaviour
     void Awake() { Instance = this; }
     void Start()
     {
+        if (DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene))
+            xrPresentation = GetComponent<DEF_IntegratedXRPresentation>() ?? gameObject.AddComponent<DEF_IntegratedXRPresentation>();
         state = DEF_GameState.I;
         if (state != null) state.BaseHit += OnBaseHit;
         shopButton.onClick.AddListener(ToggleShop); shopClose.onClick.AddListener(CloseMenus);
@@ -56,6 +60,7 @@ public class DEF_HUD : MonoBehaviour
     }
     void Update()
     {
+        if (lastXRActive != DEF_VRInput.Active) SyncModal();
         var kb = Keyboard.current;
         if (kb != null)
         {
@@ -137,6 +142,7 @@ public class DEF_HUD : MonoBehaviour
         if (!DEF_Progression.Allows(DEF_Action.BasicSentry)) return;
         if (welcome || paused) return;
         if (guideOpen && trainingStep == 4) trainingStep = 5;
+        if (!shopOpen && xrPresentation != null && !xrPresentation.TryPositionShop()) return;
         shopOpen = !shopOpen; guideOpen = false; DEF_VRInput.Instance?.CancelBuild(); SyncModal();
     }
     public void Buy(int index)
@@ -166,7 +172,7 @@ public class DEF_HUD : MonoBehaviour
     }
     public void CloseMenus() { if (guideOpen && trainingStep == 4) trainingStep = 5; shopOpen = guideOpen = false; suppressUntil = Time.frameCount + 2; SyncModal(); }
     void TogglePause() { if (shopOpen || guideOpen) return; paused = !paused; suppressUntil = Time.frameCount + 2; SyncModal(); }
-    void SyncModal() { shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = shopOpen || guideOpen || paused ? 0 : 1; }
+    void SyncModal() { lastXRActive = DEF_VRInput.Active; shopPanel.SetActive(shopOpen); guidePanel.SetActive(guideOpen); pausePanel.SetActive(paused); Time.timeScale = paused || (!(xrPresentation != null && DEF_VRInput.Active) && (shopOpen || guideOpen)) ? 0 : 1; }
     public void FinishTraining() { if (!training) return; training = false; Notify("Training complete. Defend the outpost."); }
     public void RecordPlacement(GameObject defense)
     {

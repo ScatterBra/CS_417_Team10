@@ -176,6 +176,9 @@ namespace Deadzone.Power
             grab.ForceRelease();
             // The cell stays in the dock for good: it can't be grabbed again or fall off.
             if (grab.TryGetComponent(out XRGrabInteractable xr)) xr.enabled = false;
+            // Docked cells are no longer pickup or combat targets.
+            foreach (var cellCollider in grab.GetComponentsInChildren<Collider>(true))
+                cellCollider.enabled = false;
             grab.Body.isKinematic = true;
             grab.transform.SetParent(transform, false);
             grab.transform.localPosition = mountOffset;
@@ -217,7 +220,7 @@ namespace Deadzone.Power
             // Traps are built during play, so keep looking for new ones.
             foreach (var trap in FindObjectsByType<DEF_ShockTrap>())
             {
-                if (overcharged.ContainsKey(trap)) continue;
+                if (!trap.isActiveAndEnabled || overcharged.ContainsKey(trap)) continue;
                 overcharged[trap] = trap.rechargeSeconds;
                 if (trap.rechargeSeconds <= overchargedRecharge) continue;
                 defaultRecharge = trap.rechargeSeconds;

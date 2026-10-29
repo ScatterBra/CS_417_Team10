@@ -125,6 +125,7 @@ public class DEF_VRInput : MonoBehaviour
 
     void Start()
     {
+        DEF_IntegratedCarrySettings.Apply(this);
         grid = FindFirstObjectByType<DEF_GridManager>();
         selector = FindFirstObjectByType<DEF_TileSelector>();
         // Near/Far owns its visual curve; never manipulate the teleport line.
@@ -154,6 +155,9 @@ public class DEF_VRInput : MonoBehaviour
         if (BuildArmed && DEF_Progression.Current != null && !DEF_Progression.Current.IsAllowed(mode == PlaceMode.Turret ? DEF_Action.BasicSentry : mode == PlaceMode.BoomTurret ? DEF_Action.Missile : mode == PlaceMode.Barricade ? DEF_Action.Barricade : DEF_Action.Shock)) CancelBuild();
         if (!Active) return;
 
+        bool menuPrimary = primary.IsPressed();
+        if (menuPrimary && !previousPrimary) DEF_HUD.Instance?.ToggleShop();
+        previousPrimary = menuPrimary;
         if (DEF_HUD.BlockingWorldInput)
         {
             previousTrigger = trigger.IsPressed(); previousGrip = grip.IsPressed(); previousPrimary = primary.IsPressed(); previousMenu = menu.IsPressed();
@@ -186,7 +190,7 @@ public class DEF_VRInput : MonoBehaviour
         bool pressedGrip = grip.IsPressed();
         bool pressedPrimary = primary.IsPressed();
         bool pressedMenu = menu.IsPressed();
-        if (pressedPrimary && !previousPrimary) DEF_HUD.Instance?.ToggleShop();
+
         if (!DEF_HUD.BlockingWorldInput && BuildArmed && pressedTrigger && !previousTrigger && groundHit && grid != null &&
             grid.WorldToTile(hit.point, out int x, out int z))
         {

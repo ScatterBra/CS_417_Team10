@@ -21,7 +21,7 @@ namespace Deadzone.Power
         public NearFarInteractor LeftInteractor { get; private set; }
         public NearFarInteractor RightInteractor { get; private set; }
 
-        public bool XRActive => XRSettings.isDeviceActive;
+        public bool XRActive => XRSettings.isDeviceActive || (DEF_VRInput.Instance != null && DEF_VRInput.Instance.gameObject.scene == gameObject.scene && DEF_VRInput.Active);
 
         public Transform Head => Camera.main != null ? Camera.main.transform : null;
 
@@ -45,6 +45,11 @@ namespace Deadzone.Power
         private void Awake()
         {
             Instance = this;
+            ResolveControllers();
+        }
+
+        public void ResolveControllers()
+        {
             if (origin == null)
             {
                 var xrOrigin = FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>();
