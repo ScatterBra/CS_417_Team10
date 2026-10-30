@@ -95,7 +95,8 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         if (goalText == null || owner == null) return;
         bool check = integrated && Time.unscaledTime < completedUntil;
         if (integrated) goalText.color = check ? new Color(.55f, 1f, .65f) : Color.white;
-        goalText.text = check ? "✓ COMPLETED\n" + completedText :
+        DEF_UIPresentationPolicy.SetCompletionMark(goalText, check);
+        goalText.text = check ? "COMPLETED\n" + completedText :
             (integrated ? (owner.State.Current == S.Complete ? "DEFENSE COMPLETE\n" : "DEFENSE — NEXT\n") : "") + owner.NextGoal;
     }
     static string CompletedAction(S stage)

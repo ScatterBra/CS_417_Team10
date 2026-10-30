@@ -179,7 +179,8 @@ public class MED_PlayerHUD : MonoBehaviour
             {
                 string heading = clinicCompleted ? "CLINIC COMPLETE\n" : "CLINIC — NEXT\n";
                 integratedGoal.color = showCheck ? new Color(.55f, 1f, .65f) : Color.white;
-                integratedGoal.text = showCheck ? "✓ COMPLETED\n" + completedDescription : heading + integratedTraining.CompactInstruction;
+                DEF_UIPresentationPolicy.SetCompletionMark(integratedGoal, showCheck);
+                integratedGoal.text = showCheck ? "COMPLETED\n" + completedDescription : heading + integratedTraining.CompactInstruction;
             }
             UpdateIntroduction();
             return;

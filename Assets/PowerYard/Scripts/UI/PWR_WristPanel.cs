@@ -197,8 +197,9 @@ namespace Deadzone.Power
             objectiveCanvas.worldCamera = cam;
             objectiveCanvas.transform.SetPositionAndRotation(cam.transform.TransformPoint(new Vector3(.65f, .25f, 1.25f)), cam.transform.rotation);
             var progression = PWR_Progression.Instance;
+            DEF_UIPresentationPolicy.SetCompletionMark(objectiveText, Time.unscaledTime < completionUntil);
             objectiveText.text = Time.unscaledTime < completionUntil
-                ? "<color=#7CFC7C><b>✓ COMPLETE</b></color>\n" + completedGoal
+                ? "<color=#7CFC7C><b>COMPLETE</b></color>\n" + completedGoal
                 : "<color=#FFC840><b>POWER — CURRENT GOAL</b></color>\n" +
                   (progression != null ? progression.NextGoal : "Press Y to open the Power menu.");
         }
