@@ -78,9 +78,9 @@ public sealed class DEF_IntegratedXRPresentation : MonoBehaviour
                 if (presentation == null || presentation == canvas) continue;
                 ConfigureHeadCanvas(presentation, camera, 1.55f, new Vector2(1600, 900));
                 headCanvases.Add(presentation);
-                AddReadableCard(presentation, presenter.goalText, "Current goal", new Vector2(0, -225), new Vector2(1000, 150), 25);
-                AddReadableCard(presentation, presenter.introductionText, "Introduction", Vector2.zero, new Vector2(1000, 300), 30);
-                AddReadableCard(presentation, presenter.failureText, "Feedback", new Vector2(0, 230), new Vector2(1000, 140), 24);
+                AddReadableCard(presentation, presenter.goalText, "Current goal", new Vector2(440, 270), new Vector2(600, 230), 24);
+                AddReadableCard(presentation, presenter.introductionText, "Introduction", new Vector2(440, -40), new Vector2(600, 320), 24);
+                AddReadableCard(presentation, presenter.failureText, "Feedback", new Vector2(0, -300), new Vector2(1100, 200), 24);
             }
             boundCamera = camera;
             configured = true;

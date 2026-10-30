@@ -12,6 +12,8 @@ public class MED_HudFollow : MonoBehaviour
     [SerializeField] float fadeSpeed = 6f;
 
     Camera cam;
+    DEF_ClinicTraining integratedTraining;
+    void Start() { integratedTraining = DEF_ClinicTraining.For(this); }
     Vector3 lastFlatForward = Vector3.forward;
     bool snapped;
     bool lookingDown;
@@ -22,6 +24,12 @@ public class MED_HudFollow : MonoBehaviour
     void LateUpdate()
     {
         var currentCamera = Camera.main;
+        if (integratedTraining != null)
+        {
+            var input = DEF_VRInput.Instance;
+            if (input != null && input.gameObject.scene == gameObject.scene && DEF_VRInput.Active && input.xrCamera != null)
+                currentCamera = input.xrCamera;
+        }
         if (currentCamera != cam)
         {
             cam = currentCamera;
@@ -29,6 +37,13 @@ public class MED_HudFollow : MonoBehaviour
         }
         if (cam == null) return;
         var head = cam.transform;
+        if (integratedTraining != null)
+        {
+            // Stable lower-left area HUD, in the actual tracked camera's coordinates.
+            transform.SetPositionAndRotation(head.TransformPoint(new Vector3(-.39f, -.30f, 1.15f)), head.rotation);
+            PanelVisibility = 1f;
+            return;
+        }
 
         var flat = Vector3.ProjectOnPlane(head.forward, Vector3.up);
         if (flat.sqrMagnitude > 0.01f) lastFlatForward = flat.normalized;

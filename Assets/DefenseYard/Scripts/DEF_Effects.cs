@@ -38,6 +38,8 @@ public class DEF_Effects : MonoBehaviour
         var prefab = Resources.Load<DEF_Effects>("Prefabs/DEF_ShockArc");
         if (prefab == null) { Debug.LogError("Electrical arc prefab is missing."); return; }
         var arc = Instantiate(prefab);
+        // Explicit spawn initialization also supports Edit Mode validation, where Awake is not invoked.
+        arc.line = arc.GetComponent<LineRenderer>();
         arc.from = from; arc.to = to;
         arc.ShapeArc();
     }

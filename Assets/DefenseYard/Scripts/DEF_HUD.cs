@@ -21,6 +21,8 @@ public class DEF_HUD : MonoBehaviour
     bool shopOpen, guideOpen, paused, training = true;
     DEF_IntegratedXRPresentation xrPresentation;
     bool lastXRActive;
+    bool integratedScene;
+    DEF_GridManager contextGrid;
     int trainingStep, guidePage, suppressUntil;
     bool moved, looked, welcome = true;
     float flash, noticeUntil;
@@ -40,7 +42,8 @@ public class DEF_HUD : MonoBehaviour
     void Awake() { Instance = this; }
     void Start()
     {
-        if (DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene))
+        integratedScene = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
+        if (integratedScene)
             xrPresentation = GetComponent<DEF_IntegratedXRPresentation>() ?? gameObject.AddComponent<DEF_IntegratedXRPresentation>();
         state = DEF_GameState.I;
         if (state != null) state.BaseHit += OnBaseHit;
@@ -93,7 +96,12 @@ public class DEF_HUD : MonoBehaviour
         threatText.text = "THREAT LEVEL  " + (wave != null ? Mathf.FloorToInt(wave.threat) : 0);
         startButton.interactable = ready && (!training || ReadyForWave) && !shopOpen && !guideOpen;
         startText.text = (state.playerHealth <= 0 || (wave != null && wave.AttemptFailed)) ? "RETRY DEFENSE  [MENU]" : ready ? "START WAVE  [MENU]" : "WAVE IN PROGRESS";
-        shopBalance.text = state.scrap + " SCRAP AVAILABLE";
+        shopBalance.text = state.scrap + (integratedScene ? " DEFENSE SCRAP AVAILABLE" : " SCRAP AVAILABLE");
+        if (integratedScene)
+        {
+            SetResourceLabel(scrapText, "Scrap label", "DEFENSE SCRAP");
+            SetResourceLabel(ammoText, "Ammo label", "DEFENSE AMMO");
+        }
         for (int i = 0; i < buyButtons.Length; i++)
         {
             var progression = DEF_Progression.Current;
@@ -104,11 +112,11 @@ public class DEF_HUD : MonoBehaviour
         var gates = DEF_Progression.Current;
         if (gates != null)
         {
-            SetResourceVisibility(ammoText, "Ammo label", gates.IsAllowed(DEF_Action.PhysicalAmmo));
-            ammoText.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo));
-            SetResourceVisibility(scrapText, "Scrap label", gates.IsAllowed(DEF_Action.BasicSentry));
-            ammoText.transform.parent.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry));
-            scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            SetResourceVisibility(ammoText, "Ammo label", ResourceContextVisible && gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            ammoText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            SetResourceVisibility(scrapText, "Scrap label", ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
+            ammoText.transform.parent.gameObject.SetActive(ResourceContextVisible && (gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry)));
+            scrapText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
             shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
             startButton.interactable = !shopOpen && !guideOpen;
@@ -131,6 +139,27 @@ public class DEF_HUD : MonoBehaviour
         if (Time.unscaledTime > noticeUntil) noticeText.text = state.playerHealth <= 0 ? "BASE BREACHED  /  Press left Menu to restart" : "";
         flash = Mathf.MoveTowards(flash, 0, Time.unscaledDeltaTime * 1.1f);
         foreach (var edge in damageEdges) edge.color = new Color(0.9f,0.07f,0.04f,flash * 0.55f);
+    }
+    bool ResourceContextVisible
+    {
+        get
+        {
+            if (!integratedScene || shopOpen || (DEF_VRInput.Instance != null && DEF_VRInput.Instance.BuildArmed)) return true;
+            var wave = DEF_WaveManager.I;
+            if (wave != null && (wave.phase == DEF_WaveManager.Phase.Spawning || wave.phase == DEF_WaveManager.Phase.Active)) return true;
+            if (contextGrid == null)
+                foreach (var grid in FindObjectsByType<DEF_GridManager>(FindObjectsSortMode.None))
+                    if (grid.gameObject.scene == gameObject.scene) { contextGrid = grid; break; }
+            var input = DEF_VRInput.Instance;
+            var camera = input != null && input.gameObject.scene == gameObject.scene && DEF_VRInput.Active && input.xrCamera != null ? input.xrCamera : Camera.main;
+            return contextGrid == null || camera == null || contextGrid.WorldToTile(camera.transform.position, out _, out _);
+        }
+    }
+    static void SetResourceLabel(Text value, string labelName, string title)
+    {
+        if (value == null) return;
+        var label = value.transform.parent.Find(labelName);
+        if (label != null && label.TryGetComponent<Text>(out var text)) text.text = title;
     }
     public static void SetResourceVisibility(Text value, string labelName, bool visible)
     {
@@ -217,11 +246,11 @@ public class DEF_HUD : MonoBehaviour
         var gates = DEF_Progression.Current;
         if (gates != null)
         {
-            SetResourceVisibility(ammoText, "Ammo label", gates.IsAllowed(DEF_Action.PhysicalAmmo));
-            ammoText.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo));
-            SetResourceVisibility(scrapText, "Scrap label", gates.IsAllowed(DEF_Action.BasicSentry));
-            ammoText.transform.parent.gameObject.SetActive(gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry));
-            scrapText.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
+            SetResourceVisibility(ammoText, "Ammo label", ResourceContextVisible && gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            ammoText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.PhysicalAmmo));
+            SetResourceVisibility(scrapText, "Scrap label", ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
+            ammoText.transform.parent.gameObject.SetActive(ResourceContextVisible && (gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry)));
+            scrapText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
             shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
             startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
             startButton.interactable = !shopOpen && !guideOpen;

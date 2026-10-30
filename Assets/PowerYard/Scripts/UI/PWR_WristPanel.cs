@@ -59,6 +59,11 @@ namespace Deadzone.Power
         private InputAction toggle;
         private Canvas statusLabel;
         private TMP_Text statusLabelText;
+        private Canvas objectiveCanvas;
+        private TMP_Text objectiveText;
+        private PWR_Stage observedStage;
+        private string completedGoal;
+        private float completionUntil;
 
         private void Awake()
         {
@@ -66,9 +71,17 @@ namespace Deadzone.Power
             toggle = new InputAction("PWR Menu Toggle", InputActionType.Button, "<XRController>{LeftHand}/{SecondaryButton}");
         }
 
-        private void OnEnable() => toggle.Enable();
+        private void OnEnable()
+        {
+            toggle.Enable();
+            PWR_Progression.StageChanged += HandleStageChanged;
+        }
 
-        private void OnDisable() => toggle.Disable();
+        private void OnDisable()
+        {
+            toggle.Disable();
+            PWR_Progression.StageChanged -= HandleStageChanged;
+        }
 
         private void OnDestroy()
         {
@@ -136,7 +149,58 @@ namespace Deadzone.Power
                 bs.OnSelectionChanged += HandleSelectionChanged;
                 bs.OnDemolishModeChanged += HandleDemolishModeChanged;
             }
+            if (integrated) CreateObjective();
             Refresh();
+        }
+
+        private void CreateObjective()
+        {
+            objectiveCanvas = PWR_UIFactory.CreateWorldCanvas("Power current objective", null,
+                new Vector2(520, 165), .6f / 520f, false);
+            PWR_UIFactory.CreatePanel(objectiveCanvas.transform, new Color(.015f, .02f, .025f, .94f)).raycastTarget = false;
+            objectiveText = PWR_UIFactory.CreateText(objectiveCanvas.transform, "", 22, TextAlignmentOptions.TopLeft, 12);
+            observedStage = PWR_Progression.Instance != null ? PWR_Progression.Instance.Stage : PWR_Stage.RestoreLight;
+            UpdateObjective();
+        }
+
+        private void HandleStageChanged(PWR_Stage stage)
+        {
+            if (!integrated) return;
+            // Only a real progression event earns a check, never entering an area or refreshing text.
+            if ((int)stage > (int)observedStage)
+            {
+                completedGoal = observedStage switch
+                {
+                    PWR_Stage.RestoreLight => "Restore the Floodlight",
+                    PWR_Stage.GeneratePower => "Start a generator",
+                    PWR_Stage.SupplyLine => "Collect conveyor supplies",
+                    PWR_Stage.CraftBattery => "Craft a Battery",
+                    PWR_Stage.ChargeCell => "Restore power and collect the Charged Cell",
+                    _ => "Power objective"
+                };
+                completionUntil = Time.unscaledTime + 2f;
+            }
+            observedStage = stage;
+        }
+
+        private void UpdateObjective()
+        {
+            if (objectiveCanvas == null) return;
+            var rig = PWR_PlayerRig.Instance;
+            var cam = Camera.main;
+            var defense = DEF_VRInput.Instance;
+            if (rig != null && rig.XRActive && defense != null && defense.gameObject.scene == gameObject.scene && defense.xrCamera != null)
+                cam = defense.xrCamera;
+            bool visible = PWR_AreaGate.PlayerInside && cam != null;
+            objectiveCanvas.gameObject.SetActive(visible);
+            if (!visible) return;
+            objectiveCanvas.worldCamera = cam;
+            objectiveCanvas.transform.SetPositionAndRotation(cam.transform.TransformPoint(new Vector3(.65f, .25f, 1.25f)), cam.transform.rotation);
+            var progression = PWR_Progression.Instance;
+            objectiveText.text = Time.unscaledTime < completionUntil
+                ? "<color=#7CFC7C><b>✓ COMPLETE</b></color>\n" + completedGoal
+                : "<color=#FFC840><b>POWER — CURRENT GOAL</b></color>\n" +
+                  (progression != null ? progression.NextGoal : "Press Y to open the Power menu.");
         }
 
         /// <summary>Title, resources, build buttons and status line. VR uses two columns of large buttons.</summary>
@@ -167,7 +231,7 @@ namespace Deadzone.Power
                     int index = i;
                     var def = bs.buildables[i];
                     string hotkey = xr ? "" : $"[{i + 1}] ";
-                    buildButtons.Add(PWR_UIFactory.CreateButton(buttonParent, $"{hotkey}{def.displayName}  <size=75%>({def.CostText()})</size>",
+                    buildButtons.Add(PWR_UIFactory.CreateButton(buttonParent, $"{hotkey}{def.displayName}  <size=75%>({(integrated ? def.CostText().Replace("Scrap", "Power Scrap") : def.CostText())})</size>",
                         buttonHeight, 22, () => { if (input != null) input.SelectIndex(index); }));
                 }
                 PWR_UIFactory.CreateButton(buttonParent, xr ? "Demolish" : "[X] Demolish", xr ? buttonHeight : 46, 22,
@@ -312,6 +376,8 @@ namespace Deadzone.Power
             subscribedBuildSystem = null;
             if (uiRoot != null) { uiRoot.SetActive(false); Destroy(uiRoot); }
             if (statusLabel != null) { statusLabel.gameObject.SetActive(false); Destroy(statusLabel.gameObject); }
+            if (objectiveCanvas != null) Destroy(objectiveCanvas.gameObject);
+            objectiveCanvas = null; objectiveText = null;
             uiRoot = null; canvas = null; statusLabel = null; statusLabelText = null;
             resourceText = null; goalText = null; statusText = null; hand = null; Anchor = null;
             buildButtons.Clear();
@@ -334,6 +400,7 @@ namespace Deadzone.Power
                     CreateMenu();
                 }
             }
+            UpdateObjective();
             if (canvas == null) return; // still waiting for the XR startup check
             // Keep area gating, but explain why Y cannot open the menu outside the station.
             bool inside = PWR_AreaGate.PlayerInside;
@@ -392,12 +459,12 @@ namespace Deadzone.Power
                     int v = res.Get(t);
                     if (v <= 0 && !PWR_Progression.IsResourceVisible(t)) continue; // not introduced yet
                     sb.Append(v > 0 ? "<color=#FFFFFF>" : "<color=#7A7A7A>")
-                      .Append(PWR_Names.Of(t)).Append(": ").Append(v).Append("</color>");
+                      .Append(integrated && t == PWR_ResourceType.Scrap ? "Power Scrap" : PWR_Names.Of(t)).Append(": ").Append(v).Append("</color>");
                     // VR packs the list into two columns to keep the menu short.
                     sb.Append(xr && i % 2 == 0 ? "<pos=50%>" : "\n");
                     i++;
                 }
-                resourceText.text = i > 0 ? sb.ToString() : "<color=#7A7A7A>No supplies yet</color>";
+                resourceText.text = i > 0 ? sb.ToString() : integrated ? "<color=#7A7A7A>No Power supplies yet</color>" : "<color=#7A7A7A>No supplies yet</color>";
             }
             if (goalText != null)
             {

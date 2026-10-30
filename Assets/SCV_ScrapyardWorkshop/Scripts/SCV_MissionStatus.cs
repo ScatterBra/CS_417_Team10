@@ -8,6 +8,8 @@ public class SCV_MissionStatus : MonoBehaviour
     [SerializeField] private TMP_Text statusText;
 
     private bool missionCompleted = false;
+    bool integrated;
+    void Start() { integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene); }
 
     private void Update()
     {
@@ -27,6 +29,13 @@ public class SCV_MissionStatus : MonoBehaviour
                 ? "OUTPOST READY"
                 : "NOT READY";
 
+        if (integrated)
+        {
+            statusText.text = "WORKSHOP PRACTICE\n\nPANEL: " + damagedPanel.CurrentCondition + "/" + damagedPanel.MaxCondition +
+                "\nAMMO STORAGE: " + ammoTest.StoredAmmo + "/" + ammoTest.MaxAmmo +
+                "\n\nFilling these targets is optional.\nFor Defense: craft Ammo + RepairKit and physically deliver either to a practice intake.";
+            return; // Standalone completion text is not the integrated Defense prerequisite.
+        }
         statusText.text =
             "RESTORE THE OUTPOST\n\n" +
             "DEFENSE: " +

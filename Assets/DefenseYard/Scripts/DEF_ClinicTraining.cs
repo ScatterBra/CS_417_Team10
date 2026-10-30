@@ -14,6 +14,23 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     // One presentation source for the world sign and the existing head-follow Clinic HUD.
     public string CurrentInstruction { get; private set; } = "Read the Clinic introduction.";
     public bool IsIntroducing => pendingStep != 0;
+    // Compact status is presentation only; the full instruction and all gates remain authoritative.
+    public string CompactInstruction
+    {
+        get
+        {
+            if (IsIntroducing) return "Read the introduction; then continue.";
+            if (Step == 7) return "Harvest Herbs (Sickle), Water (Bucket), supplies (Crowbar).";
+            if (Step == 8) return randomFound ? "Grip UNLOAD on the stopped cart." :
+                (unloaded ? "Harvest a randomly placed herb patch or crate." : "Harvest a random resource and unload one cart item.");
+            if (Step == 9) return placed ? "Grip Medicine at the bench: 2 Herbs + 1 Water." : "Grip the PrepBench model; aim at green grid and release.";
+            var readiness = GetComponent<DEF_ClinicReadiness>();
+            if (patient != null && patient.IsHealthFull) return readiness != null ? readiness.PendingReason : "Check Clinic readiness.";
+            return readiness == null || readiness.station == null ? "Place the TreatmentStation model. Craft 3 Medicine total." :
+                "REFILL each Medicine. Stand on pad; grip TREAT once.";
+        }
+    }
+
     void SetDirections(string text)
     {
         CurrentInstruction = text;

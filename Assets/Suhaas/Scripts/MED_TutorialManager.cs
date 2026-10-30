@@ -106,6 +106,16 @@ public class MED_TutorialManager : MonoBehaviour
 
     void Update()
     {
+        // Only one Clinic temporary card at a time; pausing the visual never changes training gates.
+        if (DEF_ClinicTraining.For(this) != null)
+        {
+            if (MED_AreaGate.Outside || MED_PlayerHUD.IntegratedNoticeVisible)
+            {
+                if (panel != null) panel.SetActive(false);
+                return;
+            }
+            if (active && panel != null) panel.SetActive(true);
+        }
         if (!active)
         {
             if (MED_AreaGate.Outside) return;   // the player is in another area: hold the queue
@@ -156,8 +166,10 @@ public class MED_TutorialManager : MonoBehaviour
 
         if (!fadingOut)
         {
-            if (elapsed >= showSeconds) fadingOut = true;
-            else if (elapsed >= minSeconds && PlayerMovedAway()) fadingOut = true;
+            float readable = DEF_ClinicTraining.For(this) != null && current != null
+                ? DEF_UIPresentationPolicy.ReadSeconds(current.Title + " " + current.Body) : minSeconds;
+            if (elapsed >= Mathf.Max(showSeconds, readable)) fadingOut = true;
+            else if (elapsed >= Mathf.Max(minSeconds, readable) && PlayerMovedAway()) fadingOut = true;
         }
 
         alpha = Mathf.MoveTowards(alpha, fadingOut ? 0f : 1f, dt / Mathf.Max(0.01f, fadeSeconds));

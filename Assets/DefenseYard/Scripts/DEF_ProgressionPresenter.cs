@@ -14,6 +14,12 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     DEF_GridManager defenseGrid;
     bool integrated;
     bool presenting;
+    float noticeUntil, completedUntil;
+    int observedSession, observedAttempt;
+    S observedStage;
+    bool observed;
+    string completedText;
+
     public bool Ready => introductionText != null && goalText != null;
     public void Present(DEF_Progression progression)
     {
@@ -25,12 +31,20 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         Set(waveContent, owner.IsAllowed(DEF_Action.StartWave) || owner.IsAllowed(DEF_Action.Combat));
         Set(advancedContent, owner.IsAllowed(DEF_Action.Barricade));
         Set(missileContent,owner.IsAllowed(DEF_Action.Missile));
-        goalText.text = owner.NextGoal;
+        integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
+        if (integrated && observed && observedSession == state.Session && observedAttempt == state.Attempt && state.Current > observedStage)
+        {
+            string done = CompletedAction(observedStage);
+            if (done != null) { completedText = done; completedUntil = Time.unscaledTime + 2.2f; }
+        }
+        if (!observed || observedSession != state.Session || observedAttempt != state.Attempt) { completedUntil = 0; noticeUntil = 0; }
+        observed = true; observedSession = state.Session; observedAttempt = state.Attempt; observedStage = state.Current;
+        RefreshObjective();
         if (failureText != null) failureText.text = "";
         integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
         UpdateGoalVisibility();
         bool intro = state.IntroductionActive;
-        introductionText.gameObject.SetActive(intro);
+        introductionText.gameObject.SetActive(intro || (integrated && Time.unscaledTime < noticeUntil));
         if (!intro) { presenting = false; return; }
         if (presenting && session == state.Session && attempt == state.Attempt && introduction == state.Introduction) return;
         session = state.Session; attempt = state.Attempt; introduction = state.Introduction;
@@ -39,14 +53,22 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
             state.Current==S.FirstWaveComplete ? "BARRICADE AND SHOCK\nPlace a barricade across a moving enemy route and observe it walk the detour. Also stun a live enemy with Shock. Both are required before Missile unlocks." :
             state.Current==S.MissileIntroduction ? "MISSILE SENTRY\nDamage at least two distinct enemies with one explosion. Then sustain a Juggernaut wave using two defense types, a physical repair and refill." :
             "FIRST WAVE\nPreparation is complete. Start wave1 and protect the base.";
+        if (integrated) noticeUntil = Time.unscaledTime + DEF_UIPresentationPolicy.ReadSeconds(introductionText.text);
         finishAt = Time.unscaledTime + Mathf.Max(.1f, introductionSeconds); presenting = true;
     }
     void Update()
     {
         UpdateGoalVisibility();
+        if (owner != null && integrated)
+        {
+            RefreshObjective();
+            bool inDefense = goalText == null || goalText.gameObject.activeSelf;
+            if (!inDefense && Time.unscaledTime < noticeUntil) noticeUntil += Time.unscaledDeltaTime;
+            if (introductionText != null) introductionText.gameObject.SetActive(inDefense && (presenting || Time.unscaledTime < noticeUntil));
+        }
         if (failureText != null && !string.IsNullOrEmpty(failureText.text) && Time.unscaledTime >= failureUntil)
             failureText.text = "";
-        if (!presenting || !Ready || !introductionText.gameObject.activeInHierarchy || Time.unscaledTime < finishAt) return;
+        if (!presenting || !Ready || (!integrated && !introductionText.gameObject.activeInHierarchy) || Time.unscaledTime < finishAt) return;
         presenting = false;
         owner.IntroductionFinished(this, session, attempt, introduction);
     }
@@ -54,12 +76,13 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     {
         if (owner == null || goalText == null) return;
         bool visible = true;
-        if (owner.State.Current == S.TeamPrerequisites && integrated)
+        if (integrated)
         {
             if (defenseGrid == null)
                 foreach (var grid in FindObjectsByType<DEF_GridManager>(FindObjectsSortMode.None))
                     if (grid.gameObject.scene == gameObject.scene) { defenseGrid = grid; break; }
-            var camera = Camera.main;
+            var input = DEF_VRInput.Instance;
+            var camera = input != null && input.gameObject.scene == gameObject.scene && DEF_VRInput.Active && input.xrCamera != null ? input.xrCamera : Camera.main;
             // Local station guidance owns the view until the player returns to Defense.
             // Missing setup must not hide the only available guidance.
             if (defenseGrid != null && camera != null)
@@ -67,9 +90,32 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         }
         if (goalText.gameObject.activeSelf != visible) goalText.gameObject.SetActive(visible);
     }
+    void RefreshObjective()
+    {
+        if (goalText == null || owner == null) return;
+        bool check = integrated && Time.unscaledTime < completedUntil;
+        if (integrated) goalText.color = check ? new Color(.55f, 1f, .65f) : Color.white;
+        goalText.text = check ? "✓ COMPLETED\n" + completedText :
+            (integrated ? (owner.State.Current == S.Complete ? "DEFENSE COMPLETE\n" : "DEFENSE — NEXT\n") : "") + owner.NextGoal;
+    }
+    static string CompletedAction(S stage)
+    {
+        switch (stage)
+        {
+            case S.TeamPrerequisites: return "All three station requirements verified.";
+            case S.PlaceSentry: return "Basic sentry placed.";
+            case S.Repair: return "Physical RepairKit delivered.";
+            case S.Ammo: return "Physical Ammo Box delivered.";
+            case S.WaveActive: return "First wave cleared.";
+            case S.AdvancedPractice: return "Barricade detour and Shock stun verified.";
+            case S.MissilePractice: return "One explosion damaged two enemies.";
+            case S.JuggernautActive: return "Juggernaut challenge completed.";
+            default: return null; // Merely waiting through an introduction is not an accomplishment.
+        }
+    }
     public void ShowFailure(string message)
     {
-        failureUntil = Time.unscaledTime + 8f;
+        failureUntil = Time.unscaledTime + (integrated ? DEF_UIPresentationPolicy.ReadSeconds(message) : 8f);
         if (failureText != null) failureText.text = message;
     }
     static void Set(GameObject[] objects, bool active)
