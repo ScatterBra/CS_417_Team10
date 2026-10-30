@@ -89,13 +89,42 @@ public sealed class DEF_Progression : MonoBehaviour
     public bool Check(DEF_Action action)
     {
         if (IsAllowed(action)) return true;
-        LastFailure = "Cannot " + action + ": this action is locked at " + State.Current + ". " + NextGoal;
+        LastFailure = State.Current == S.TeamPrerequisites ? RemainingStationGoals :
+            "Before you " + ActionDescription(action) + ": " + NextGoal;
         presenter?.ShowFailure(LastFailure);
         return false;
     }
+    static string ActionDescription(DEF_Action action) => action switch
+    {
+        DEF_Action.BasicSentry => "build a sentry",
+        DEF_Action.Repair => "repair a defense",
+        DEF_Action.PhysicalAmmo => "deliver an Ammo Box",
+        DEF_Action.StartWave => "start a wave",
+        DEF_Action.Combat => "fight enemies",
+        DEF_Action.Barricade => "build a barricade",
+        DEF_Action.Shock => "build a Shock Trap",
+        DEF_Action.Missile => "build a Missile Sentry",
+        DEF_Action.RemoteAmmo => "send ammo remotely",
+        DEF_Action.AmmoCrate => "collect ammo from a crate",
+        _ => "continue"
+    };
+    string RemainingStationGoals
+    {
+        get
+        {
+            var goals = new System.Collections.Generic.List<string>();
+            if (!State.HasPrerequisite(DEF_ProgressionState.Prerequisite.Power6))
+                goals.Add("Power: charge the cell, replace the bulb, and collect the cell.");
+            if (!State.HasPrerequisite(DEF_ProgressionState.Prerequisite.Clinic10))
+                goals.Add("Clinic: craft Medicine and heal to 100.");
+            if (!State.HasPrerequisite(DEF_ProgressionState.Prerequisite.Workshop14))
+                goals.Add("Workshop: craft Ammo + RepairKit; deliver one to a practice intake.");
+            return "Get ready for Defense:\n" + string.Join("\n", goals);
+        }
+    }
     public string NextGoal => State.Current switch
     {
-        S.TeamPrerequisites => "Complete Power Step6, Clinic Step10, and Workshop crafting plus physical teaching delivery (Step14).",
+        S.TeamPrerequisites => RemainingStationGoals,
         S.PlaceSentry => "Place one basic sentry on valid empty ground.",
         S.RepairIntroduction or S.AmmoIntroduction or S.WaveIntroduction => "Read the introduction; the next action unlocks after it finishes.",
         S.Repair => "Release a crafted RepairKit in the training sentry receiver to restore integrity.",

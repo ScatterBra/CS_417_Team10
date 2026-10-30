@@ -156,7 +156,10 @@ public class DEF_VRInput : MonoBehaviour
         if (!Active) return;
 
         bool menuPrimary = primary.IsPressed();
-        if (menuPrimary && !previousPrimary) DEF_HUD.Instance?.ToggleShop();
+        // Power owns input while its menu is open (and briefly after a UI click closes it).
+        // Keep this ahead of Defense's own modal guard so A can still close the Defense shop.
+        if (menuPrimary && !previousPrimary && !Deadzone.Power.PWR_WristPanel.BlockingXRWorldInput)
+            DEF_HUD.Instance?.ToggleShop();
         previousPrimary = menuPrimary;
         if (DEF_HUD.BlockingWorldInput)
         {

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 public class DEF_TileSelector : MonoBehaviour
 {
@@ -22,6 +23,8 @@ public class DEF_TileSelector : MonoBehaviour
         var ms = Mouse.current;
         if (ms != null && cam != null && grid != null && ms.leftButton.wasPressedThisFrame)
         {
+            // UI clicks belong to the station panel, not the Defense build grid.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
             Ray ray = cam.ScreenPointToRay(ms.position.ReadValue());
             RaycastHit[] hits = Physics.RaycastAll(ray);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -33,8 +36,8 @@ public class DEF_TileSelector : MonoBehaviour
                     return;
                 }
             }
-            if (!DEF_Progression.Allows(DEF_Action.BasicSentry)) { Deselect(); return; }
-        Deselect();
+            // Clicking another yard must not emit a Defense prerequisite failure.
+            Deselect();
         }
 
         var kb = Keyboard.current;

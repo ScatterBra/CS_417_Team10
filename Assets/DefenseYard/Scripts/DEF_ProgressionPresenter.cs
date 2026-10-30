@@ -10,7 +10,9 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     public GameObject[] repairContent, ammoContent, waveContent, advancedContent, missileContent;
     DEF_Progression owner;
     int session, attempt, introduction;
-    float finishAt;
+    float finishAt, failureUntil;
+    DEF_GridManager defenseGrid;
+    bool integrated;
     bool presenting;
     public bool Ready => introductionText != null && goalText != null;
     public void Present(DEF_Progression progression)
@@ -24,6 +26,9 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         Set(advancedContent, owner.IsAllowed(DEF_Action.Barricade));
         Set(missileContent,owner.IsAllowed(DEF_Action.Missile));
         goalText.text = owner.NextGoal;
+        if (failureText != null) failureText.text = "";
+        integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
+        UpdateGoalVisibility();
         bool intro = state.IntroductionActive;
         introductionText.gameObject.SetActive(intro);
         if (!intro) { presenting = false; return; }
@@ -38,11 +43,35 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     }
     void Update()
     {
+        UpdateGoalVisibility();
+        if (failureText != null && !string.IsNullOrEmpty(failureText.text) && Time.unscaledTime >= failureUntil)
+            failureText.text = "";
         if (!presenting || !Ready || !introductionText.gameObject.activeInHierarchy || Time.unscaledTime < finishAt) return;
         presenting = false;
         owner.IntroductionFinished(this, session, attempt, introduction);
     }
-    public void ShowFailure(string message) { if (failureText != null) failureText.text = message; }
+    void UpdateGoalVisibility()
+    {
+        if (owner == null || goalText == null) return;
+        bool visible = true;
+        if (owner.State.Current == S.TeamPrerequisites && integrated)
+        {
+            if (defenseGrid == null)
+                foreach (var grid in FindObjectsByType<DEF_GridManager>(FindObjectsSortMode.None))
+                    if (grid.gameObject.scene == gameObject.scene) { defenseGrid = grid; break; }
+            var camera = Camera.main;
+            // Local station guidance owns the view until the player returns to Defense.
+            // Missing setup must not hide the only available guidance.
+            if (defenseGrid != null && camera != null)
+                visible = defenseGrid.WorldToTile(camera.transform.position, out _, out _);
+        }
+        if (goalText.gameObject.activeSelf != visible) goalText.gameObject.SetActive(visible);
+    }
+    public void ShowFailure(string message)
+    {
+        failureUntil = Time.unscaledTime + 8f;
+        if (failureText != null) failureText.text = message;
+    }
     static void Set(GameObject[] objects, bool active)
     { if (objects != null) foreach (var obj in objects) if (obj != null) obj.SetActive(active); }
 }

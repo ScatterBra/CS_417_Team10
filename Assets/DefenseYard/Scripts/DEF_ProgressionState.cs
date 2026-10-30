@@ -45,6 +45,7 @@ public sealed class DEF_ProgressionState
     void ClearAdvanced()
     {routeControlled=shocked=juggernautSeen=combatRepair=combatRefill=false;defenseTypes.Clear();}
     public bool TeamReady => ready.Count == 3;
+    public bool HasPrerequisite(Prerequisite kind) => ready.Contains(kind);
     public bool AcceptPrerequisite(Prerequisite kind, int session, string receipt)
     {
         if (session != Session || Current != Stage.TeamPrerequisites || string.IsNullOrEmpty(receipt) ||
