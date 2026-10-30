@@ -14,10 +14,35 @@ public class MED_DeliveryPath : MonoBehaviour
     Vector3[] localPoints = Array.Empty<Vector3>();
     float[] cumulative = Array.Empty<float>();   // distance (meters) from the start to each sample
     bool built;
+    bool explicitPolyline;
 
     public float TotalLength
     {
         get { Ensure(); return cumulative.Length > 0 ? cumulative[cumulative.Length - 1] : 0f; }
+    }
+
+    // Opt-in courier route: straight segments stay inside authored paving. Existing paths remain splines.
+    public bool SetWorldPolyline(System.Collections.Generic.IReadOnlyList<Vector3> points)
+    {
+        if (points == null || points.Count < 2) return false;
+        var local = new Vector3[points.Count];
+        var distances = new float[points.Count];
+        for (int i = 0; i < points.Count; i++)
+        {
+            var p = points[i];
+            if (float.IsNaN(p.x) || float.IsNaN(p.y) || float.IsNaN(p.z) ||
+                float.IsInfinity(p.x) || float.IsInfinity(p.y) || float.IsInfinity(p.z)) return false;
+            local[i] = transform.InverseTransformPoint(p);
+            if (i > 0)
+            {
+                float step = Vector3.Distance(points[i - 1], p);
+                if (step <= .0001f) return false;
+                distances[i] = distances[i - 1] + step;
+            }
+        }
+        if (distances[distances.Length - 1] <= .01f) return false;
+        localPoints = local; cumulative = distances; explicitPolyline = built = true;
+        return true;
     }
 
     void OnValidate() => built = false;
@@ -45,6 +70,7 @@ public class MED_DeliveryPath : MonoBehaviour
     [ContextMenu("Rebuild Path")]
     public void Build()
     {
+        if (explicitPolyline) { built = true; return; }
         var wp = LocalWaypoints();
         built = true;
         if (wp.Length < 2)

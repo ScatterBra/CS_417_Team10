@@ -113,14 +113,14 @@ public partial class MED_PlayerResources
         foreach(var input in ticket.Inputs)NotifyResource(input.Key,Get(input.Key));}
         finally{evidenceTransaction=false;} return true;
     }
-    internal bool TransferMedicine(Action<MED_MedicineUnit> commit, bool requireCurrent=false)
+    internal bool TransferMedicine(Action<MED_MedicineUnit> commit, bool requireCurrent=false, Predicate<MED_MedicineUnit> accepts=null)
     {
         EnsureInitialized();if(evidenceTransaction||Get(MED_ResourceType.Medicine)<1)return false;
         evidenceTransaction=true;
         try
         {
             AdjustUnprovenMedicine(Get(MED_ResourceType.Medicine));
-            int index=requireCurrent?medicineUnits.FindIndex(IsCurrent):0;
+            int index=requireCurrent || accepts!=null ? medicineUnits.FindIndex(unit => (!requireCurrent || IsCurrent(unit)) && (accepts==null || accepts(unit))) : 0;
             if(index<0)return false;
             var unit=medicineUnits[index];medicineUnits.RemoveAt(index);amounts[(int)MED_ResourceType.Medicine]--;
             commit(unit);NotifyResource(MED_ResourceType.Medicine,Get(MED_ResourceType.Medicine));

@@ -10,7 +10,7 @@ public class MED_SupplyCart : MonoBehaviour
     public static event Action<MED_SupplyCart,MED_PlayerResources,MED_ResourceType,bool> UnloadCommitted;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetEvidenceListeners()=>UnloadCommitted=null;
-    public enum CartState { Arriving, Waiting, Leaving }
+    public enum CartState { Arriving, Waiting, Leaving, ToDefense, AtDefense, ReturningToClinic }
 
     static readonly MED_ResourceType[] CargoTypes =
         { MED_ResourceType.Herbs, MED_ResourceType.Water, MED_ResourceType.Alcohol, MED_ResourceType.Gauze };
@@ -32,6 +32,55 @@ public class MED_SupplyCart : MonoBehaviour
     [SerializeField] Transform messageAnchor;
 
     MED_DeliveryPath path;
+    MED_DeliveryPath inboundPath, exportRoute;
+    Action<MED_SupplyCart> medicineArrived;
+    float defenseStopUntil;
+    bool arrivalSent;
+    readonly Collider[] travelContacts = new Collider[32];
+    readonly RaycastHit[] groundHits = new RaycastHit[32];
+    public MED_DeliveryPath InboundPath => inboundPath != null ? inboundPath : path;
+    public bool HoldForMedicine { get; set; }
+    public string TravelStatus { get; private set; }
+    public bool MedicineTripBlocked { get; private set; }
+    public bool OnMedicineTrip => State == CartState.ToDefense || State == CartState.AtDefense || State == CartState.ReturningToClinic;
+    public void ConfigureDefenseExport(MED_DeliveryPath route) { exportRoute = route; }
+    public bool CanDispatch(MED_DeliveryPath route) => State == CartState.Waiting && cargo.Count == 0 &&
+        !finished && route != null && route.TotalLength > 1f && Vector3.Distance(transform.position, route.GetPointAtDistance(0)) < .05f;
+    public bool TryDispatch(MED_DeliveryPath route, Action<MED_SupplyCart> arrived)
+    {
+        if (!CanDispatch(route) || arrived == null) return false;
+        inboundPath = path; path = route; distance = 0; arrivalSent = false; medicineArrived = arrived;
+        HoldForMedicine = false; MedicineTripBlocked = false; TravelStatus = "Medicine travelling to Defense";
+        SetState(CartState.ToDefense); return true;
+    }
+    public bool CancelStalledMedicineTrip()
+    {
+        if (finished || !MedicineTripBlocked || (State != CartState.ToDefense && State != CartState.ReturningToClinic)) return false;
+        medicineArrived = null; HoldForMedicine = false;
+        Finish(); // Explicit cancelled courier, never an arrival. Normal raw-supply scheduling resumes.
+        return true;
+    }
+    bool Travel(float step)
+    {
+        float next = Mathf.Clamp(distance + step, 0, path.TotalLength);
+        var point = path.GetPointAtDistance(next);
+        var heading = path.GetTangentAtDistance(next); if (step < 0) heading = -heading;
+        var rotation = heading.sqrMagnitude > .001f ? Quaternion.LookRotation(heading) : transform.rotation;
+        int contacts = Physics.OverlapBoxNonAlloc(point + Vector3.up * .65f, new Vector3(.5f, .4f, .65f), travelContacts, rotation, ~0, QueryTriggerInteraction.Ignore);
+        if (contacts == travelContacts.Length) { MedicineTripBlocked = true; TravelStatus = "Route obstructed; Medicine is retained"; return false; }
+        for (int i = 0; i < contacts; i++)
+            if (travelContacts[i] != null && !travelContacts[i].transform.IsChildOf(transform))
+            { MedicineTripBlocked = true; TravelStatus = "Route obstructed; clear the cart path. Medicine is retained"; return false; }
+        int hits = Physics.RaycastNonAlloc(point + Vector3.up * 2, Vector3.down, groundHits, 2.2f, ~0, QueryTriggerInteraction.Ignore);
+        bool supported = false;
+        for (int i = 0; i < hits; i++)
+            if (groundHits[i].collider != null && !groundHits[i].collider.transform.IsChildOf(transform) && Mathf.Abs(groundHits[i].point.y - point.y) <= .15f) supported = true;
+        if (!supported) { MedicineTripBlocked = true; TravelStatus = "Route has no ground support; Medicine is retained"; return false; }
+        MedicineTripBlocked = false;
+        float traveled = next - distance; distance = next; SpinWheels(traveled); Place();
+        TravelStatus = State == CartState.ToDefense ? "Medicine to Defense: " + Mathf.CeilToInt((path.TotalLength - distance) / 3f) + "s remaining" : "Cart returning to Clinic";
+        return true;
+    }
     MED_PlayerResources player;
     readonly List<MED_ResourceType> cargo = new List<MED_ResourceType>();
     float distance;
@@ -60,7 +109,7 @@ public class MED_SupplyCart : MonoBehaviour
     /// <summary>Called by the spawner right after instantiating: rolls the cargo and starts the arrival.</summary>
     public void Init(MED_DeliveryPath deliveryPath)
     {
-        path = deliveryPath;
+        path = inboundPath = deliveryPath;
         RollCargo();
         distance = 0f;
         State = CartState.Arriving;
@@ -132,8 +181,8 @@ public class MED_SupplyCart : MonoBehaviour
 
             case CartState.Waiting:
                 var learning=DEF_ClinicTraining.For(this);
-                if(learning==null||!learning.ProtectLearningCart)waitTimer += dt;
-                if (waitTimer >= waitSeconds) BeginLeaving();
+                if(!HoldForMedicine && (learning==null||!learning.ProtectLearningCart))waitTimer += dt;
+                if (!HoldForMedicine && waitTimer >= waitSeconds) BeginLeaving();
                 // Button color depends on the player's distance, so re-check a few times per second (not every frame).
                 nearTimer -= dt;
                 if (nearTimer <= 0f)
@@ -144,6 +193,30 @@ public class MED_SupplyCart : MonoBehaviour
                 }
                 break;
 
+            case CartState.ToDefense:
+                if (!Travel(3f * dt)) break;
+                if (distance >= path.TotalLength)
+                {
+                    SetState(CartState.AtDefense); defenseStopUntil = Time.time + 3f;
+                    if (!arrivalSent)
+                    {
+                        arrivalSent = true;
+                        var callback = medicineArrived; medicineArrived = null;
+                        callback?.Invoke(this);
+                    }
+                }
+                break;
+            case CartState.AtDefense:
+                if (Time.time >= defenseStopUntil) SetState(CartState.ReturningToClinic);
+                break;
+            case CartState.ReturningToClinic:
+                if (!Travel(-3f * dt)) break;
+                if (distance <= 0)
+                {
+                    path = inboundPath; distance = path.TotalLength;
+                    BeginLeaving();
+                }
+                break;
             case CartState.Leaving:
                 if (turning)
                 {
@@ -172,7 +245,7 @@ public class MED_SupplyCart : MonoBehaviour
     {
         var pos = path.GetPointAtDistance(distance);
         var heading = path.GetTangentAtDistance(distance);
-        if (State == CartState.Leaving) heading = -heading;
+        if (State == CartState.Leaving || State == CartState.ReturningToClinic) heading = -heading;
         heading.y = 0f;
         transform.position = pos;
         if (heading.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(heading, Vector3.up);
@@ -202,7 +275,7 @@ public class MED_SupplyCart : MonoBehaviour
         if (finished) return;
         finished = true;
         Finished?.Invoke(this);
-        Destroy(gameObject);
+        if (Application.isPlaying) Destroy(gameObject); else DestroyImmediate(gameObject);
     }
 
     void SetState(CartState state)
@@ -234,7 +307,9 @@ public class MED_SupplyCart : MonoBehaviour
         if (cargo.Count == 0)
         {
             CartEmptied?.Invoke();
-            BeginLeaving();
+            // Optional post-tutorial export window; original inbound lesson still unloads genuine raw supplies.
+            if (exportRoute != null) waitTimer = 0f;
+            else BeginLeaving();
         }
         return true;
     }
@@ -249,7 +324,7 @@ public class MED_SupplyCart : MonoBehaviour
         for (int i = 0; i < crates.Length; i++)
             if (crates[i] != null) crates[i].SetActive(i < remaining);
         if (nextLabel != null)
-            nextLabel.text = cargo.Count > 0 ? $"Next: {cargo[0]}" : "Empty";
+            nextLabel.text = cargo.Count > 0 ? $"Incoming ingredients\nUNLOAD INGREDIENTS: {cargo[0]}" : "Ingredients unloaded";
         RefreshButtons();
     }
 

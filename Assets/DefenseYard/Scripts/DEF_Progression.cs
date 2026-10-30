@@ -225,6 +225,7 @@ public sealed class DEF_Progression : MonoBehaviour
     public void BeginDefenseRetry() { DEF_WaveManager.I?.TryRetryDefense(); }
     internal void ResetDefenseAttempt()
     {
+        DEF_ClinicFieldAid.CancelForReset(this, false);
         ResetOwnedDefenses();
         State.RetryDefense(); Refresh();
     }
@@ -246,6 +247,7 @@ public sealed class DEF_Progression : MonoBehaviour
     public void BeginNewSession()
     {
         if(DeferReset(true))return;
+        DEF_ClinicFieldAid.CancelForReset(this, true);
         var training=DEF_ClinicTraining.For(this);
         if(Application.isPlaying && training!=null){training.RestartFullRun();return;}
         DEF_WaveManager.I?.ResetOwnedWave();ResetOwnedDefenses();retryScrap=null;

@@ -19,6 +19,7 @@ namespace Deadzone.Power
         private CharacterController controller;
         private float pitch;
         private bool active;
+        public bool IsLocomotionActive => active && isActiveAndEnabled;
 
         private IEnumerator Start()
         {

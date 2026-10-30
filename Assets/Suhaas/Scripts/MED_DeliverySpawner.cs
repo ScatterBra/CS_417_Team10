@@ -57,7 +57,7 @@ public class MED_DeliverySpawner : MonoBehaviour
         cart.StateChanged += () => RefreshSign(true);
         cartActive = true;
         cart.Init(path);
-        MED_FloatingText.Spawn(DoorwayPosition, "DELIVERY ARRIVING", new Color(1f, 0.9f, 0.4f), 0.7f);
+        MED_FloatingText.Spawn(DoorwayPosition, "INCOMING INGREDIENTS", new Color(1f, 0.9f, 0.4f), 0.7f);
         RefreshSign(true);
     }
 
@@ -78,16 +78,19 @@ public class MED_DeliverySpawner : MonoBehaviour
         if (!cartActive)
         {
             secs = Mathf.Max(0, Mathf.CeilToInt(nextTime - Time.time));
-            line = $"Next delivery in {secs / 60}:{secs % 60:00}";
+            line = $"Incoming ingredients in {secs / 60}:{secs % 60:00}";
         }
-        else if (cart == null) line = "Cart arriving...";
+        else if (cart == null) line = "Incoming ingredients...";
         else
         {
             switch (cart.State)
             {
-                case MED_SupplyCart.CartState.Arriving: line = "Cart arriving..."; break;
-                case MED_SupplyCart.CartState.Waiting: line = "Cart at bay - unload!"; break;
-                default: line = "Cart leaving"; break;
+                case MED_SupplyCart.CartState.Arriving: line = "Incoming ingredients..."; break;
+                case MED_SupplyCart.CartState.Waiting: line = cart.HoldForMedicine ? "Medicine loaded — SEND TO DEFENSE when ready" : "Incoming ingredients — UNLOAD INGREDIENTS"; break;
+                case MED_SupplyCart.CartState.ToDefense: line = cart.TravelStatus; break;
+                case MED_SupplyCart.CartState.AtDefense: line = "Medicine reached Defense"; break;
+                case MED_SupplyCart.CartState.ReturningToClinic: line = cart.TravelStatus; break;
+                default: line = "Cart returning for more ingredients"; break;
             }
         }
         if (!force && secs == shownSeconds && line == shownText) return;

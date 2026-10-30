@@ -118,7 +118,7 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     }
     float revealUntil;
     int pendingStep=7;
-    void Start(){Reveal(7,"Gather supplies, craft Medicine, then heal yourself from 50 to 100. This verifies the Clinic requirement for Defense. Start with Sickle for Herbs, Bucket for Water, and Crowbar for supplies.");}
+    void Start(){if(GetComponent<DEF_ClinicFieldAid>()==null)gameObject.AddComponent<DEF_ClinicFieldAid>();if(GetComponent<DEF_ClinicMedicineDelivery>()==null)gameObject.AddComponent<DEF_ClinicMedicineDelivery>();Reveal(7,"Gather supplies, craft Medicine, then heal yourself from 50 to 100. This verifies the Clinic requirement for Defense. Start with Sickle for Herbs, Bucket for Water, and Crowbar for supplies.");}
     public bool CanReveal(MED_BuildingDefinition definition)=>pendingStep==0&&Step>=(definition==benchDefinition?9:10);
     public bool ProtectLearningCart=>!unloaded;
     public bool ReadyForTreatment=>Step>=10 && pendingStep==0;

@@ -44,6 +44,10 @@ public sealed class DEF_ClinicReadiness : DEF_PrerequisiteSource
         PendingReason=armed?"Craft Medicine, stock this station and heal yourself from 50 to 100 on its pad.":
             "Clinic needs a fresh run with your health at 50/100. Reload the full run; Defense retry preserves readiness.";
     }
+    // Read-only eligibility for the optional post-tutorial Field Aid consumer.
+    // A dose remains genuine even if its original qualified bench was later demolished.
+    internal bool IsVerifiedMedicine(MED_MedicineUnit unit) => published && Current && sessionPatient.IsCurrent(unit) &&
+        eligibleBenches.Contains(unit.Bench) && unit.Recipe == sessionRecipe;
     bool Current=>armed && Session>0 && patient==sessionPatient && medicineRecipe==sessionRecipe &&
         (sessionRoot!=null ? buildingsRoot==sessionRoot && benchDefinition==sessionBenchDefinition && stationDefinition==sessionStationDefinition :
             bench==sessionBench && station==observedStation && bench!=null && station!=null) &&
