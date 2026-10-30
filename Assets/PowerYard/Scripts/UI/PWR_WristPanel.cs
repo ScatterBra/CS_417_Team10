@@ -61,6 +61,10 @@ namespace Deadzone.Power
         private TMP_Text statusLabelText;
         private Canvas objectiveCanvas;
         private TMP_Text objectiveText;
+        private Canvas inventoryCanvas;
+        private TMP_Text inventoryText;
+        private PWR_PlayerResources inventorySource;
+        private readonly StringBuilder inventoryLines = new StringBuilder();
         private PWR_Stage observedStage;
         private string completedGoal;
         private float completionUntil;
@@ -81,6 +85,8 @@ namespace Deadzone.Power
         {
             toggle.Disable();
             PWR_Progression.StageChanged -= HandleStageChanged;
+            UnbindInventory();
+            if (inventoryCanvas != null) inventoryCanvas.gameObject.SetActive(false);
         }
 
         private void OnDestroy()
@@ -159,8 +165,52 @@ namespace Deadzone.Power
                 new Vector2(520, 165), .6f / 520f, false);
             PWR_UIFactory.CreatePanel(objectiveCanvas.transform, new Color(.015f, .02f, .025f, .94f)).raycastTarget = false;
             objectiveText = PWR_UIFactory.CreateText(objectiveCanvas.transform, "", 22, TextAlignmentOptions.TopLeft, 12);
+            inventoryCanvas = PWR_UIFactory.CreateWorldCanvas("Power carried inventory", null,
+                new Vector2(600, 220), .65f / 600f, false);
+            PWR_UIFactory.CreatePanel(inventoryCanvas.transform, new Color(.015f, .02f, .025f, .94f)).raycastTarget = false;
+            inventoryText = PWR_UIFactory.CreateText(inventoryCanvas.transform, "", 22, TextAlignmentOptions.TopLeft, 12);
+            BindInventory();
             observedStage = PWR_Progression.Instance != null ? PWR_Progression.Instance.Stage : PWR_Stage.RestoreLight;
             UpdateObjective();
+        }
+
+        private void UnbindInventory()
+        {
+            if (inventorySource != null) inventorySource.OnResourceChanged -= InventoryChanged;
+            inventorySource = null;
+        }
+
+        private void BindInventory()
+        {
+            if (inventorySource == PWR_PlayerResources.Instance) return;
+            UnbindInventory();
+            inventorySource = PWR_PlayerResources.Instance;
+            if (inventorySource != null) inventorySource.OnResourceChanged += InventoryChanged;
+            RefreshInventory();
+        }
+
+        private void InventoryChanged(PWR_ResourceType type, int amount, int delta) => RefreshInventory();
+
+        private void RefreshInventory()
+        {
+            if (inventoryText == null) return;
+            if (inventorySource == null) { inventoryText.text = "POWER INVENTORY — waiting for resources"; return; }
+            inventoryLines.Clear();
+            inventoryLines.Append("<b>POWER — CARRIED INVENTORY</b>\n<size=85%>Excludes fuel already loaded in machines</size>");
+            InventoryRow(PWR_ResourceType.Scrap, "Power Scrap", PWR_ResourceType.Coal, "Coal", true);
+            InventoryRow(PWR_ResourceType.CrudeOil, "Crude Oil", PWR_ResourceType.RefinedOil, "Refined Oil", true);
+            InventoryRow(PWR_ResourceType.CopperWire, "Copper Wire", PWR_ResourceType.Glass, "Glass");
+            InventoryRow(PWR_ResourceType.Electrolyte, "Electrolyte", PWR_ResourceType.Fuse, "Fuse");
+            InventoryRow(PWR_ResourceType.Battery, "Battery", PWR_ResourceType.LightBulb, "Light Bulb");
+            inventoryText.text = inventoryLines.ToString();
+        }
+
+        private void InventoryRow(PWR_ResourceType left, string leftName, PWR_ResourceType right, string rightName, bool always = false)
+        {
+            int a = inventorySource.Get(left), b = inventorySource.Get(right);
+            if (!always && a == 0 && b == 0 && !PWR_Progression.IsResourceVisible(left) && !PWR_Progression.IsResourceVisible(right)) return;
+            inventoryLines.Append('\n').Append(leftName).Append(": ").Append(a)
+                .Append("<pos=52%>").Append(rightName).Append(": ").Append(b);
         }
 
         private void HandleStageChanged(PWR_Stage stage)
@@ -181,6 +231,7 @@ namespace Deadzone.Power
                 completionUntil = Time.unscaledTime + 2f;
             }
             observedStage = stage;
+            RefreshInventory();
         }
 
         private void UpdateObjective()
@@ -193,6 +244,19 @@ namespace Deadzone.Power
                 cam = defense.xrCamera;
             bool visible = PWR_AreaGate.PlayerInside && cam != null;
             objectiveCanvas.gameObject.SetActive(visible);
+            BindInventory(); // Handles startup ordering and a replaced inventory owner.
+            if (inventoryCanvas != null)
+            {
+                // Desktop already has the always-visible resource menu. XR menu shows the same ledger.
+                bool showInventory = visible && XRActiveNow && !IsXRMenuOpen;
+                inventoryCanvas.gameObject.SetActive(showInventory);
+                if (showInventory)
+                {
+                    inventoryCanvas.worldCamera = cam;
+                    inventoryCanvas.transform.SetPositionAndRotation(
+                        cam.transform.TransformPoint(new Vector3(-.50f, -.29f, 1.25f)), cam.transform.rotation);
+                }
+            }
             if (!visible) return;
             objectiveCanvas.worldCamera = cam;
             objectiveCanvas.transform.SetPositionAndRotation(cam.transform.TransformPoint(new Vector3(.65f, .25f, 1.25f)), cam.transform.rotation);
@@ -379,6 +443,9 @@ namespace Deadzone.Power
             if (statusLabel != null) { statusLabel.gameObject.SetActive(false); Destroy(statusLabel.gameObject); }
             if (objectiveCanvas != null) Destroy(objectiveCanvas.gameObject);
             objectiveCanvas = null; objectiveText = null;
+            UnbindInventory();
+            if (inventoryCanvas != null) { inventoryCanvas.gameObject.SetActive(false); Destroy(inventoryCanvas.gameObject); }
+            inventoryCanvas = null; inventoryText = null;
             uiRoot = null; canvas = null; statusLabel = null; statusLabelText = null;
             resourceText = null; goalText = null; statusText = null; hand = null; Anchor = null;
             buildButtons.Clear();
