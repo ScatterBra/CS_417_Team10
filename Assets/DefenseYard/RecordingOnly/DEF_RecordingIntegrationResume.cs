@@ -64,16 +64,16 @@ public sealed class DEF_RecordingIntegrationResume : MonoBehaviour
         // Prepared gate flags only: no AcceptPrerequisite or fake receipt IDs.
         var ready = Get<HashSet<DEF_ProgressionState.Prerequisite>>(progression.State, "ready");
         foreach (DEF_ProgressionState.Prerequisite p in Enum.GetValues(typeof(DEF_ProgressionState.Prerequisite))) ready.Add(p);
-        Property(progression.State, "Current", DEF_ProgressionState.Stage.MissilePractice);
-        game.playerHealth = game.maxHealth; game.ammo = 10; game.scrap = 700; game.waveNumber = 1;
+        Property(progression.State, "Current", DEF_ProgressionState.Stage.JuggernautReady);
+        game.playerHealth = game.maxHealth; game.ammo = 30; game.scrap = 700; game.waveNumber = 2;
         Call(progression, "Refresh");
         SeedClinic(clinic, progression);
         SeedPower();
         SpawnWorkshopItem(bench, ledger, "ammoBoxPrefab", new Vector3(-1.2f, 1.1f, -1.7f), false);
         SpawnWorkshopItem(bench, ledger, "repairKitPrefab", new Vector3(1.2f, 1.1f, -1.7f), true);
-        PlaceStarter(false); // Player places their own Missile; no splash or finale evidence is seeded.
-        game.scrap = 500; game.ammo = 10;
-        Set(progression, "retryScrap", (int?)500); Set(progression, "retryAmmo", 10);
+        PlaceStarter(false); PlaceStarter(true); // Prepared defenses only; no finale evidence is seeded.
+        game.scrap = 500; game.ammo = 30;
+        Set(progression, "retryScrap", (int?)500); Set(progression, "retryAmmo", 30);
         Call(progression, "Refresh");
         MoveToOutpost();
     }
