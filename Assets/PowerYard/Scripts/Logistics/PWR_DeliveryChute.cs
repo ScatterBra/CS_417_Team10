@@ -47,6 +47,7 @@ namespace Deadzone.Power
         public static event Action<PWR_DeliveryChute> Started;
 
         public int Queued => queue.Count;
+        public float SecondsToNextBatch => Mathf.Max(0f, batchTimer);
         public int BatchesDelivered { get; private set; }
         public bool Running { get; private set; }
 

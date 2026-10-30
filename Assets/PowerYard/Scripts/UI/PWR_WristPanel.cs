@@ -199,7 +199,7 @@ namespace Deadzone.Power
             var progression = PWR_Progression.Instance;
             DEF_UIPresentationPolicy.SetCompletionMark(objectiveText, Time.unscaledTime < completionUntil);
             objectiveText.text = Time.unscaledTime < completionUntil
-                ? "<color=#7CFC7C><b>COMPLETE</b></color>\n" + completedGoal
+                ? "<color=#7CFC7C><b>PREVIOUS GOAL COMPLETE</b></color>\nNext: " + (progression != null ? progression.NextGoal : "")
                 : "<color=#FFC840><b>POWER — CURRENT GOAL</b></color>\n" +
                   (progression != null ? progression.NextGoal : "Press Y to open the Power menu.");
         }

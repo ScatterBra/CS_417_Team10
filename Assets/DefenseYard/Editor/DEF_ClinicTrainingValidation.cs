@@ -6,6 +6,18 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 public static class DEF_ClinicTrainingValidation
 {
+    [MenuItem("Defense Yard/MP2B/Validate Live Clinic Has No Test Controls")]
+    public static void ValidateLiveTestControls()
+    {
+        if (!Application.isPlaying) throw new Exception("Run after Deadzone_Final has entered Play Mode and completed setup.");
+        var scene = SceneManager.GetSceneByPath("Assets/Scenes/Deadzone_Final.unity");
+        if (!scene.IsValid() || !scene.isLoaded) throw new Exception("Deadzone_Final is not loaded.");
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var button in root.GetComponentsInChildren<MED_TestButtonBase>(true))
+                if (button.gameObject.activeInHierarchy) throw new Exception("Active test-only Clinic button: " + button.name);
+        Debug.Log("PASS final scene runtime has no active Clinic test-only buttons, including nested prefab instances.");
+    }
+
     [MenuItem("Defense Yard/MP2B/Validate Clinic Ordered Gates")]
     public static void Run()
     {
@@ -26,6 +38,21 @@ public static class DEF_ClinicTrainingValidation
             Check(!MED_ProgressionManager.ClinicComplete,"scene manager awakening resets previous completion");
             owner.SkipToNext();
             Check(owner.CurrentThreshold==0 && t.Step==7,"owner debug skip cannot advance integrated training");
+            // Instantiate the real station prefab so nested test UI cannot evade this regression.
+            var clinicPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Suhaas/Prefabs/MED_ClinicStation.prefab");
+            var clinicInstance = (GameObject)PrefabUtility.InstantiatePrefab(clinicPrefab, scene);
+            int genuineButtonsBefore = 0;
+            foreach (var action in clinicInstance.GetComponentsInChildren<MED_ActionButton>(true))
+                if (action.gameObject.activeInHierarchy) genuineButtonsBefore++;
+            foreach (var test in clinicInstance.GetComponentsInChildren<MED_TestButtonBase>(true)) test.HideInIntegratedScene();
+            bool activeTests = false;
+            foreach (var test in clinicInstance.GetComponentsInChildren<MED_TestButtonBase>(true)) activeTests |= test.gameObject.activeInHierarchy;
+            Check(!activeTests, "production setup hides nested Clinic prefab test controls");
+            int genuineButtonsAfter = 0;
+            foreach (var action in clinicInstance.GetComponentsInChildren<MED_ActionButton>(true))
+                if (action.gameObject.activeInHierarchy) genuineButtonsAfter++;
+            Check(genuineButtonsBefore == genuineButtonsAfter, "genuine Clinic action buttons are not test controls");
+            UnityEngine.Object.DestroyImmediate(clinicInstance);
             var flags=BindingFlags.Instance|BindingFlags.NonPublic;
             // Non-ExecuteAlways behaviours do not reliably run runtime lifecycle in Edit Mode.
             typeof(DEF_ClinicTraining).GetMethod("OnEnable",flags).Invoke(t,null);

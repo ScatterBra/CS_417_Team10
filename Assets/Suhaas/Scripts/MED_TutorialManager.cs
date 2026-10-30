@@ -98,6 +98,7 @@ public class MED_TutorialManager : MonoBehaviour
     /// <summary>Queues a pop-up. Ignored if its id was already shown or is already waiting.</summary>
     public void Enqueue(MED_PopupTutorial popup, Transform anchor)
     {
+        if (popup != null && DEF_ClinicTraining.For(this) is DEF_ClinicTraining training && !training.IsTutorialRelevant(popup.TutorialId)) return;
         if (popup == null || shown.Contains(popup.TutorialId) || queuedIds.Contains(popup.TutorialId)) return;
         if (active && current != null && current.TutorialId == popup.TutorialId) return;
         queuedIds.Add(popup.TutorialId);
@@ -106,6 +107,12 @@ public class MED_TutorialManager : MonoBehaviour
 
     void Update()
     {
+        var training = DEF_ClinicTraining.For(this);
+        if (active && training != null && current != null && !training.IsTutorialRelevant(current.TutorialId))
+        {
+            active = false; current = null; currentAnchor = null;
+            if (panel != null) panel.SetActive(false);
+        }
         // Only one Clinic temporary card at a time; pausing the visual never changes training gates.
         if (DEF_ClinicTraining.For(this) != null)
         {
@@ -133,6 +140,8 @@ public class MED_TutorialManager : MonoBehaviour
             if (r.popup == null) continue;
             queuedIds.Remove(r.popup.TutorialId);
             if (shown.Contains(r.popup.TutorialId)) continue;
+            var training = DEF_ClinicTraining.For(this);
+            if (training != null && !training.IsTutorialRelevant(r.popup.TutorialId)) continue;
             // A proximity pop-up that waited too long is dropped if the player has moved off; it can fire again later.
             if (!r.popup.StillRelevant(r.anchor)) continue;
             Show(r.popup, r.anchor);

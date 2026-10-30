@@ -29,7 +29,7 @@ namespace Deadzone.Power
         {
             if (statBlock == null) statBlock = GetComponentInParent<PWR_StatBlock>();
             const float unitsWide = 320f;
-            int lines = entries.Length + 2; // title + entries + optional extra line
+            int lines = entries.Length + (GetComponentInParent<PWR_ReceivingBin>() != null ? 4 : 2); // title + entries + optional extra line
             var canvas = PWR_UIFactory.CreateWorldCanvas("StatLabel", transform,
                 new Vector2(unitsWide, 34 + lines * 34), width / unitsWide, false);
             canvasGo = canvas.gameObject;
@@ -75,12 +75,22 @@ namespace Deadzone.Power
                     string statName = percent ? e.Substring(0, e.Length - 1) : e;
                     var s = statBlock.GetStat(statName);
                     if (s == null) continue;
+                    var receiver = GetComponentInParent<PWR_ReceivingBin>();
+                    if (receiver != null && statName == receiver.stockStat)
+                    {
+                        sb.Append("\nStored packages: ").Append(receiver.StoredCount);
+                        continue; // 99 is a stat ceiling, never a required delivery quantity.
+                    }
                     sb.Append('\n').Append(statName).Append(": ");
                     if (percent) sb.Append(Mathf.RoundToInt(s.Normalized * 100f)).Append('%');
                     else sb.Append(s.value.ToString("0")).Append(" / ").Append(s.max.ToString("0"));
                 }
             }
             if (!string.IsNullOrEmpty(extraLine)) sb.Append('\n').Append(extraLine);
+            if (GetComponentInParent<PWR_ReceivingBin>() != null)
+                sb.Append(PWR_PlayerRig.Instance != null && PWR_PlayerRig.Instance.XRActive
+                    ? "\nCOLLECT ALL: empty hand\naim at bin + index trigger"
+                    : "\nCOLLECT ALL: aim at bin + E");
             text.text = sb.ToString();
         }
     }

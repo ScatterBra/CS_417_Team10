@@ -31,7 +31,90 @@ namespace Deadzone.Power
         public PWR_Stage Stage { get; private set; } = PWR_Stage.RestoreLight;
         public static event Action<PWR_Stage> StageChanged;
 
-        public string NextGoal => GoalFor(Stage);
+        private PWR_Stage preparingStage;
+        public string NextGoal => unlocking ? "Preparing " + StageName(preparingStage) + " — available in a moment." : CurrentGoal();
+
+        private static string StageName(PWR_Stage stage) => stage switch
+        {
+            PWR_Stage.GeneratePower => "generators and fuel crates",
+            PWR_Stage.SupplyLine => "the supply chute, bin and belts",
+            PWR_Stage.CraftBattery => "Workbench recipes and Electrolyte Tank",
+            PWR_Stage.ChargeCell => "the Cell Charger",
+            _ => "the next system"
+        };
+        private static bool XR => PWR_PlayerRig.Instance != null && PWR_PlayerRig.Instance.XRActive;
+        private static string UseHint => XR ? "empty hand: aim + index trigger" : "aim + E";
+        private string CurrentGoal()
+        {
+            var res = PWR_PlayerResources.Instance;
+            var bs = PWR_BuildSystem.Instance;
+            if (Stage == PWR_Stage.RestoreLight && bs != null && bs.CountBuilt("BatteryBank") > 0)
+                return "Floodlight still dark: place the Battery Bank within 2 cells of the Floodlight.";
+            if (Stage == PWR_Stage.GeneratePower && bs != null && res != null)
+            {
+                bool coal = bs.CountBuilt("CoalGenerator") > 0;
+                bool oil = bs.CountBuilt("OilGenerator") > 0;
+                if (!coal && !oil) return "Build a Coal Generator beside the Battery Bank (Y menu).";
+                if (coal && res.Get(PWR_ResourceType.Coal) > 0) return "Fuel the Coal Generator: " + UseHint + ". One use loads 1 Coal.";
+                if (oil && res.Get(PWR_ResourceType.RefinedOil) > 0) return "Fuel the Oil Generator: " + UseHint + ".";
+                if (coal) return "Get Coal: take the Wrench, strike a Wooden Crate (or trigger with Wrench nearby), then pick up the Coal.";
+                if (res.Get(PWR_ResourceType.CrudeOil) > 0) return "At the Workbench choose Refine Oil; then use the Oil Generator to load it.";
+                return "Use an Oil Barrel (" + UseHint + "), then choose Refine Oil at the Workbench.";
+            }
+            if (Stage == PWR_Stage.SupplyLine)
+            {
+                var receiver = bin != null ? bin.GetComponent<PWR_ReceivingBin>() : null;
+                if (receiver != null && receiver.StoredCount > 0)
+                    return $"{receiver.StoredCount} package(s) in Receiving Bin. COLLECT: {UseHint}. Collect now; no minimum fill.";
+                var delivery = chute != null ? chute.GetComponent<PWR_DeliveryChute>() : null;
+                if (delivery != null && delivery.Running && delivery.BatchesDelivered == 0)
+                    return $"Chute started. First supplies arrive in about {Mathf.CeilToInt(delivery.SecondsToNextBatch)}s. Then collect them from the bin.";
+                if (delivery != null && delivery.Running)
+                    return "Move packages into the Receiving Bin (belts or by hand), then USE the bin to collect.";
+                if (delivery != null && delivery.RouteReachesBin())
+                    return "Start the Delivery Chute: " + UseHint + ". Then collect from the Receiving Bin.";
+                return "Lay Concrete Pads + belts from the chute to the bin. Aim belt arrows toward the bin; then USE the chute to start.";
+            }
+            if (Stage == PWR_Stage.CraftBattery)
+            {
+                if (workbench != null && workbench.IsBusy) return "Workbench crafting — wait for its progress to finish.";
+                if (res != null && res.Get(PWR_ResourceType.Fuse) == 0) return RecipeGoal(PWR_ResourceType.Fuse);
+                return RecipeGoal(PWR_ResourceType.Battery);
+            }
+            if (Stage == PWR_Stage.ChargeCell && director != null)
+            {
+                var light = director.floodlight;
+                var charger = director.charger;
+                if (light != null && !light.HasBulb)
+                    return res != null && res.Get(PWR_ResourceType.LightBulb) > 0
+                        ? "Grip the crafted Light Bulb from the Workbench; release it into the Floodlight socket."
+                        : RecipeGoal(PWR_ResourceType.LightBulb);
+                if (charger != null && charger.IsComplete && !charger.IsCellCollected)
+                    return "Grip the Charged Cell ejected by the charger. Picking up this exact output completes the collection.";
+                if (charger != null && !charger.HasBattery && !charger.IsComplete)
+                    return "Grip the physical Battery from the Workbench; release it inside the Cell Charger slot.";
+                if (charger != null && charger.HasBattery)
+                    return $"Charging: {charger.ProgressPercent:0}%. Keep the generators fuelled and the Battery Bank beside the charger.";
+            }
+            return GoalFor(Stage);
+        }
+        private string RecipeGoal(PWR_ResourceType output)
+        {
+            if (workbench == null) return "Use the Workbench to craft " + PWR_Names.Of(output) + ".";
+            var res = PWR_PlayerResources.Instance;
+            foreach (var recipe in workbench.recipes)
+            {
+                if (recipe.output != output) continue;
+                foreach (var input in recipe.inputs)
+                {
+                    int missing = input.amount - (res != null ? res.Get(input.type) : 0);
+                    if (missing > 0) return $"For {recipe.name}: need {missing} {PWR_Names.Of(input.type)}. " +
+                        (input.type == PWR_ResourceType.Electrolyte ? "USE the Electrolyte Tank (" + UseHint + ")." : PWR_Names.HowToGet(input.type));
+                }
+                return "Workbench: select " + recipe.name + " (" + (XR ? "point + index trigger" : "click the recipe") + ").";
+            }
+            return "Use the Workbench to craft " + PWR_Names.Of(output) + ".";
+        }
 
         public static string GoalFor(PWR_Stage stage)
         {
@@ -186,7 +269,8 @@ namespace Deadzone.Power
         private void Advance(PWR_Stage next, string reveal, Action unlock)
         {
             unlocking = true;
-            ShowReveal($"{reveal}\n\n<color=#FFC840>Next goal:</color> {GoalFor(next)}");
+            preparingStage = next;
+            ShowReveal(next, $"{reveal}\n\n<color=#FFC840>Next goal:</color> {GoalFor(next)}");
             StartCoroutine(UnlockLater(next, unlock));
         }
 
@@ -205,7 +289,7 @@ namespace Deadzone.Power
             StageChanged?.Invoke(stage);
         }
 
-        private void ShowReveal(string message)
+        private void ShowReveal(PWR_Stage next, string message)
         {
             var mgr = PWR_TutorialManager.Instance;
             var cam = Camera.main;
@@ -215,7 +299,7 @@ namespace Deadzone.Power
             Vector3 forward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
             if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
             spot.position = cam.transform.position + forward * 1.4f;
-            mgr.ShowMessage(message, spot, Vector3.zero, revealSeconds);
+            mgr.ShowMessage(message, spot, Vector3.zero, revealSeconds, relevantStage: next);
             Destroy(spot.gameObject, revealSeconds + 0.5f);
         }
 

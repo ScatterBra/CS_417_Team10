@@ -23,8 +23,19 @@ public abstract class MED_TestButtonBase : MonoBehaviour
 
     protected abstract void OnPressed(MED_PlayerResources resources);
 
+    public bool HideInIntegratedScene()
+    {
+        if (DEF_ClinicTraining.For(this) == null) return false;
+        Transform tools = transform;
+        for (var parent = transform.parent; parent != null; parent = parent.parent)
+            if (parent.name == "MED_TestTools") { tools = parent; break; }
+        tools.gameObject.SetActive(false);
+        return true;
+    }
+
     void Awake()
     {
+        if (HideInIntegratedScene()) return;
         interactable = GetComponent<XRSimpleInteractable>();
         block = new MaterialPropertyBlock();
         if (capRenderer != null) capRestPosition = capRenderer.transform.localPosition;
@@ -41,6 +52,7 @@ public abstract class MED_TestButtonBase : MonoBehaviour
 
     void Press()
     {
+        if (HideInIntegratedScene()) return;
         if (MED_AreaGate.Outside) return;
         pressTimer = pressTime;
         if (Resources == null) Resources = FindAnyObjectByType<MED_PlayerResources>();

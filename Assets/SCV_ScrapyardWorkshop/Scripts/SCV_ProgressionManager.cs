@@ -32,6 +32,9 @@ public class SCV_ProgressionManager : MonoBehaviour
 
     [SerializeField] private GameObject defenseSupplyInteraction;
 
+    public WorkshopStage CurrentStage => currentStage;
+    SCV_IntegratedObjective integratedObjective;
+
     private bool craftedAmmo = false;
     private bool craftedRepairKit = false;
 
@@ -40,6 +43,8 @@ public class SCV_ProgressionManager : MonoBehaviour
 
     private void Start()
     {
+        if (DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene))
+            integratedObjective = GetComponent<SCV_IntegratedObjective>() ?? gameObject.AddComponent<SCV_IntegratedObjective>();
         // MP2B begins with later mechanics locked.
         if (crusherInteraction != null)
             crusherInteraction.SetActive(false);
@@ -183,6 +188,11 @@ public class SCV_ProgressionManager : MonoBehaviour
 
     private void ShowReveal(string message)
     {
+        if (integratedObjective != null)
+        {
+            integratedObjective.ShowUnlock(WorkshopComplete ? "PRACTICE DELIVERY NEXT\nBoth supplies are crafted. Release one at its matching practice intake." : message);
+            return;
+        }
         if (revealCanvas == null || revealText == null)
             return;
 

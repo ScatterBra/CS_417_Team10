@@ -20536,6 +20536,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4197165484532797351, guid: 1262203c5976df64387c23820c563d9f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 253241351506526424, guid: 1262203c5976df64387c23820c563d9f, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901

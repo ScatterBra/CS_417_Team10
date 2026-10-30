@@ -18,6 +18,11 @@ namespace Deadzone.Power
         /// <summary>The player emptied the bin into their resources.</summary>
         public static event Action<PWR_ReceivingBin> Collected;
 
+        // Actual deposited cargo, not the display stat maximum or a progression target.
+        public int StoredCount
+        {
+            get { int total = 0; foreach (var amount in contents.Values) total += amount; return total; }
+        }
         private PWR_StatBlock stats;
         private readonly Dictionary<PWR_ResourceType, int> contents = new Dictionary<PWR_ResourceType, int>();
 

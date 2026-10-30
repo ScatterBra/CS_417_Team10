@@ -30,6 +30,7 @@ namespace Deadzone.Power
             public string message;
             public Vector3 source;
             public bool feedback;
+            public PWR_Stage stage;
         }
         private readonly Queue<Notice> notices = new Queue<Notice>();
         private GameObject activeNotice;
@@ -58,10 +59,18 @@ namespace Deadzone.Power
 
         private void OnStageChanged(PWR_Stage stage)
         {
-            // A genuine completed stage makes an old machine failure obsolete.
-            if (activeEntry.feedback && activeNotice != null) { activeNotice.SetActive(false); Destroy(activeNotice); activeNotice = null; }
+            if (!integrated) return;
+            if (activeNotice != null && (activeEntry.feedback || activeEntry.stage < stage))
+            { activeNotice.SetActive(false); Destroy(activeNotice); activeNotice = null; }
             if (pendingFeedback.popup != null) Destroy(pendingFeedback.popup);
             pendingFeedback = default;
+            int count = notices.Count;
+            while (count-- > 0)
+            {
+                var notice = notices.Dequeue();
+                if (notice.stage < stage) { if (notice.popup != null) Destroy(notice.popup); }
+                else notices.Enqueue(notice);
+            }
         }
 
         public void ClearFeedbackAt(Vector3 position)
@@ -95,12 +104,27 @@ namespace Deadzone.Power
         /// <summary>Shows the popup if this id has not been shown yet. Returns true if shown.</summary>
         public bool ShowOnce(string id, string message, Transform anchor, Vector3 offset)
         {
-            if (string.IsNullOrEmpty(id) || shown.Contains(id) || anchor == null) return false;
+            if (string.IsNullOrEmpty(id) || shown.Contains(id) || anchor == null || !TutorialRelevant(anchor)) return false;
             shown.Add(id);
             order.Add(id);
             popups[id] = ShowMessage(message, anchor, offset, displaySeconds);
             Debug.Log($"[PWR] Tutorial '{id}': {message}");
             TutorialShown?.Invoke(id);
+            return true;
+        }
+
+        private bool TutorialRelevant(Transform anchor)
+        {
+            if (!integrated || PWR_Progression.Instance == null) return true;
+            var stage = PWR_Progression.Instance.Stage;
+            if (anchor.GetComponentInParent<PWR_CellCharger>() != null) return stage >= PWR_Stage.ChargeCell;
+            if (anchor.GetComponentInParent<PWR_DeliveryChute>() != null || anchor.GetComponentInParent<PWR_ReceivingBin>() != null ||
+                anchor.GetComponentInParent<PWR_ConveyorBelt>() != null) return stage >= PWR_Stage.SupplyLine;
+            var harvest = anchor.GetComponentInParent<PWR_Harvestable>();
+            if (harvest != null && harvest.resource == PWR_ResourceType.Electrolyte) return stage >= PWR_Stage.CraftBattery;
+            if (anchor.GetComponentInParent<PWR_Workbench>() != null || anchor.GetComponentInParent<PWR_Generator>() != null ||
+                anchor.GetComponentInParent<PWR_Shatterable>() != null || anchor.GetComponentInParent<PWR_Wrench>() != null)
+                return stage >= PWR_Stage.GeneratePower;
             return true;
         }
 
@@ -114,7 +138,7 @@ namespace Deadzone.Power
 
         /// <summary>Standalone: beside the anchor, lifetime &lt;= 0 persists. Integrated: queued readable notice.</summary>
         public GameObject ShowMessage(string message, Transform anchor, Vector3 offset, float lifetime,
-            bool feedback = false, Vector3 source = default)
+            bool feedback = false, Vector3 source = default, PWR_Stage? relevantStage = null)
         {
             if (integrated && feedback)
             {
@@ -156,10 +180,20 @@ namespace Deadzone.Power
                 if (billboard != null) billboard.enabled = false;
                 popup.SetActive(false);
                 var notice = new Notice { popup = popup, seconds = Mathf.Max(lifetime, DEF_UIPresentationPolicy.ReadSeconds(message)),
-                    message = message, source = source, feedback = feedback };
+                    message = message, source = source, feedback = feedback,
+                    stage = relevantStage ?? (PWR_Progression.Instance != null ? PWR_Progression.Instance.Stage : PWR_Stage.RestoreLight) };
                 if (feedback)
                 {
-                    // Keep only the latest waiting machine explanation; repeat input cannot flood the queue.
+                    // A deliberate action gets an immediate explanation, never waits behind tutorials.
+                    // Resume a still-relevant interrupted tutorial after the error, without stacking.
+                    if (activeNotice != null)
+                    {
+                        activeNotice.SetActive(false);
+                        if (activeEntry.feedback) Destroy(activeNotice);
+                        else { activeEntry.seconds = noticeRemaining; notices.Enqueue(activeEntry); }
+                        activeNotice = null;
+                    }
+                    // Keep only the latest machine explanation; repeat input cannot flood the queue.
                     if (pendingFeedback.popup != null) Destroy(pendingFeedback.popup);
                     pendingFeedback = notice;
                 }
@@ -183,17 +217,17 @@ namespace Deadzone.Power
                 if (activeNotice != null) activeNotice.SetActive(false);
                 return; // Reading time is preserved while outside Power or using the Y menu.
             }
-            // Finite one-time unlock instructions cannot be starved by repeated machine input.
-            while (activeNotice == null && notices.Count > 0)
-            {
-                activeEntry = notices.Dequeue();
-                activeNotice = activeEntry.popup;
-                noticeRemaining = activeEntry.seconds;
-            }
+            // Direct-action errors take priority; stage changes discard obsolete instructions.
             if (activeNotice == null && pendingFeedback.popup != null)
             {
                 activeEntry = pendingFeedback;
                 pendingFeedback = default;
+                activeNotice = activeEntry.popup;
+                noticeRemaining = activeEntry.seconds;
+            }
+            while (activeNotice == null && notices.Count > 0)
+            {
+                activeEntry = notices.Dequeue();
                 activeNotice = activeEntry.popup;
                 noticeRemaining = activeEntry.seconds;
             }

@@ -14,21 +14,65 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     // One presentation source for the world sign and the existing head-follow Clinic HUD.
     public string CurrentInstruction { get; private set; } = "Read the Clinic introduction.";
     public bool IsIntroducing => pendingStep != 0;
+    public int InstructionStep => pendingStep != 0 ? pendingStep : Step;
     // Compact status is presentation only; the full instruction and all gates remain authoritative.
     public string CompactInstruction
     {
         get
         {
             if (IsIntroducing) return "Read the introduction; then continue.";
-            if (Step == 7) return "Harvest Herbs (Sickle), Water (Bucket), supplies (Crowbar).";
-            if (Step == 8) return randomFound ? "Grip UNLOAD on the stopped cart." :
-                (unloaded ? "Harvest a randomly placed herb patch or crate." : "Harvest a random resource and unload one cart item.");
-            if (Step == 9) return placed ? "Grip Medicine at the bench: 2 Herbs + 1 Water." : "Grip the PrepBench model; aim at green grid and release.";
+            if (Step == 7)
+            {
+                if (!harvested.Contains(MED_ResourceType.Herbs)) return "Harvest Herbs: grip Sickle, touch a herb patch and swing.";
+                if (!harvested.Contains(MED_ResourceType.Water)) return "Harvest Water: grip Bucket, touch the rain barrel.";
+                return "Harvest supplies: grip Crowbar, touch a supply crate and swing.";
+            }
+            if (Step == 8) return "Random harvest: " + (randomFound ? "DONE" : "NEEDED") +
+                " | Cart: " + (unloaded ? "DONE" : "NEEDED") + "\n" +
+                (!randomFound ? "Harvest the marked resource in the build grid." : "Grip UNLOAD once: cart → your inventory. No loading.");
+            if (Step == 9) return placed ? CraftInstruction(1) : "Grip PrepBench model; aim at green grid and release.";
             var readiness = GetComponent<DEF_ClinicReadiness>();
             if (patient != null && patient.IsHealthFull) return readiness != null ? readiness.PendingReason : "Check Clinic readiness.";
-            return readiness == null || readiness.station == null ? "Place the TreatmentStation model. Craft 3 Medicine total." :
-                "REFILL each Medicine. Stand on pad; grip TREAT once.";
+            var station = readiness != null ? readiness.station : null;
+            if (station != null && station.State == MED_TreatmentStation.StationState.Treating) return "Treatment running: stay on the green pad until this dose finishes.";
+            int needed = patient != null ? Mathf.CeilToInt((patient.MaxHealth - patient.Health) / 20f) : 3;
+            int stored = station != null ? Mathf.FloorToInt(station.StoredMedicine.Value) : 0;
+            if (patient != null && patient.Get(MED_ResourceType.Medicine) + stored < needed) return CraftInstruction(needed - stored);
+            if (station == null) return "Place TreatmentStation model on green grid. 3 Medicine heals 50 → 100.";
+            if (stored < needed) return "Grip REFILL once per Medicine. Station: " + stored + "/" + needed + " doses needed.";
+            return station.PlayerOnPad ? "Grip TREAT once, then stay on the green pad." : "Stand on the station's green pad, then grip TREAT once.";
         }
+    }
+
+    string CraftInstruction(int needed)
+    {
+        var readiness = GetComponent<DEF_ClinicReadiness>();
+        if (readiness != null && readiness.bench != null && !readiness.bench.IsIdle)
+            return "Medicine crafting — wait for the bench to finish.";
+        int herbs = patient != null ? patient.Get(MED_ResourceType.Herbs) : 0;
+        int water = patient != null ? patient.Get(MED_ResourceType.Water) : 0;
+        int medicine = patient != null ? patient.Get(MED_ResourceType.Medicine) : 0;
+        if (herbs < 2) return "Gather " + (2 - herbs) + " more Herbs with Sickle for the next Medicine.";
+        if (water < 1) return "Gather 1 Water with Bucket for the next Medicine.";
+        return "Grip Medicine at PrepBench (2 Herbs + 1 Water). Inventory: " + medicine + "/" + needed + " needed.";
+    }
+
+    // Context hints are not gameplay gates. Failure messages use the HUD separately.
+    public bool IsTutorialRelevant(string id)
+    {
+        if (IsIntroducing) return false;
+        if (id == "hud" || id == "statbars") return true;
+        if (Step == 7) return id == "toolrack" || id == "herbpatch" || id == "barrel" || id == "crate";
+        if (Step == 8) return (id == "cart" && !unloaded) || (!randomFound && (id == "herbpatch" || id == "crate"));
+        if (Step == 9) return id == "shelf" || id == "grid" || id == "bench" || id == "herbpatch" || id == "barrel";
+        return id == "station" || id == "bench" || id == "shelf" || id == "grid" || id == "herbpatch" || id == "barrel";
+    }
+
+    void Awake()
+    {
+        // Include nested prefab instances, not only top-level scene objects.
+        foreach (var button in FindObjectsByType<MED_TestButtonBase>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (button.gameObject.scene == gameObject.scene) button.HideInIntegratedScene();
     }
 
     void SetDirections(string text)
@@ -38,6 +82,40 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     }
     readonly HashSet<MED_ResourceType> harvested=new();
     bool randomFound,unloaded,placed,subscribed;
+    MED_Harvestable learningTarget;
+    TextMesh learningMarker;
+    void UpdateLearningMarker()
+    {
+        if (Step != 8 || pendingStep != 0 || randomFound || MED_AreaGate.Outside)
+        {
+            if (learningMarker != null) learningMarker.gameObject.SetActive(false);
+            return;
+        }
+        if (learningTarget == null || !learningTarget.isActiveAndEnabled || learningTarget.IsEmpty)
+        {
+            learningTarget = null;
+            foreach (var marker in FindObjectsByType<DEF_ClinicRandomSource>(FindObjectsSortMode.None))
+            {
+                var source = marker.GetComponent<MED_Harvestable>();
+                if (marker.Owner == wildSpawner && source != null && source.isActiveAndEnabled && !source.IsEmpty)
+                { learningTarget = source; break; }
+            }
+        }
+        if (learningTarget == null) return;
+        if (learningMarker == null)
+        {
+            var go = new GameObject("Clinic current harvest target");
+            go.transform.SetParent(transform, false);
+            learningMarker = go.AddComponent<TextMesh>();
+            learningMarker.fontSize = 48; learningMarker.characterSize = .025f;
+            learningMarker.anchor = TextAnchor.MiddleCenter; learningMarker.alignment = TextAlignment.Center;
+            learningMarker.color = Color.white;
+        }
+        learningMarker.gameObject.SetActive(true);
+        learningMarker.text = "HARVEST THIS\n" + learningTarget.RequiredTool;
+        learningMarker.transform.position = learningTarget.transform.position + Vector3.up * 1.1f;
+        if (Camera.main != null) learningMarker.transform.rotation = Camera.main.transform.rotation;
+    }
     float revealUntil;
     int pendingStep=7;
     void Start(){Reveal(7,"CLINIC: Sickle harvests Herbs; Bucket collects Water; Crowbar opens supplies. Read this introduction before using tools.");}
@@ -60,7 +138,7 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     void Harvest(MED_Harvestable source,MED_PlayerResources p,MED_ToolType tool,MED_ResourceType resource,int amount)
     {
         if(p!=patient||source.gameObject.scene!=gameObject.scene||amount<=0||pendingStep!=0)return;
-        if(Step==7){harvested.Add(resource);if(harvested.Contains(MED_ResourceType.Herbs)&&harvested.Contains(MED_ResourceType.Water)&&(harvested.Contains(MED_ResourceType.Alcohol)||harvested.Contains(MED_ResourceType.Gauze)))Reveal(8,"Find and harvest a randomly placed resource. Unload the arriving cart before it leaves.");}
+        if(Step==7){harvested.Add(resource);if(harvested.Contains(MED_ResourceType.Herbs)&&harvested.Contains(MED_ResourceType.Water)&&(harvested.Contains(MED_ResourceType.Alcohol)||harvested.Contains(MED_ResourceType.Gauze)))Reveal(8,"Harvest another herb patch or crate in the build grid after this introduction. Grip UNLOAD once on the cart to take one item into your inventory. Never load the cart.");}
         else if(Step==8&&source.GetComponent<DEF_ClinicRandomSource>()!=null&&wildSpawner!=null&&source.GetComponent<DEF_ClinicRandomSource>().Owner==wildSpawner){randomFound=true;CheckEight();}
     }
     void Unload(MED_SupplyCart source,MED_PlayerResources p,MED_ResourceType resource,bool empty){if(p==patient&&source.gameObject.scene==gameObject.scene&&Step==8&&pendingStep==0){unloaded=true;CheckEight();}}
@@ -70,6 +148,7 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
     void Reveal(int next,string text){pendingStep=next;revealUntil=Time.unscaledTime+4;SetDirections(text);}
     void Update()
     {
+        UpdateLearningMarker();
         if(pendingStep!=0&&Time.unscaledTime>=revealUntil){
             if(pendingStep==8&&(wildSpawner==null||!wildSpawner.EnsureLearningSource())){SetDirections("Random resource unavailable. Free a Clinic grid cell or restart the full run; Step8 remains locked.");revealUntil=Time.unscaledTime+1;return;}
             Step=pendingStep;pendingStep=0;}
@@ -84,10 +163,10 @@ public sealed class DEF_ClinicTraining : MonoBehaviour
                 "50 to 100 needs 3 Medicine total. Grip REFILL for each unit; stand on the pad, grip TREAT once and stay there.\n" + reason);
         }
         if(Step==7&&pendingStep==0)
-            SetDirections("Harvest Herbs with Sickle, Water with Bucket, and Alcohol or Gauze with Crowbar. Hold the tool with GRIP; touch its tip to the resource and swing or hold TRIGGER.");
+            SetDirections(CompactInstruction + " Hold the tool with GRIP; touch its tip to the resource and swing or hold TRIGGER.");
         if(Step==8&&pendingStep==0)
             SetDirections((randomFound ? "Random resource harvested. " : "Find and harvest a randomly placed resource. ") +
-                (unloaded ? "Cart unloaded." : "Grip a cart resource button to unload at least one item."));
+                (unloaded ? "Cart DONE: one item received. No more unloading needed." : "Cart NEEDED: grip UNLOAD once to receive one item into your inventory. No loading required."));
         if(Step==9&&pendingStep==0)
             SetDirections(placed ? "Grip the Medicine recipe card at your PrepBench: 2 Herbs + 1 Water. Wait for crafting to finish." :
                 "Grip the PrepBench model on the shelf. Aim at a green grid location and release to build; then grip its Medicine recipe card.");

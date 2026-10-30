@@ -27,11 +27,12 @@ public class MED_PlayerHUD : MonoBehaviour
     GameObject integratedIntro;
     RectTransform integratedObjective;
     DEF_ClinicReadiness integratedReadiness;
-    struct Notice { public string Text; public float MinimumSeconds; public bool IsIntroduction; }
+    struct Notice { public string Text; public float MinimumSeconds; public bool IsIntroduction; public int Step; }
     readonly Queue<Notice> introductionQueue = new();
     readonly HashSet<string> pendingFeedback = new();
     readonly HashSet<string> seenIntroductions = new();
     string currentIntroduction, completedDescription;
+    int currentNoticeStep;
     bool currentIsIntroduction;
     float introductionRemaining, completedAt = -100f;
     int observedStep;
@@ -58,7 +59,21 @@ public class MED_PlayerHUD : MonoBehaviour
     {
         if (integratedTraining != null && integratedGoal != null)
         {
-            if (pendingFeedback.Add(text)) introductionQueue.Enqueue(new Notice { Text = text, MinimumSeconds = seconds });
+            // Failed actions must be visible now, not several tutorial cards later.
+            // Repeated identical failures do not extend their lifetime.
+            if (!currentIsIntroduction && currentIntroduction == text && introductionRemaining > 0f) return;
+            if (currentIntroduction != null && currentIsIntroduction && currentNoticeStep >= integratedTraining.Step)
+                introductionQueue.Enqueue(new Notice { Text = currentIntroduction, IsIntroduction = true, Step = currentNoticeStep });
+            if (currentIntroduction != null && !currentIsIntroduction) pendingFeedback.Remove(currentIntroduction);
+            currentIntroduction = text;
+            currentIsIntroduction = false;
+            pendingFeedback.Add(text);
+            introductionRemaining = Mathf.Max(seconds, DEF_UIPresentationPolicy.ReadSeconds(text));
+            if (MED_AreaGate.PlayerInside)
+            {
+                integratedIntro.SetActive(true);
+                integratedIntroText.text = "CLINIC — FEEDBACK\n" + text;
+            }
             return;
         }
         if (messageLabel == null) return;
@@ -161,7 +176,7 @@ public class MED_PlayerHUD : MonoBehaviour
             displayedInstruction = integratedTraining.CurrentInstruction;
             bool introducingHere = integratedTraining.IsIntroducing && MED_AreaGate.PlayerInside;
             if (introducingHere && (!previousIntroduction || previousIntroductionText != displayedInstruction) && seenIntroductions.Add(displayedInstruction))
-                introductionQueue.Enqueue(new Notice { Text = displayedInstruction, IsIntroduction = true });
+                introductionQueue.Enqueue(new Notice { Text = displayedInstruction, IsIntroduction = true, Step = integratedTraining.InstructionStep });
             previousIntroduction = introducingHere;
             previousIntroductionText = displayedInstruction;
             if (integratedTraining.Step > observedStep)
@@ -205,10 +220,10 @@ public class MED_PlayerHUD : MonoBehaviour
         for (int i = 0; i < queued; i++)
         {
             var notice = introductionQueue.Dequeue();
-            if (notice.IsIntroduction) introductionQueue.Enqueue(notice);
+            if (notice.IsIntroduction && notice.Step >= integratedTraining.Step) introductionQueue.Enqueue(notice);
         }
         pendingFeedback.Clear();
-        if (!currentIsIntroduction) { currentIntroduction = null; introductionRemaining = 0f; }
+        if (!currentIsIntroduction || currentNoticeStep < integratedTraining.Step) { currentIntroduction = null; introductionRemaining = 0f; }
     }
 
     void UpdateIntroduction()
@@ -222,6 +237,7 @@ public class MED_PlayerHUD : MonoBehaviour
             if (introductionQueue.Count > 0)
             {
                 var notice = introductionQueue.Dequeue();
+                currentNoticeStep = notice.Step;
                 currentIntroduction = notice.Text;
                 currentIsIntroduction = notice.IsIntroduction;
                 introductionRemaining = Mathf.Max(notice.MinimumSeconds, DEF_UIPresentationPolicy.ReadSeconds(notice.Text));

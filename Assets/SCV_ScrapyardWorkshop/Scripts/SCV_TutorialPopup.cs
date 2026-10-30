@@ -13,18 +13,21 @@ public class SCV_TutorialPopup : MonoBehaviour
     [Header("Timing")]
     [SerializeField] private float displayDuration = 4f;
 
+    bool integrated;
     private bool hasShown = false;
     private bool isShowing = false;
 
     private void Start()
     {
+        integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
         if (popupCanvas != null)
             popupCanvas.SetActive(false);
     }
 
     private void Update()
     {
-        if (hasShown || isShowing)
+        // The integrated corner objective provides current-step instructions; proximity alone must not reveal later mechanics.
+        if (integrated || hasShown || isShowing)
             return;
 
         if (playerHead == null)

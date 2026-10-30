@@ -19,6 +19,10 @@ public sealed class DEF_WorkshopReadiness : DEF_PrerequisiteSource
     [SerializeField] SCV_RepairReceiver teachingRepairReceiver;
     string physicalReceipt;
     bool published;
+    // Read-only presentation evidence; never substitutes for the validated prerequisite receipt.
+    public bool FreshAmmoCrafted => ammoCrafted;
+    public bool FreshRepairCrafted => repairCrafted;
+    public bool PracticeDeliveryReceived => !string.IsNullOrEmpty(physicalReceipt);
     public override DEF_ProgressionState.Prerequisite Kind => DEF_ProgressionState.Prerequisite.Workshop14;
     public override void BeginSession(int session) { base.BeginSession(session); physicalReceipt = null; published = false; freshCrafts.Clear(); ammoCrafted=repairCrafted=false; }
     void OnEnable() { if(workbench!=null)workbench.PhysicalItemCrafted+=Crafted; if (teachingReceiver != null) teachingReceiver.PhysicalAmmoAccepted += Accepted; if(teachingRepairReceiver!=null)teachingRepairReceiver.PhysicalRepairAccepted+=Accepted; }
