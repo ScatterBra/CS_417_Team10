@@ -58,6 +58,11 @@ public sealed class DEF_IntegratedXRPresentation : MonoBehaviour
             if (canvas == null) return false;
             ConfigureHeadCanvas(canvas, camera, 1.6f, new Vector2(1600, 900));
             headCanvases.Add(canvas);
+            // Keep Pause clear of every yard's shared upper-right objective and introduction cards.
+            if (hud.pauseButton != null)
+                hud.pauseButton.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, -138);
+            if (hud.ammoText != null)
+                ((RectTransform)hud.ammoText.transform.parent).anchoredPosition = new Vector2(40, -220);
             var popupObject = new GameObject("Integrated Defense shop", typeof(RectTransform), typeof(Canvas));
             SceneManager.MoveGameObjectToScene(popupObject, gameObject.scene);
             popup = popupObject.GetComponent<Canvas>();
@@ -78,7 +83,7 @@ public sealed class DEF_IntegratedXRPresentation : MonoBehaviour
                 if (presentation == null || presentation == canvas) continue;
                 ConfigureHeadCanvas(presentation, camera, 1.55f, new Vector2(1600, 900));
                 headCanvases.Add(presentation);
-                AddReadableCard(presentation, presenter.goalText, "Current goal", new Vector2(440, 270), new Vector2(600, 230), 24);
+                AddReadableCard(presentation, presenter.goalText, "Current goal", new Vector2(420, 260), new Vector2(640, 250), 28);
                 AddReadableCard(presentation, presenter.introductionText, "Introduction", new Vector2(440, -40), new Vector2(600, 320), 24);
                 AddReadableCard(presentation, presenter.failureText, "Feedback", new Vector2(0, -300), new Vector2(1100, 200), 24);
             }

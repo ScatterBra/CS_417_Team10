@@ -121,11 +121,15 @@ public class DEF_HUD : MonoBehaviour
             startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
             startButton.interactable = !shopOpen && !guideOpen;
             bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
+            // The saved Wave status card contains only these two labels; retire its empty backing too.
+            if (integratedScene) waveText.transform.parent.gameObject.SetActive(waveVisible);
             waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
             zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);
             if(!gates.IsAllowed(DEF_Action.BasicSentry) && shopOpen)CloseMenus();
         }
         var input = DEF_VRInput.Instance;
+        if (integratedScene)
+            healthText.transform.parent.gameObject.SetActive(ResourceContextVisible || state.playerHealth < state.maxHealth || flash > 0);
         bool selected = input != null && input.BuildArmed && !BlockingWorldInput;
         selectedPanel.SetActive(selected);
         if (selected) { int i = (int)input.mode; selectedText.text = Names[i] + "  /  " + Prices[i] + " SCRAP\n<size=17>Right trigger: place  ·  Close button: cancel</size>"; selectedPicture.sprite = itemPictures[i]; }
@@ -137,6 +141,7 @@ public class DEF_HUD : MonoBehaviour
             trainingStep == 3 ? "04 / COLLECT SUPPLIES\n<size=18>10 ammo set aside for training. Aim at a supply crate + right grip.</size>" :
             "05 / FORTIFY ALL FOUR SIDES\n<size=18>A: build shop. Press left Menu when ready to begin.</size>";
         if (Time.unscaledTime > noticeUntil) noticeText.text = state.playerHealth <= 0 ? "BASE BREACHED  /  Press left Menu to restart" : "";
+        if (integratedScene) noticeText.gameObject.SetActive(!string.IsNullOrEmpty(noticeText.text));
         flash = Mathf.MoveTowards(flash, 0, Time.unscaledDeltaTime * 1.1f);
         foreach (var edge in damageEdges) edge.color = new Color(0.9f,0.07f,0.04f,flash * 0.55f);
     }
