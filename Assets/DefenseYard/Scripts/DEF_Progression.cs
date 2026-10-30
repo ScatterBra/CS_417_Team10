@@ -60,8 +60,9 @@ public sealed class DEF_Progression : MonoBehaviour
         switch (action)
         {
             case DEF_Action.BasicSentry: return stage >= S.PlaceSentry;
-            case DEF_Action.Repair: return stage == S.Repair || stage == S.Ammo || stage == S.WaveReady || stage == S.WaveActive || (State.AdvancedUnlocked && !State.IntroductionActive);
-            case DEF_Action.PhysicalAmmo: return stage == S.Ammo || stage == S.WaveReady || stage == S.WaveActive || (State.AdvancedUnlocked && !State.IntroductionActive);
+            // Learned physical resupply remains available while later introductions are displayed.
+            case DEF_Action.Repair: return stage >= S.Repair;
+            case DEF_Action.PhysicalAmmo: return stage >= S.Ammo;
             case DEF_Action.StartWave: return stage == S.WaveReady || stage==S.AdvancedPractice || stage==S.MissilePractice || stage==S.JuggernautReady;
             case DEF_Action.Combat: return !State.IntroductionActive && (stage==S.WaveActive || (stage>=S.AdvancedPractice && stage<S.Complete && DEF_WaveManager.I!=null && (DEF_WaveManager.I.phase==DEF_WaveManager.Phase.Spawning || DEF_WaveManager.I.phase==DEF_WaveManager.Phase.Active)));
             case DEF_Action.Barricade:

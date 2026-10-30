@@ -59,7 +59,8 @@ public sealed class DEF_PhysicalReceiverPresentation : MonoBehaviour
         // Full-health defenses do not accumulate permanent battlefield cards.
         panel.Root.SetActive(repair == null || !RepairAtFullIntegrity() || feedback);
         if (!panel.Root.activeSelf) return;
-        string body = feedback ? message : CurrentInstruction();
+        bool failedAmmoRun = ammo != null && ((ammo.destination != null && ammo.destination.playerHealth <= 0) || (DEF_WaveManager.I != null && DEF_WaveManager.I.AttemptFailed));
+        string body = feedback && !failedAmmoRun ? message : CurrentInstruction();
         panel.SetText(ammo != null ? "AMMO INTAKE" : "REPAIR KIT", body);
         var input = DEF_VRInput.Instance;
         var camera = input != null && input.gameObject.scene == gameObject.scene && DEF_VRInput.Active && input.xrCamera != null ? input.xrCamera : Camera.main;
@@ -77,6 +78,8 @@ public sealed class DEF_PhysicalReceiverPresentation : MonoBehaviour
         if (ammo != null)
         {
             var destination = ammo.destination;
+            if ((destination != null && destination.playerHealth <= 0) || (DEF_WaveManager.I != null && DEF_WaveManager.I.AttemptFailed))
+                return "Base lost. Restart or retry before delivering ammo. Your box will not be consumed.";
             if (destination != null && destination.ammo >= destination.maxAmmo) return "Defense ammo is full. Save this box until ammo is used.";
             return "Hold grip to carry. Release a crafted Ammo Box inside this intake." +
                 (destination != null ? "\nDefense ammo: " + destination.ammo + "/" + destination.maxAmmo : "");

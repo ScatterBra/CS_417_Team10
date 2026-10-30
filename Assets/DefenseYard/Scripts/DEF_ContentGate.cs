@@ -14,7 +14,8 @@ public sealed class DEF_ContentGate : MonoBehaviour
         {
             var p=DEF_Progression.Current;if(p==null)return true;
             if(TryGetComponent(out DEF_WorkshopRepairReceiver _))return p.IsAllowed(DEF_Action.Repair);
-            if(TryGetComponent(out DEF_WorkshopAmmoReceiver _))return p.IsAllowed(DEF_Action.PhysicalAmmo);
+            // Keep a learned intake findable after failure; receiver still validates permission before spending.
+            if(TryGetComponent(out DEF_WorkshopAmmoReceiver _))return p.State.Current>=DEF_ProgressionState.Stage.Ammo;
             if(TryGetComponent(out DEF_AmmoCrate _))return p.IsAllowed(DEF_Action.AmmoCrate);
             if(TryGetComponent(out DEF_ShockTrap _))return p.IsAllowed(DEF_Action.Shock);
             if(TryGetComponent(out DEF_Barricade _))return p.IsAllowed(DEF_Action.Barricade);

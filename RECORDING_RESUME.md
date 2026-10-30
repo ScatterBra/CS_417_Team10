@@ -1,31 +1,19 @@
-# Recording-only Barricade/Shock continuation
+# Recording-only Missile continuation
 
-**Branch: `daryl/mp2c-advanced-recording-resume`. Do not merge into main.**
-This separate checkpoint continues after the first Defense wave and the already-recorded Barricade/Shock introduction. The later `daryl/mp2c-defense-integration-resume` checkpoint and main remain unchanged.
+**Branch: `daryl/mp2c-advanced-recording-resume`. Main and the separate late checkpoint remain unchanged. Do not merge this recording fixture into main.**
 
-Open `Assets/Scenes/Deadzone_Final.unity`, enter Play, and wait for `RECORDING RESUME READY` in the Console. You start near the outpost north entrance. The current objective asks for a moving-enemy barricade detour and a live Shock stun. No wave starts automatically.
+This checkpoint now resumes at **MissilePractice**, because the Barricade detour and Shock stun have already been recorded. Earlier milestones are prepared starting state, not new evidence. No splash or final-challenge evidence is seeded.
 
-## Record these remaining actions in order
-1. Start the practice wave. Place a barricade across a moving enemy's route and let the enemy actually walk the detour. Simply placing it or having it absorb damage is not enough.
-2. Place Shock so it stuns a live enemy. Both real actions are needed; their order does not matter. Keep footage of the resulting Missile introduction and unlock.
-3. Once the Missile introduction finishes, place a Missile Sentry. Get one explosion to damage at least two distinct enemies. Repeat the practice wave if needed; it does not auto-complete this requirement.
-4. Finish any remaining practice enemies, then start the real Juggernaut challenge. Keep the base alive, have at least two defense types contribute against enemies including the Brute, and physically repair and refill DURING that wave. Pre-wave repair/refill does not count toward its sustainment requirement.
-5. Show the integration loop: grip the Medicine package in the OUTPOST MEDICAL SUPPLIES bin beyond the north service gate; use its normal 15% movement boost to run to Workshop, craft/grab ammo and repair kits, and return to physically deliver them. The boost lasts60seconds across yards and does not speed crafting.
+Open `Assets/Scenes/Deadzone_Final.unity`, enter Play and wait for `RECORDING RESUME READY`. Place your own Missile Sentry; only the damaged basic sentry is preplaced. Start a practice wave and show one missile explosion damaging two distinct enemies. Keep the current objective and successful progression visible. Finish remaining practice enemies, then start the real Juggernaut challenge. Use two defense types, physically repair and refill DURING that wave, and keep the base alive.
 
-## Explicitly prepared starting state
-Earlier station prerequisites, self-treatment and early Defense tutorials are prepared debug state, NOT new evidence of completing them. No historical completion/craft/delivery receipts are replayed. Use the original footage for those milestones; describe this footage as a resumed recording, not one uninterrupted fresh run.
+The AMMO INTAKE remains available once Ammo has been introduced, including during later introduction cards. Physical repair similarly remains available after its initial introduction. These changes do not bypass box/kit identity, release, Workshop ledger, capacity, positive repair or failed-run validation. After base loss, the learned intake stays visible and explains that you must restart or retry. Delivery still rejects without consuming the box; resupply cannot revive a failed run.
 
-- Current phase is AdvancedPractice. No detour, stun, splash or final-challenge evidence is seeded.
-- Only a basic sentry is placed; it begins40integrity below full. Missile remains genuinely locked until the actions above unlock it.
-- Defense500scrap, healthy base, ammo10/60. One physical AmmoBox and RepairKit are inside the outpost, outside their receivers, ready for normal pickup/release consumption.
-- Charged Cell is already mounted in the dock; subsequent Shock recharge uses the normal Power benefit.
-- One prepared Medicine package is already in the medical bin. It is consumed normally, not infinite. This first prepared package is not proof of cart delivery.
-- Workshop200additional scrap and60additional parts support finite, normal new crafting. Its workbench, processor and supply interactions are unlocked.
-- Clinic20Herbs/10Water support later real crafting; build a PrepBench normally if needed. The real incoming-ingredient/outgoing-Medicine cart cycle remains available.
+Prepared stock: Defense500scrap and10/60ammo; one physical AmmoBox and RepairKit in the outpost, outside their receivers; Workshop200additional scrap and60additional parts; Clinic20Herbs/10Water. Stock and ammunition are finite. Refill before starting if necessary, then show a real refill again during combat. The real workbench spends materials and creates new physical supplies.
 
-Refill and prepare before starting if necessary: the basic sentry can kill targets before the detour/stun demonstration, and low ammunition can halt firing. Nothing grants automatic wins, infinite stock, remote refill or fabricated advanced progress.
+The dock contains a prepared Charged Cell and the outpost medical bin contains one prepared Medicine package. Grip that package for the normal15% movement boost lasting60seconds across yards, then run to Workshop for ammo/repair supplies and bring them back. This first package is not proof of cart delivery. Further Clinic crafts and cart deliveries remain normal and must be performed genuinely.
 
-The bootstrap runs once per fresh Editor Play/final-scene load. Normal Retry returns to the ordinary early Defense tutorial and does not replenish this checkpoint. STOP and re-enter Play if you need to restart this prepared recording. Nothing is saved to the scene.
+If the run fails, STOP and re-enter Play to restore this prepared checkpoint. Ordinary Retry still returns to early Defense training; this branch never automatically grants new stock on retry. Full scene reload recreates the fixture. Nothing is saved into the scene.
 
-## Verification
-Static regression checks confirm AdvancedPractice, displayed prior wave1, no preplaced missile, no seeded advanced evidence, and unchanged real progression/consumption code. No Unity/headset runtime pass is claimed. Runtime acceptance: see the correct objective and locked missile, earn both control actions, observe Missile reveal/unlock, earn two-target splash, then see Juggernaut readiness and complete its real requirements. If `RECORDING RESUME FAILED` appears, report the full error rather than recording a partial fixture.
+Static/source review is not a Unity/headset runtime pass. Verify walking, physical refill and the Missile objective before recording. Report the full error if `RECORDING RESUME FAILED` appears. Describe footage as a resumed recording, not one uninterrupted fresh run or new proof of the prepared milestones.
+
+The recording-only movement guard retains the last valid capsule height when tracking briefly reports zero height and keeps step offset within that height. It preserves normal CharacterController collisions, camera pose, input and movement speed; valid tracked height resumes normally. It does not disable collision or force a disabled rig on. This addresses the observed Height0/StepOffset0.5 configuration; headset validation is still required.
