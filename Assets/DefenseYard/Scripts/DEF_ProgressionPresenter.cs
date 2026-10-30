@@ -37,6 +37,9 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
             string done = CompletedAction(observedStage);
             if (done != null) { completedText = done; completedUntil = Time.unscaledTime + 2.2f; }
         }
+        // Preserve reading time across the intro's ordinary unlock, not after its action was completed.
+        if (integrated && observed && observedSession == state.Session && observedAttempt == state.Attempt &&
+            state.Current != observedStage && !state.IntroductionActive && !IsIntroductionStage(observedStage)) noticeUntil = 0;
         if (!observed || observedSession != state.Session || observedAttempt != state.Attempt) { completedUntil = 0; noticeUntil = 0; }
         observed = true; observedSession = state.Session; observedAttempt = state.Attempt; observedStage = state.Current;
         RefreshObjective();
@@ -44,7 +47,7 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         integrated = DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene);
         UpdateGoalVisibility();
         bool intro = state.IntroductionActive;
-        introductionText.gameObject.SetActive(intro || (integrated && Time.unscaledTime < noticeUntil));
+        introductionText.gameObject.SetActive((!integrated || goalText.gameObject.activeSelf) && (intro || (integrated && Time.unscaledTime < noticeUntil)));
         if (!intro) { presenting = false; return; }
         if (presenting && session == state.Session && attempt == state.Attempt && introduction == state.Introduction) return;
         session = state.Session; attempt = state.Attempt; introduction = state.Introduction;
@@ -85,7 +88,10 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
             var camera = input != null && input.gameObject.scene == gameObject.scene && DEF_VRInput.Active && input.xrCamera != null ? input.xrCamera : Camera.main;
             // Local station guidance owns the view until the player returns to Defense.
             // Missing setup must not hide the only available guidance.
-            if (defenseGrid != null && camera != null)
+            var hud = DEF_HUD.Instance;
+            if (hud != null && hud.gameObject.scene == gameObject.scene)
+                visible = hud.DefenseContextVisible;
+            else if (defenseGrid != null && camera != null)
                 visible = defenseGrid.WorldToTile(camera.transform.position, out _, out _);
         }
         if (goalText.gameObject.activeSelf != visible) goalText.gameObject.SetActive(visible);
@@ -99,6 +105,8 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
         goalText.text = check ? "COMPLETED\n" + completedText :
             (integrated ? (owner.State.Current == S.Complete ? "DEFENSE COMPLETE\n" : "DEFENSE — NEXT\n") : "") + owner.NextGoal;
     }
+    static bool IsIntroductionStage(S stage) => stage == S.RepairIntroduction || stage == S.AmmoIntroduction ||
+        stage == S.WaveIntroduction || stage == S.FirstWaveComplete || stage == S.MissileIntroduction;
     static string CompletedAction(S stage)
     {
         switch (stage)
@@ -122,3 +130,4 @@ public sealed class DEF_ProgressionPresenter : MonoBehaviour
     static void Set(GameObject[] objects, bool active)
     { if (objects != null) foreach (var obj in objects) if (obj != null) obj.SetActive(active); }
 }
+

@@ -41,8 +41,8 @@ public sealed class DEF_ClinicReadiness : DEF_PrerequisiteSource
             patient.MaxHealth==100 && expectedHealth==MED_PlayerResources.DefaultStartingHealth;
         if(sessionBench!=null)eligibleBenches.Add(sessionBench);
         if(observedStation!=null){eligibleStations.Add(observedStation);observedStation.DoseCommitted+=Dose;}
-        PendingReason=armed?"Craft Medicine, stock this treatment station and heal the Clinic patient from 50 to 100 on its pad.":
-            "Clinic needs configured sources and a fresh patient at 50/100. Reload the full run; Defense retry preserves readiness.";
+        PendingReason=armed?"Craft Medicine, stock this station and heal yourself from 50 to 100 on its pad.":
+            "Clinic needs a fresh run with your health at 50/100. Reload the full run; Defense retry preserves readiness.";
     }
     bool Current=>armed && Session>0 && patient==sessionPatient && medicineRecipe==sessionRecipe &&
         (sessionRoot!=null ? buildingsRoot==sessionRoot && benchDefinition==sessionBenchDefinition && stationDefinition==sessionStationDefinition :
@@ -75,14 +75,14 @@ public sealed class DEF_ClinicReadiness : DEF_PrerequisiteSource
     {
         if(!Current||published||!eligibleStations.Contains(source)||target!=sessionPatient||!target.IsCurrent(unit)||
             !eligibleBenches.Contains(unit.Bench)||unit.Recipe!=sessionRecipe||receipts.Contains(unit.Id))return;
-        if(before!=expectedHealth || after<=before || after>100){armed=false;PendingReason="Patient health changed outside the verified Medicine chain. Reload the full run.";return;}
+        if(before!=expectedHealth || after<=before || after>100){armed=false;PendingReason="Your health changed outside the verified Medicine chain. Reload the full run.";return;}
         receipts.Add(unit.Id);expectedHealth=after;complete=after==100;Check();
     }
     void Check()
     {
         if(!isActiveAndEnabled||!Current||published||!complete||patient.Health!=100)return;
         var training=DEF_ClinicTraining.For(this);if(training!=null&&!training.ReadyForTreatment)return;
-        published=true;PendingReason="Fresh crafted Medicine was stocked and successfully treated this patient to 100/100.";
+        published=true;PendingReason="You healed yourself to 100 with fresh Medicine. Clinic requirement verified for Defense.";
         Publish("clinic:"+patient.GetEntityId()+":"+generation);
     }
     void OnEnable(){if(!subscribed){MED_Building.OnBuilt+=Built;MED_Building.OnRemoved+=Removed;subscribed=true;}Check();}

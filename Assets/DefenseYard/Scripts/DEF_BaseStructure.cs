@@ -5,6 +5,11 @@ public class DEF_BaseStructure : MonoBehaviour
     public static DEF_BaseStructure Instance { get; private set; }
     public float halfSize = 3.5f;
     void Awake() { Instance = this; }
+    void Start()
+    {
+        if (DEF_IntegratedXRPresentation.IsIntegratedScene(gameObject.scene) && GetComponent<DEF_IntegratedOutpostPresentation>() == null)
+            gameObject.AddComponent<DEF_IntegratedOutpostPresentation>();
+    }
     void OnDestroy() { if (Instance == this) Instance = null; }
     public bool Contains(Vector3 p, float margin = 0f)
     {
@@ -18,3 +23,4 @@ public class DEF_BaseStructure : MonoBehaviour
             Mathf.Max(0f, Mathf.Abs(d.z) - halfSize)).magnitude;
     }
 }
+

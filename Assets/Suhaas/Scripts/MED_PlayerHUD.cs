@@ -192,7 +192,7 @@ public class MED_PlayerHUD : MonoBehaviour
             if (integratedObjective != null) integratedObjective.localScale = Vector3.one * (1f + .035f * Mathf.Sin(animation * Mathf.PI));
             if (integratedGoal != null)
             {
-                string heading = clinicCompleted ? "CLINIC COMPLETE\n" : "CLINIC — NEXT\n";
+                string heading = clinicCompleted ? "CLINIC COMPLETE\n" : "CLINIC — SELF-TREATMENT\n";
                 integratedGoal.color = showCheck ? new Color(.55f, 1f, .65f) : Color.white;
                 DEF_UIPresentationPolicy.SetCompletionMark(integratedGoal, showCheck);
                 integratedGoal.text = showCheck ? "COMPLETED\n" + completedDescription : heading + integratedTraining.CompactInstruction;
@@ -209,7 +209,7 @@ public class MED_PlayerHUD : MonoBehaviour
         if (source != integratedReadiness || string.IsNullOrEmpty(receipt)) return;
         ClearStaleFeedback();
         clinicCompleted = true;
-        completedDescription = "Fresh Medicine treated the Clinic patient to 100/100.";
+        completedDescription = "You healed yourself to 100 with fresh Medicine.";
         completedAt = Time.unscaledTime;
     }
 
@@ -251,7 +251,7 @@ public class MED_PlayerHUD : MonoBehaviour
     void RefreshIntegratedStats()
     {
         if (integratedStats == null || resources == null) return;
-        var text = new StringBuilder($"CLINIC  Health {resources.Health}/{resources.MaxHealth}\n");
+        var text = new StringBuilder($"CLINIC  Your health {resources.Health}/{resources.MaxHealth}\n");
         text.Append($"Herbs {resources.Get(MED_ResourceType.Herbs)}   Water {resources.Get(MED_ResourceType.Water)}   Medicine {resources.Get(MED_ResourceType.Medicine)}\n");
         text.Append($"Alcohol {resources.Get(MED_ResourceType.Alcohol)}   Gauze {resources.Get(MED_ResourceType.Gauze)}");
         foreach (MED_ResourceType type in new[] { MED_ResourceType.BandageKit, MED_ResourceType.Antiseptic, MED_ResourceType.Painkiller, MED_ResourceType.Tonic })

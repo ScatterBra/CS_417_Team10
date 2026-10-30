@@ -117,10 +117,10 @@ public class DEF_HUD : MonoBehaviour
             SetResourceVisibility(scrapText, "Scrap label", ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
             ammoText.transform.parent.gameObject.SetActive(ResourceContextVisible && (gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry)));
             scrapText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
-            shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
-            startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
+            shopButton.gameObject.SetActive(DefenseContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
+            startButton.gameObject.SetActive(DefenseContextVisible && (gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat)));
             startButton.interactable = !shopOpen && !guideOpen;
-            bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
+            bool waveVisible=DefenseContextVisible && (gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat));
             // The saved Wave status card contains only these two labels; retire its empty backing too.
             if (integratedScene) waveText.transform.parent.gameObject.SetActive(waveVisible);
             waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
@@ -133,7 +133,7 @@ public class DEF_HUD : MonoBehaviour
         bool selected = input != null && input.BuildArmed && !BlockingWorldInput;
         selectedPanel.SetActive(selected);
         if (selected) { int i = (int)input.mode; selectedText.text = Names[i] + "  /  " + Prices[i] + " SCRAP\n<size=17>Right trigger: place  ·  Close button: cancel</size>"; selectedPicture.sprite = itemPictures[i]; }
-        contextText.text = BlockingWorldInput || (gates != null && !gates.IsAllowed(DEF_Action.Repair)) ? "" : TargetReadout();
+        contextText.text = !DefenseContextVisible || BlockingWorldInput || (gates != null && !gates.IsAllowed(DEF_Action.Repair)) ? "" : TargetReadout();
         objectivePanel.SetActive(training && !guideOpen && !shopOpen);
         objectiveText.text = trainingStep == 0 ? "01 / GET YOUR BEARINGS\n<size=18>" + (moved ? "OK" : "•") + " Left stick: move   " + (looked ? "OK" : "•") + " Turn your head: look</size>" :
             trainingStep == 1 ? "02 / BUILD YOUR FIRST DEFENSE\n<size=18>A: shop → select an item → aim outside → right trigger</size>" :
@@ -145,6 +145,9 @@ public class DEF_HUD : MonoBehaviour
         flash = Mathf.MoveTowards(flash, 0, Time.unscaledDeltaTime * 1.1f);
         foreach (var edge in damageEdges) edge.color = new Color(0.9f,0.07f,0.04f,flash * 0.55f);
     }
+    // Presentation only: active combat and explicitly opened build UI remain visible outside the yard.
+    // Earning a prerequisite elsewhere does not itself grant presentation ownership.
+    public bool DefenseContextVisible => ResourceContextVisible;
     bool ResourceContextVisible
     {
         get
@@ -256,10 +259,10 @@ public class DEF_HUD : MonoBehaviour
             SetResourceVisibility(scrapText, "Scrap label", ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
             ammoText.transform.parent.gameObject.SetActive(ResourceContextVisible && (gates.IsAllowed(DEF_Action.PhysicalAmmo) || gates.IsAllowed(DEF_Action.BasicSentry)));
             scrapText.gameObject.SetActive(ResourceContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
-            shopButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.BasicSentry));
-            startButton.gameObject.SetActive(gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat));
+            shopButton.gameObject.SetActive(DefenseContextVisible && gates.IsAllowed(DEF_Action.BasicSentry));
+            startButton.gameObject.SetActive(DefenseContextVisible && (gates.IsAllowed(DEF_Action.StartWave) || gates.IsAllowed(DEF_Action.Combat)));
             startButton.interactable = !shopOpen && !guideOpen;
-            bool waveVisible=gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat);
+            bool waveVisible=DefenseContextVisible && (gates.IsAllowed(DEF_Action.StartWave)||gates.IsAllowed(DEF_Action.Combat));
             waveText.gameObject.SetActive(waveVisible);waveStatus.gameObject.SetActive(waveVisible);
             zombieText.gameObject.SetActive(waveVisible);threatText.gameObject.SetActive(waveVisible);
             if(!gates.IsAllowed(DEF_Action.BasicSentry) && shopOpen)CloseMenus();
@@ -279,3 +282,4 @@ public class DEF_HUD : MonoBehaviour
         return "";
     }
 }
+

@@ -153,7 +153,7 @@ public class MED_TreatmentStation : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (storedMedicine.Value + 1f > storedMedicine.Max) return Fail("Station is full");
-        if(player==null)return Fail("No Clinic patient bound");
+        if(player==null)return Fail("Your Clinic health is unavailable");
         if(player.Get(MED_ResourceType.Medicine)<1)return Fail("No Medicine");
         supplyBusy=true;
         bool accepted;
@@ -173,7 +173,7 @@ public class MED_TreatmentStation : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (!playerOnPad) return Fail(MED_Messages.NotOnPad);
-        if(player==null)return Fail("No Clinic patient bound");
+        if(player==null)return Fail("Your Clinic health is unavailable");
         if(player.IsHealthFull)return Fail(MED_Messages.HealthFull);
         if (storedMedicine.Value < 1f) return Fail(MED_Messages.StationEmpty);
         StartDose();
@@ -206,7 +206,7 @@ public class MED_TreatmentStation : MonoBehaviour
             healed=patient.ApplyDose(healPerDose,()=>{unit=evidenceStock.Take();SetStock(storedMedicine.Value-1f);},out before,out after);
         }
         finally {supplyBusy=false;}
-        if(!healed){StopTreating("Treatment needs positive healing and an available patient.");return;}
+        if(!healed){StopTreating("Treatment needs your Clinic health below full and available for healing.");return;}
         if(generation==patient.EvidenceGeneration && patient.IsCurrent(unit) && DoseCommitted!=null)
             foreach(System.Action<MED_TreatmentStation,MED_PlayerResources,MED_MedicineUnit,int,int> listener in DoseCommitted.GetInvocationList())
                 try {listener(this,patient,unit,before,after);}catch(System.Exception e){Debug.LogException(e);}

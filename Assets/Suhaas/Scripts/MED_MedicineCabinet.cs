@@ -117,7 +117,7 @@ public class MED_MedicineCabinet : MonoBehaviour
         if (!MED_PlayerProximity.IsNear(transform.position, maxUseDistance)) return Fail("Too far");
         Bind();
         if (stock.Value + 1f > stock.Max) return Fail("Cabinet full");
-        if(player==null)return Fail("No Clinic patient bound");
+        if(player==null)return Fail("Your Clinic inventory is unavailable");
         if(player.Get(MED_ResourceType.Medicine)<1)return Fail("No Medicine");
         supplyBusy=true;bool accepted;
         try {evidenceStock.Sync(stock.Value);accepted=player.TransferMedicine(unit=>{evidenceStock.Add(unit);SetStock(stock.Value+1f);});}
